@@ -38,24 +38,24 @@ You need a Google account.
 1. access https://groups.google.com/forum/#!forum/{group_name}/join
 2. select "join group"
 3. Fill out the form like the following image. Use a display name that can be understood to the admin.
-4. Subscription is complete. The security settings in the google groups is very strict, therefore you cannot see other members, and cannot post group emails.
-![](pics/googlegroups1.png)
-![](pics/googlegroups2.png)
+4. Subscription is complete. The security settings in the google groups is very strict, therefore you cannot see other members, and cannot post group emails.   
+![](pics/googlegroups1.png)    
+![](pics/googlegroups2.png)   
 
 ### Initial settings
 1. Adding you as an user
    1. Enter your name. Refer to ① in the below picture.
    2. Link for sheets：https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit?usp=sharing
 2. Select devices you will use
-   1. Check the devices you would like to use. Refer to ③ in the below picture.
-![](pics/sheets1.png)
-![](pics/sheets2.png)
+   1. Check the devices you would like to use. Refer to ③ in the below picture.   
+![](pics/sheets1.png)   
+![](pics/sheets2.png)   
 
 ### Add the user calendars to your calendar application (in your smartphone or on your PC)
 1. Links for Read(read only) calendar and Write(write only) calendar are prepared. (Don't use the link in ➁)
-2. Select the sheet named "URL of Calendar", and click the link like the figure below. Google calendar will open and you can add the calendar.
-![](pics/calendar1.png)
-![](pics/calendar2.png)
+2. Select the sheet named "URL of Calendar", and click the link like the figure below. Google calendar will open and you can add the calendar.   
+![](pics/calendar1.png)   
+![](pics/calendar2.png)   
 
 ### Adding a reservation (Write calendar)
 1. Add an event on Google calendar
