@@ -76,14 +76,18 @@ function writeEventsToReadCalendar(sheet, calendarId, index, fullSync) {
   const users = getUsers(sheet);
   const writeUser = users[index];
   const events = getEvents(calendarId, fullSync);
+  Logger.log(readCalendarIds.length + ' read calendars');
   for (var i = 0; i < readCalendarIds.length; i++){
     const readUser = users[i];
     if (readUser != writeUser) { // avoid duplicating event for same user's read and write calendars
       const readCalendarId = readCalendarIds[i];
       const enabledDevices = enabledDevicesList[i];
       writeEvents(events, calendarId, readCalendarId, enabledDevices, writeUser);
+      Logger.log(events.length + ' events for CalendarId ' + readCalendarId);
     }
   }
+  updateSyncToken(calendarId);
+  Logger.log('Wrote updated events to read calendar. Fullsync = ' + fullSync);
 }
 
 // update corresponding user's subscribed devices 
@@ -94,6 +98,7 @@ function changeSubscribedDevices(sheet, readUser, index, users){
   const writeCalendarIds = getWriteCalendarIds(sheet);
   const readCalendarId = readCalendarIds[index];
   const enabledDevices = enabledDevicesList[index];
+  Logger.log(writeCalendarIds.length + ' write calendars');
   for (var i = 0; i < writeCalendarIds.length; i++){
     const writeCalendarId = writeCalendarIds[i];
     const events = getEvents(writeCalendarId, fullSync);
@@ -101,7 +106,9 @@ function changeSubscribedDevices(sheet, readUser, index, users){
     if (readUser != writeUser) { // avoid duplicating event for same user's read and write calendars
       writeEvents(events, writeCalendarId, readCalendarId, enabledDevices, writeUser);
     }
+    Logger.log(events.length + ' events for CalendarId ' + writeCalendarId);
   }
+  Logger.log('Changed subscribed devices');
 }
   
 // update calendar's User Name based on full name input
@@ -110,6 +117,7 @@ function updateCalendarUserName(sheet, cell, newValue){
   setUserNames(sheet); // set User Name 2 using User Name 1
   setCheckboxes(sheet, cell); // create checkboxes for selecting equipment
   setCalendars(sheet, cell); // set read calendar and write calendar for created user
+  Logger.log('Updated user name');
 }
 
 // get all the User Names
@@ -162,19 +170,36 @@ function getReadCalendars(sheet) {
   };
 }
 
+// update the sync token
+function updateSyncToken(calendarId) {
+  const properties = PropertiesService.getUserProperties();
+  const options = {
+    maxResults: 100
+  };
+  const syncToken = properties.getProperty('syncToken');
+  options.syncToken = syncToken;
+  // Retrieve events one page at a time.
+  var eventsList;
+  eventsList = Calendar.Events.list(calendarId, options);
+  pageToken = eventsList.nextPageToken;
+  properties.setProperty('syncToken', eventsList.nextSyncToken);
+  Logger.log('Updated sync token. New sync token: ' + eventsList.nextSyncToken);
+}
+
 // get events from the given calendar that have been modified since the last sync.
-// if the sync token is missing or invalid, log all events from up to a month ago (a full sync).
+// if the sync token is missing or invalid, log all events from up to a ten days ago (a full sync).
 function getEvents(writeCalendarId, fullSync) {
   const properties = PropertiesService.getUserProperties();
   const options = {
     maxResults: 100
   };
   const syncToken = properties.getProperty('syncToken');
+  Logger.log('Current sync token: ' + syncToken);
   if (syncToken && !fullSync) {
     options.syncToken = syncToken;
   } else {
-    // Sync events up to thirty days in the past.
-    options.timeMin = getRelativeDate(-30, 0).toISOString();
+    // Sync events up to ten days in the past.
+    options.timeMin = getRelativeDate(-10, 0).toISOString();
   }
 
   // Retrieve events one page at a time.
@@ -187,9 +212,10 @@ function getEvents(writeCalendarId, fullSync) {
     } catch (e) {
       // Check to see if the sync token was invalidated by the server;
       // if so, perform a full sync instead.
-      if (e.message === 'Sync token is no longer valid, a full sync is required.') {
+      if (e.message === 'API call to calendar.events.list failed with error: Sync token is no longer valid, a full sync is required.') {
+        Logger.log('Sync token invalidated -> Full sync initiated');
         properties.deleteProperty('syncToken');
-        logSyncedEvents(calendarId, true);
+        getEvents(calendarId, true);
         return;
       } else {
         throw new Error(e.message);
@@ -210,6 +236,7 @@ function getEvents(writeCalendarId, fullSync) {
     }
     pageToken = eventsList.nextPageToken;
   } while (pageToken);
+  Logger.log('New sync token: ' + eventsList.nextSyncToken);
   properties.setProperty('syncToken', eventsList.nextSyncToken);
   return events;
 }
@@ -297,6 +324,7 @@ function setCheckboxes(sheet, cell) {
       sheet.getRange(cell.getRow(), column).insertCheckboxes();  
     }
   }
+  Logger.log('Created checkboxes');
 }
 
 // set read calendar and write calendar for created user
@@ -328,4 +356,5 @@ function changeCalendarName(calendarId, userName, readOrWrite) {
   const calendar = CalendarApp.getCalendarById(calendarId);
   calendar.setName(summary);
   calendar.setDescription(description);
+  Logger.log('Updated calendar name');
 }
