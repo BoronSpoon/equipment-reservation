@@ -76,6 +76,7 @@ function writeEventsToReadCalendar(sheet, calendarId, index, fullSync) {
   const users = getUsers(sheet);
   const writeUser = users[index];
   const events = getEvents(calendarId, fullSync);
+  updateSyncToken(calendarId);
   Logger.log(readCalendarIds.length + ' read calendars');
   for (var i = 0; i < readCalendarIds.length; i++){
     const readUser = users[i];
@@ -86,7 +87,6 @@ function writeEventsToReadCalendar(sheet, calendarId, index, fullSync) {
       Logger.log(events.length + ' events for CalendarId ' + readCalendarId);
     }
   }
-  updateSyncToken(calendarId);
   Logger.log('Wrote updated events to read calendar. Fullsync = ' + fullSync);
 }
 
@@ -170,30 +170,29 @@ function getReadCalendars(sheet) {
   };
 }
 
-// update the sync token
+// update the sync token because updating once does not work
 function updateSyncToken(calendarId) {
   const properties = PropertiesService.getUserProperties();
   const options = {
     maxResults: 100
   };
-  const syncToken = properties.getProperty('syncToken');
+  const syncToken = properties.getProperty('syncToken'+calendarId);
   options.syncToken = syncToken;
   // Retrieve events one page at a time.
   var eventsList;
   eventsList = Calendar.Events.list(calendarId, options);
-  pageToken = eventsList.nextPageToken;
-  properties.setProperty('syncToken', eventsList.nextSyncToken);
+  properties.setProperty('syncToken'+calendarId, eventsList.nextSyncToken);
   Logger.log('Updated sync token. New sync token: ' + eventsList.nextSyncToken);
 }
 
 // get events from the given calendar that have been modified since the last sync.
 // if the sync token is missing or invalid, log all events from up to a ten days ago (a full sync).
-function getEvents(writeCalendarId, fullSync) {
+function getEvents(calendarId, fullSync) {
   const properties = PropertiesService.getUserProperties();
   const options = {
     maxResults: 100
   };
-  const syncToken = properties.getProperty('syncToken');
+  const syncToken = properties.getProperty('syncToken'+calendarId);
   Logger.log('Current sync token: ' + syncToken);
   if (syncToken && !fullSync) {
     options.syncToken = syncToken;
@@ -205,23 +204,23 @@ function getEvents(writeCalendarId, fullSync) {
   // Retrieve events one page at a time.
   var eventsList;
   var pageToken;
+  var events = [];
   do {
     try {
       options.pageToken = pageToken;
-      eventsList = Calendar.Events.list(writeCalendarId, options);
+      eventsList = Calendar.Events.list(calendarId, options);
     } catch (e) {
       // Check to see if the sync token was invalidated by the server;
       // if so, perform a full sync instead.
       if (e.message === 'API call to calendar.events.list failed with error: Sync token is no longer valid, a full sync is required.') {
         Logger.log('Sync token invalidated -> Full sync initiated');
-        properties.deleteProperty('syncToken');
-        getEvents(calendarId, true);
-        return;
+        properties.deleteProperty('syncToken'+calendarId);
+        events = getEvents(calendarId, true);
+        return events;
       } else {
         throw new Error(e.message);
       }
     }
-    var events = [];
     if (eventsList.items && eventsList.items.length > 0) {
       for (var i = 0; i < eventsList.items.length; i++) {
         const event = eventsList.items[i];
@@ -236,8 +235,8 @@ function getEvents(writeCalendarId, fullSync) {
     }
     pageToken = eventsList.nextPageToken;
   } while (pageToken);
+  properties.setProperty('syncToken'+calendarId, eventsList.nextSyncToken);
   Logger.log('New sync token: ' + eventsList.nextSyncToken);
-  properties.setProperty('syncToken', eventsList.nextSyncToken);
   return events;
 }
 
