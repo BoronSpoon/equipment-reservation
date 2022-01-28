@@ -38,16 +38,24 @@ function onCalendarEdit(e) {
   const writeCalendarIds = getWriteCalendarIds(sheet);
   const index = writeCalendarIds.indexOf(calendarId);
   const fullSync = false;
+  adminLoggingSetup(book); // setup admin logging
+  adminLogging({ 
+    name: users[index],
+    action: "add/move/del event", 
+  });
   writeEventsToReadCalendar(sheet, calendarId, index, fullSync);
 }
 
 // when sheets gets edited
 function onSheetsEdit(e) {
+  const book = SpreadsheetApp.openById('{spreadsheetid}');
   const sheet = e.source.getActiveSheet();
   const cell = e.source.getActiveRange();
   const newValue = e.value;
   const row = cell.getRow();
   const column = cell.getColumn();
+  const lastRow = sheet.getLastRow();
+  const lastColumn = sheet.getLastColumn();
   const users = getUsers(sheet);
   const index = row-2;
   const readUser = users[index];
@@ -55,6 +63,34 @@ function onSheetsEdit(e) {
   const calendarId = writeCalendarIds[index]
   const fullSync = true;
   
+  adminLoggingSetup(book); // setup admin logging
+  if (row == 1 || row > lastRow || column > lastColumn || (column > 1 && column < 6)){
+    action = "edited invalid area";
+  } else if (column === 1) {
+    action = "edited name";
+  } else if (column === 6) {
+    action = "edited read calendarId";
+  } else if (column === 7) {
+    action = "edited write calendarId";
+  } else if (column > 7) {
+    action = "edited device";
+  } 
+  if (action !== "edited device") { // if the user hasnt edited device, then we have to log execution time here
+    executionDateTime = new Date(); // current time
+    adminLogging({
+      executionYear: executionDateTime.getFullYear(),
+      executionMonth: executionDateTime.getMonth()+1, // Jan. is 0, Dec is 11 --change--> 1~12
+      executionDay: executionDateTime.getDate(),
+      executionHour: executionDateTime.getHours(),
+      executionMin: executionDateTime.getMinutes(),
+      executionSec: executionDateTime.getSeconds(),
+      executionMilliSec: executionDateTime.getMilliseconds(),
+    });
+  }
+  adminLogging({ 
+    name: readUser,
+    action: 'sheets (row, col) = (' + row + ', ' + column + '): ' + action,
+  });  
   // when the checkbox (H2~nm) is edited in sheets on sheet 'users'
   // update corresponding user's subscribed devices
   if (sheet.getName() === 'users' && row > 1 && column > 7){ 
@@ -67,6 +103,67 @@ function onSheetsEdit(e) {
     writeEventsToReadCalendar(sheet, calendarId, index, fullSync);
   }
 }
+
+function adminLoggingSetup(book) { // prepares constant for adminLogging
+  const properties = PropertiesService.getUserProperties();
+  const lastRow = book.getSheetByName('admin_log').getLastRow();
+  const row = lastRow + 1; // write on new row
+  properties.setProperty('row', row.toString());
+  properties.setProperty('adminLoggingDone', 'false'); // reset execution state of admin logging
+}
+
+function adminLogging(logObj) { // logs everything
+  const columnDescriptions = { // shows which description corresponds to which column
+    executionYear: 1,
+    executionMonth: 2,
+    executionDay: 3,
+    executionHour: 4,
+    executionMin: 5,
+    executionSec: 6,
+    executionMilliSec: 7,
+    startYear: 8,
+    startMonth: 9,
+    startDay: 10,
+    startHour: 11,
+    startMin: 12,
+    startSec: 13,
+    startMilliSec: 14,
+    endYear: 15,
+    endMonth: 16,
+    endDay: 17,
+    endHour: 18,
+    endMin: 19,
+    endSec: 20,
+    endMilliSec: 21,
+    durationYear: 22,
+    durationMonth: 23,
+    durationDay: 24,
+    durationHour: 25,
+    durationMin: 26,
+    durationSec: 27,
+    durationMilliSec: 28,
+    specialAllDay: 29,
+    specialReccuring: 30,
+    specialRecurringDays: 31,
+    name: 32,
+    device: 33,
+    status: 34,
+    comment: 35,
+    action: 36,
+  }; // didn't put this in adminLoggingSetup because it cannot hold js objects
+  const properties = PropertiesService.getUserProperties();
+  const row = parseInt(properties.getProperty('row'));
+  const adminLogSheet = SpreadsheetApp.openById('{spreadsheetid}').getSheetByName('admin_log');
+  for (const key in logObj) { // iterate through log object
+    var value = logObj[key];
+    var col = columnDescriptions[key];
+    adminLogSheet.getRange(row,col).setValue(value);
+  }
+}
+
+//function eventLogging() { // logs just the necessary data
+//
+//}
 
 // filter readUsers who are not writeUser and have the device
 function filterUsers(writeUser, event, readCalendarIds, users, enabledDevicesList) {
@@ -99,7 +196,7 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
   for (var i = 0; i < events.length; i++){
     const event = events[i];
     const filteredReadCalendarIds = filterUsers(writeUser, event, readCalendarIds, users, enabledDevicesList).filteredReadCalendarIds;
-    Logger.log('writing event no.' + (i+1).toString() +  ' to ' + filteredReadCalendarIds);
+    Logger.log('writing event no.' + (i+1).toString() +  ' to [ ' + filteredReadCalendarIds + ' ]');
     writeEvent(event, writeCalendarId, writeUser, filteredReadCalendarIds); // create event in write calendar and add read calendars as guests
   }
   updateSyncToken(calendarId); // renew sync token after adding guest
@@ -267,15 +364,61 @@ function writeEvent(event, writeCalendarId, writeUser, readCalendarIds) {
   const device = deviceStateFromEvent.device;
   const state = deviceStateFromEvent.state;
   const eid = event.iCalUID;
-  var writeCalendar = CalendarApp.getCalendarById(writeCalendarId).getEventById(eid);
+  var event = CalendarApp.getCalendarById(writeCalendarId).getEventById(eid);
   // if device is enabled in sheets, add to guest subscription
   // change title from '(User Name) + device + state' to 'User Name + device + state'
   const summary = writeUser  + ' ' + device + ' ' + state;
-  writeCalendar.setTitle(summary);
+  event.setTitle(summary);
   // add read calendars as guests
   for (var i = 0; i < readCalendarIds.length; i++) {
     const readCalendarId = readCalendarIds[i];
-    writeCalendar.addGuest(readCalendarId);
+    event.addGuest(readCalendarId);
+  }
+  executionDateTime = new Date(); // current time
+  startDateTime = event.getStartTime();
+  endDateTime = event.getEndTime();
+  durationDateTime = new Date(endDateTime - startDateTime);
+  const properties = PropertiesService.getUserProperties();
+  var adminLoggingDone = properties.getProperty('adminLoggingDone');
+  if (adminLoggingDone === 'false'){ // do admin logging only once
+    adminLogging({
+      executionYear: executionDateTime.getFullYear(),
+      executionMonth: executionDateTime.getMonth()+1, // Jan. is 0, Dec is 11 --change--> 1~12
+      executionDay: executionDateTime.getDate(),
+      executionHour: executionDateTime.getHours(),
+      executionMin: executionDateTime.getMinutes(),
+      executionSec: executionDateTime.getSeconds(),
+      executionMilliSec: executionDateTime.getMilliseconds(),
+      startYear: startDateTime.getFullYear(),
+      startMonth: startDateTime.getMonth()+1,
+      startDay: startDateTime.getDate(),
+      startHour: startDateTime.getHours(),
+      startMin: startDateTime.getMinutes(),
+      startSec: startDateTime.getSeconds(),
+      startMilliSec: startDateTime.getMilliseconds(),
+      endYear: endDateTime.getFullYear(),
+      endMonth: endDateTime.getMonth()+1,
+      endDay: endDateTime.getDate(),
+      endHour: endDateTime.getHours(),
+      endMin: endDateTime.getMinutes(),
+      endSec: endDateTime.getSeconds(),
+      endMilliSec: endDateTime.getMilliseconds(),
+      durationYear: durationDateTime.getFullYear(),
+      durationMonth: durationDateTime.getMonth()+1,
+      durationDay: durationDateTime.getDate(),
+      durationHour: durationDateTime.getHours(),
+      durationMin: durationDateTime.getMinutes(),
+      durationSec: durationDateTime.getSeconds(),
+      durationMilliSec: durationDateTime.getMilliseconds(),
+      specialAllDay: event.isAllDayEvent(),
+      specialReccuring: event.isRecurringEvent(),
+      specialRecurringDays: "",
+      device: device,
+      status: state,
+      comment: "",
+    });
+    Logger.log('admin logging done');
+    properties.setProperty('adminLoggingDone', 'true');
   }
 }
 
