@@ -76,7 +76,6 @@ function writeEventsToReadCalendar(sheet, calendarId, index, fullSync) {
   const users = getUsers(sheet);
   const writeUser = users[index];
   const events = getEvents(calendarId, fullSync);
-  updateSyncToken(calendarId);
   Logger.log(readCalendarIds.length + ' read calendars');
   for (var i = 0; i < readCalendarIds.length; i++){
     const readUser = users[i];
@@ -87,6 +86,7 @@ function writeEventsToReadCalendar(sheet, calendarId, index, fullSync) {
       Logger.log(events.length + ' events for CalendarId ' + readCalendarId);
     }
   }
+  updateSyncToken(calendarId); // renew sync token after adding guest
   Logger.log('Wrote updated events to read calendar. Fullsync = ' + fullSync);
 }
 
@@ -170,11 +170,11 @@ function getReadCalendars(sheet) {
   };
 }
 
-// update the sync token because updating once does not work
+// update the sync token after adding and deleting guests
 function updateSyncToken(calendarId) {
   const properties = PropertiesService.getUserProperties();
   const options = {
-    maxResults: 100
+    maxResults: 1 // results are not used so minimize this number
   };
   const syncToken = properties.getProperty('syncToken'+calendarId);
   options.syncToken = syncToken;
