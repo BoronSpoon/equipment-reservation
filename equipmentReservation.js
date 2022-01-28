@@ -9,12 +9,12 @@ function deleteTriggers(){
 
 // create triggers
 // only 20 triggers can be made for single script
-// we will use 19 for write calendars, 1 for spreadsheet
+// we will use 18 for write calendars, 1 for daily logging, 1 for spreadsheet
 function createTriggers() {
   const sheet = SpreadsheetApp.openById('{spreadsheetid}').getSheetByName('users');
   const writeCalendarIds = getWriteCalendarIds(sheet);
   
-  // create trigger for each of the 19 write calendars
+  // create trigger for each of the 18 write calendars
   // (calls function 'onCalendarEdit' on trigger)
   Logger.log(writeCalendarIds.length + ' calendar triggers will be created');
   for (var i = 0; i < writeCalendarIds.length; i++){
@@ -29,16 +29,25 @@ function createTriggers() {
       .forSpreadsheet('{spreadsheetid}')
       .onEdit()
       .create();
+  // create 1 Sheets trigger for daily logging past events
+  ScriptApp.newTrigger("eventLogging")
+    .timeBased()
+    .atHour(4) // 4:00
+    .nearMinute(0)  
+    .everyDays(1) 
+    .create();
 }
 
 // when calendar gets edited
 function onCalendarEdit(e) {
   const sheet = SpreadsheetApp.openById('{spreadsheetid}').getSheetByName('users');
+  const sheet = book.getSheetByName('users');
+  const users = getUsers(sheet);
   const calendarId = e.calendarId;
   const writeCalendarIds = getWriteCalendarIds(sheet);
   const index = writeCalendarIds.indexOf(calendarId);
   const fullSync = false;
-  adminLoggingSetup(book); // setup admin logging
+  adminLoggingSetup(); // setup admin logging
   adminLogging({ 
     name: users[index],
     action: "add/move/del event", 
@@ -63,7 +72,7 @@ function onSheetsEdit(e) {
   const calendarId = writeCalendarIds[index]
   const fullSync = true;
   
-  adminLoggingSetup(book); // setup admin logging
+  adminLoggingSetup(); // setup admin logging
   if (row == 1 || row > lastRow || column > lastColumn || (column > 1 && column < 6)){
     action = "edited invalid area";
   } else if (column === 1) {
@@ -75,8 +84,7 @@ function onSheetsEdit(e) {
   } else if (column > 7) {
     action = "edited device";
   } 
-  if (action !== "edited device") { // if the user hasnt edited device, then we have to log execution time here
-    executionDateTime = new Date(); // current time
+  const executionDateTime = new Date(); // current time
     adminLogging({
       executionYear: executionDateTime.getFullYear(),
       executionMonth: executionDateTime.getMonth()+1, // Jan. is 0, Dec is 11 --change--> 1~12
@@ -85,9 +93,6 @@ function onSheetsEdit(e) {
       executionMin: executionDateTime.getMinutes(),
       executionSec: executionDateTime.getSeconds(),
       executionMilliSec: executionDateTime.getMilliseconds(),
-    });
-  }
-  adminLogging({ 
     name: readUser,
     action: 'sheets (row, col) = (' + row + ', ' + column + '): ' + action,
   });  
@@ -104,7 +109,8 @@ function onSheetsEdit(e) {
   }
 }
 
-function adminLoggingSetup(book) { // prepares constant for adminLogging
+function adminLoggingSetup() { // prepares constant for adminLogging
+  book = SpreadsheetApp.openById('{loggingspreadsheetid}'); // spreadsheet for loggingrepares constant for adminLogging
   const properties = PropertiesService.getUserProperties();
   const lastRow = book.getSheetByName('admin_log').getLastRow();
   const row = lastRow + 1; // write on new row
@@ -153,7 +159,7 @@ function adminLogging(logObj) { // logs everything
   }; // didn't put this in adminLoggingSetup because it cannot hold js objects
   const properties = PropertiesService.getUserProperties();
   const row = parseInt(properties.getProperty('row'));
-  const adminLogSheet = SpreadsheetApp.openById('{spreadsheetid}').getSheetByName('admin_log');
+  const adminLogSheet = SpreadsheetApp.openById('{loggingspreadsheetid}').getSheetByName('admin_log'); // spreadsheet for logging
   for (const key in logObj) { // iterate through log object
     var value = logObj[key];
     var col = columnDescriptions[key];
@@ -161,9 +167,109 @@ function adminLogging(logObj) { // logs everything
   }
 }
 
-//function eventLogging() { // logs just the necessary data
-//
-//}
+function eventLogging() { // logs just the necessary data
+  const eventLogSheet = SpreadsheetApp.openById('{loggingspreadsheetid}').getSheetByName('event_log')
+  const lastRow = eventLogSheet.getLastRow();
+  const row = lastRow + 1; // write on new row
+  const columnDescriptions = { // shows which description corresponds to which column
+    startYear: 1,
+    startMonth: 2,
+    startDay: 3,
+    startHour: 4,
+    startMin: 5,
+    endYear: 6,
+    endMonth: 7,
+    endDay: 8,
+    endHour: 9,
+    endMin: 10,
+    durationYear: 11,
+    durationMonth: 12,
+    durationDay: 13,
+    durationHour: 14,
+    durationMin: 15,
+    specialAllDay: 16,
+    specialReccuring: 17,
+    specialRecurringDays: 18,
+    name: 19,
+    device: 20,
+    status: 21,
+    comment: 22,
+  };
+  const sheet = SpreadsheetApp.openById('{spreadsheetid}').getSheetByName('users');
+  const writeCalendarIds = getWriteCalendarIds(sheet);
+  const users = getUsers(sheet);
+  // get events from 2~3 days ago
+  options = {}
+  options.timeMin = getRelativeDate(-3, 0).toISOString(); // 3 days ago
+  options.timeMax = getRelativeDate(-2, 0).toISOString(); // 2 days ago
+  for (var i = 0; i < writeCalendarIds.length; i++){ // iterate through every write calendar id
+    Utilities.sleep(100);
+    const writeCalendarId = writeCalendarIds[i];
+    const writeUser = users[i];
+    const eventsList = Calendar.Events.list(writeCalendarId, options);
+    var events = []; 
+    // get events from eventsList format
+    if (eventsList.items && eventsList.items.length > 0) {
+      for (var j = 0; j < eventsList.items.length; j++) {
+        const event = eventsList.items[j];
+        if (event.status === 'cancelled') {
+          Logger.log('Event id %s was cancelled.', event.id);
+        } else{
+          events.push(event);
+        }
+      }
+    } 
+
+    if (events.length === 0) {
+      Logger.log('No events found for: ' + writeCalendarId);
+    } else {
+      Logger.log(events.length + ' events found for: ' + writeCalendarId);
+    }
+    
+    // log each event
+    for (var j = 0; j < events.length; j++){
+      Utilities.sleep(100);
+      var event = events[j];
+      const deviceStateFromEvent = getDeviceStateFromEvent(event); // this must be called first before getCalendarById
+      const device = deviceStateFromEvent.device;
+      const state = deviceStateFromEvent.state;
+      const eid = event.iCalUID;
+      event = CalendarApp.getCalendarById(writeCalendarId).getEventById(eid);
+      const startDateTime = event.getStartTime();
+      const endDateTime = event.getEndTime();
+      const durationDateTime = new Date(endDateTime - startDateTime);
+      var logObj = {
+          startYear: startDateTime.getFullYear(),
+          startMonth: startDateTime.getMonth()+1,
+          startDay: startDateTime.getDate(),
+          startHour: startDateTime.getHours(),
+          startMin: startDateTime.getMinutes(),
+          endYear: endDateTime.getFullYear(),
+          endMonth: endDateTime.getMonth()+1,
+          endDay: endDateTime.getDate(),
+          endHour: endDateTime.getHours(),
+          endMin: endDateTime.getMinutes(),
+          durationYear: durationDateTime.getFullYear() - 1970, // starts at 1970
+          durationMonth: durationDateTime.getMonth(), // dont add 1 to difference
+          durationDay: durationDateTime.getDate()-1, // dont know why it shows 1 when it should be 0
+          durationHour: durationDateTime.getHours(),
+          durationMin: durationDateTime.getMinutes(),
+          specialAllDay: event.isAllDayEvent(),
+          specialReccuring: event.isRecurringEvent(),
+          specialRecurringDays: "",
+          name: writeUser,
+          device: device,
+          status: state,
+          comment: "",
+      }
+      for (const key in logObj) { // iterate through log object
+        var value = logObj[key];
+        var col = columnDescriptions[key];
+        eventLogSheet.getRange(row,col).setValue(value);
+      }
+    }
+  }
+}
 
 // filter readUsers who are not writeUser and have the device
 function filterUsers(writeUser, event, readCalendarIds, users, enabledDevicesList) {
@@ -374,10 +480,10 @@ function writeEvent(event, writeCalendarId, writeUser, readCalendarIds) {
     const readCalendarId = readCalendarIds[i];
     event.addGuest(readCalendarId);
   }
-  executionDateTime = new Date(); // current time
-  startDateTime = event.getStartTime();
-  endDateTime = event.getEndTime();
-  durationDateTime = new Date(endDateTime - startDateTime);
+  const executionDateTime = new Date(); // current time
+  const startDateTime = event.getStartTime();
+  const endDateTime = event.getEndTime();
+  const durationDateTime = new Date(endDateTime - startDateTime);
   const properties = PropertiesService.getUserProperties();
   var adminLoggingDone = properties.getProperty('adminLoggingDone');
   if (adminLoggingDone === 'false'){ // do admin logging only once
@@ -403,9 +509,9 @@ function writeEvent(event, writeCalendarId, writeUser, readCalendarIds) {
       endMin: endDateTime.getMinutes(),
       endSec: endDateTime.getSeconds(),
       endMilliSec: endDateTime.getMilliseconds(),
-      durationYear: durationDateTime.getFullYear(),
-      durationMonth: durationDateTime.getMonth()+1,
-      durationDay: durationDateTime.getDate(),
+      durationYear: durationDateTime.getFullYear() - 1970, // starts at 1970
+      durationMonth: durationDateTime.getMonth(), // dont add 1 to difference
+      durationDay: durationDateTime.getDate()-1, // dont know why it shows 1 when it should be 0
       durationHour: durationDateTime.getHours(),
       durationMin: durationDateTime.getMinutes(),
       durationSec: durationDateTime.getSeconds(),
