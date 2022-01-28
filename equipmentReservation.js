@@ -68,23 +68,39 @@ function onSheetsEdit(e) {
   }
 }
 
+// filter readUsers who are not writeUser and have the device
+function filterUsers(writeUser, event, readCalendarIds, users, enabledDevicesList) {
+  var filteredReadCalendarIds = []; // readCalendarIds excluding the same user as writeCalendarId
+  var filteredReadUsers = []; // readUsers excluding the same user as writeCalendarId
+  const device = getDeviceStateFromEvent(event).device; // device used in the event
+  for (var i = 0; i < readCalendarIds.length; i++){
+    const readCalendarId = readCalendarIds[i];
+    const readUser = users[i];
+    const enabledDevices = enabledDevicesList[i];
+    if (enabledDevices.includes(device) === true){ // if device is enabled for readUser
+      if (readUser != writeUser) { // avoid duplicating event for same user's read and write calendars      
+        filteredReadCalendarIds.push(readCalendarId);
+        filteredReadUsers.push(readUser);
+      }
+    }
+  }
+  return {filteredReadCalendarIds, filteredReadUsers}
+}
+
 // write events to read calendar based on updated events in write calendar
-function writeEventsToReadCalendar(sheet, calendarId, index, fullSync) {
+function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
   const readCalendarIds = getReadCalendars(sheet).readCalendarIds;
   const enabledDevicesList = getReadCalendars(sheet).enabledDevicesList;
   const writeCalendarIds = getWriteCalendarIds(sheet);
   const users = getUsers(sheet);
   const writeUser = users[index];
-  const events = getEvents(calendarId, fullSync);
+  const events = getEvents(writeCalendarId, fullSync);
   Logger.log(readCalendarIds.length + ' read calendars');
-  for (var i = 0; i < readCalendarIds.length; i++){
-    const readUser = users[i];
-    if (readUser != writeUser) { // avoid duplicating event for same user's read and write calendars
-      const readCalendarId = readCalendarIds[i];
-      const enabledDevices = enabledDevicesList[i];
-      writeEvents(events, calendarId, readCalendarId, enabledDevices, writeUser);
-      Logger.log(events.length + ' events for CalendarId ' + readCalendarId);
-    }
+  for (var i = 0; i < events.length; i++){
+    const event = events[i];
+    const filteredReadCalendarIds = filterUsers(writeUser, event, readCalendarIds, users, enabledDevicesList).filteredReadCalendarIds;
+    Logger.log('writing event no.' + (i+1).toString() +  ' to ' + filteredReadCalendarIds);
+    writeEvent(event, writeCalendarId, writeUser, filteredReadCalendarIds); // create event in write calendar and add read calendars as guests
   }
   updateSyncToken(calendarId); // renew sync token after adding guest
   Logger.log('Wrote updated events to read calendar. Fullsync = ' + fullSync);
@@ -100,13 +116,15 @@ function changeSubscribedDevices(sheet, readUser, index, users){
   const enabledDevices = enabledDevicesList[index];
   Logger.log(writeCalendarIds.length + ' write calendars');
   for (var i = 0; i < writeCalendarIds.length; i++){
+    const writeUser = users[i];
     const writeCalendarId = writeCalendarIds[i];
     const events = getEvents(writeCalendarId, fullSync);
-    const writeUser = users[i];
-    if (readUser != writeUser) { // avoid duplicating event for same user's read and write calendars
-      writeEvents(events, writeCalendarId, readCalendarId, enabledDevices, writeUser);
+    for (var j = 0; j < events.length; j++){
+      const event = events[j];
+      const filteredUsers = filterUsers(writeUser, event, [readCalendarId], users, enabledDevicesList);
+      writeEvent(event, writeCalendarId, writeUser, readCalendarIds); // create event in write calendar and add read calendars as guests
     }
-    Logger.log(events.length + ' events for CalendarId ' + writeCalendarId);
+    updateSyncToken(writeCalendarId);
   }
   Logger.log('Changed subscribed devices');
 }
@@ -170,18 +188,6 @@ function getReadCalendars(sheet) {
   };
 }
 
-// update the sync token after adding and deleting guests
-function updateSyncToken(calendarId) {
-  const properties = PropertiesService.getUserProperties();
-  const options = {
-    maxResults: 1000 // suppress nextPageToken which supresses nextSyncToken by fitting all events in one page
-  };
-  var eventsList;
-  eventsList = Calendar.Events.list(calendarId, options);
-  properties.setProperty('syncToken'+calendarId, eventsList.nextSyncToken);
-  Logger.log('Updated sync token. New sync token: ' + eventsList.nextSyncToken);
-}
-
 // get events from the given calendar that have been modified since the last sync.
 // if the sync token is missing or invalid, log all events from up to a ten days ago (a full sync).
 function getEvents(calendarId, fullSync) {
@@ -200,11 +206,15 @@ function getEvents(calendarId, fullSync) {
 
   // Retrieve events one page at a time.
   var eventsList;
-  var pageToken;
+  var pageToken = null;
   var events = [];
   do {
     try {
-      options.pageToken = pageToken;
+      if (pageToken === null) { // first page
+        delete options.pageToken; // delete key "pageToken"
+      } else {
+        options.pageToken = pageToken;
+      }
       eventsList = Calendar.Events.list(calendarId, options);
     } catch (e) {
       // Check to see if the sync token was invalidated by the server;
@@ -233,38 +243,39 @@ function getEvents(calendarId, fullSync) {
     pageToken = eventsList.nextPageToken;
   } while (pageToken);
   properties.setProperty('syncToken'+calendarId, eventsList.nextSyncToken);
-  Logger.log('New sync token: ' + eventsList.nextSyncToken);
   return events;
 }
 
-// write events from write calendar to read calendar
-function writeEvents(events, writeCalendarId, readCalendarId, enabledDevices, user) {
-  if (events.length > 0) {
-    for (var i = 0; i < events.length; i++) {
-      Utilities.sleep(1000);
-      var event = events[i];
-      const summary = event.summary;
-      const status = summary.split(' '); // split to device and state
-      if (status.length === 1) { // just the device name (state is 'use')
-        var device = status[0];
-        var state = 'use';
-      } else if (status.length === 2 || status.length === 3) { // (User Name) + device + state
-        var device = status[status.length-2];
-        var state = status[status.length-1];
-      }
-      const eid = event.iCalUID;
-      var event = CalendarApp.getCalendarById(writeCalendarId).getEventById(eid);
-      if (enabledDevices.includes(device) === true){ 
-        // if device is enabled in sheets, add to guest subscription
-        // change title from '(User Name) + device + state' to 'User Name + device + state'
-        const summary = user  + ' ' + device + ' ' + state;
-        event.setTitle(summary);
-        event.addGuest(readCalendarId);
-      }
-      else { // if device is enabled in sheets, remove guest subscription
-        event.removeGuest(readCalendarId);
-      }
-    }
+// get device and state from event summary
+function getDeviceStateFromEvent(event){
+  const summary = event.summary;
+  const status = summary.split(' '); // split to device and state
+  if (status.length === 1) { // just the device name (state is 'use')
+    var device = status[0];
+    var state = 'use';
+  } else if (status.length === 2 || status.length === 3) { // (User Name) + device + state
+    var device = status[status.length-2];
+    var state = status[status.length-1];
+  }
+  return {device, state};
+}
+
+// rename and write event in write calendar and add read calendars as guests
+function writeEvent(event, writeCalendarId, writeUser, readCalendarIds) {
+  Utilities.sleep(100);
+  const deviceStateFromEvent = getDeviceStateFromEvent(event);
+  const device = deviceStateFromEvent.device;
+  const state = deviceStateFromEvent.state;
+  const eid = event.iCalUID;
+  var writeCalendar = CalendarApp.getCalendarById(writeCalendarId).getEventById(eid);
+  // if device is enabled in sheets, add to guest subscription
+  // change title from '(User Name) + device + state' to 'User Name + device + state'
+  const summary = writeUser  + ' ' + device + ' ' + state;
+  writeCalendar.setTitle(summary);
+  // add read calendars as guests
+  for (var i = 0; i < readCalendarIds.length; i++) {
+    const readCalendarId = readCalendarIds[i];
+    writeCalendar.addGuest(readCalendarId);
   }
 }
 
@@ -353,4 +364,16 @@ function changeCalendarName(calendarId, userName, readOrWrite) {
   calendar.setName(summary);
   calendar.setDescription(description);
   Logger.log('Updated calendar name');
+}
+
+// update the sync token after adding and deleting guests
+function updateSyncToken(calendarId) {
+  const properties = PropertiesService.getUserProperties();
+  const options = {
+    maxResults: 1000 // suppress nextPageToken which supresses nextSyncToken by fitting all events in one page
+  };
+  var eventsList;
+  eventsList = Calendar.Events.list(calendarId, options);
+  properties.setProperty('syncToken'+calendarId, eventsList.nextSyncToken);
+  Logger.log('Updated sync token. New sync token: ' + eventsList.nextSyncToken);
 }
