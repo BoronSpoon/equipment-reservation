@@ -174,11 +174,8 @@ function getReadCalendars(sheet) {
 function updateSyncToken(calendarId) {
   const properties = PropertiesService.getUserProperties();
   const options = {
-    maxResults: 1 // results are not used so minimize this number
+    maxResults: 1000 // suppress nextPageToken which supresses nextSyncToken by fitting all events in one page
   };
-  const syncToken = properties.getProperty('syncToken'+calendarId);
-  options.syncToken = syncToken;
-  // Retrieve events one page at a time.
   var eventsList;
   eventsList = Calendar.Events.list(calendarId, options);
   properties.setProperty('syncToken'+calendarId, eventsList.nextSyncToken);
