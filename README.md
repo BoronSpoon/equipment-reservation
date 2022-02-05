@@ -1,22 +1,12 @@
 <!-- ABOUT THE PROJECT -->
-## Abstract
-- This project is intended for use in environments where sharing the same equipments among multiple people is required. For example, laboratory, server nodes, room reservations and so on.
+## TL;DR
+- This project is intended for use in environments where sharing the same equipments among multiple people is required. For example, laboratory equipment, server nodes, room reservations and so on.
 - We would like to relieve the stress of having to negotiate or speculate other peoples reservation.
-- This application enables the user to see other users' reservations in Google Calendar (which should be very familiar to most people).
-## Short description of usage
-- The equiment reservation infos are shown (as events) in Google Calendar. Clients will check the reservations on their PCs or phones, and make a reservation at an avaliable time (by creating events).
-- Settings like display name, what equipments to show in Google Calendar are saved in a Google Sheet.
-## About The Project
-- This project uses a service called [Google Apps Script(GAS)](https://script.google.com/home/start). GAS enables Google services to be connected by scripts. We will use Google Sheets and Google Calendar in this project.
-- The language used in GAS is JavaScript with V8 syntax (V8 is a runtime which is used in Chrome and Node.js).
-- Sheets acts as a database for user information and preferences. Calendar acts as an UI and is used for adding, modifying, reviewing event.
-- There are two types of calendars we will use. The write calendar will be modified by the clients. The read calendar will be modified by the GAS service. When an event is modified on a write calendar, GAS applies the modification on the read calendar.
+   - **Make Reservations** in Google Calendar
+   - **Check other users' reservations** in Google Calendar.
 
 <!-- GETTING STARTED -->
-### Prerequisites
-You need a Google account.
-
-### Installation (administrator side)
+## Setting Up (administrator side)
 1. Create a Google account
 2. Create a Google Group
    1. Change the settings to maximum security in every aspect such as messaging, viewing uses,...
@@ -28,17 +18,18 @@ You need a Google account.
    4. write the calendar urls into sheet named `URL of Calendar`
 4. Create a GAS Project 
    1. Copy the contents of `equipmentReservation.js` to the new project's source code
-   2. change {spreadsheetId} to your spreadsheet id.
+   2. In the script, change {spreadsheetId} to your spreadsheet id, and {logSpreadsheetId} to your log spreadsheet id
 5. In the GAS project, run the function CreateTriggers()
 6. Publish the project
 
 <!-- USAGE EXAMPLES -->
-## Usage (client side)
+## Setting Up (client side)
 ### Join Google groups using the Google account used for your Google Calendar
-1. access https://groups.google.com/forum/#!forum/{group_name}/join
-2. select "join group"
-3. Fill out the form like the following image. Use a display name that can be understood to the admin.
-4. Subscription is complete. The security settings in the google groups is very strict, therefore you cannot see other members, and cannot post group emails.   
+1. Create a Google account
+2. Access https://groups.google.com/forum/#!forum/{group_name}/join
+3. Select "join group"
+4. Fill out the form like the following image. Use a display name that can be understood to the admin.
+5. Subscription is complete. The security settings in the google groups is very strict, therefore you cannot see other members, and cannot post group emails.   
 ![](pics/googlegroups1.png)    
 ![](pics/googlegroups2.png)   
 
@@ -96,6 +87,15 @@ You need a Google account.
 3. If there are too many reservations and it is overwhelming, you can hide the Read calendar in your calendar app and view it only when you need to.
 
 >The implementations details are in [details (Japanese)](https://github.com/rayanti/equipment-reservation/blob/master/details.md).
+
+## Usage
+- The equiment reservation infos are shown (as events) in Google Calendar. Clients will check the reservations on their PCs or phones, and make a reservation at an avaliable time (by creating events).
+- Settings like display name, what equipments to show in Google Calendar are saved in a Google Sheet.
+## About The Project
+- This project uses a service called [Google Apps Script(GAS)](https://script.google.com/home/start). GAS enables Google services to be connected by scripts. We will use Google Sheets and Google Calendar in this project.
+- The language used in GAS is JavaScript with V8 syntax (V8 is a runtime which is used in Chrome and Node.js).
+- Sheets acts as a database for user information, preferences and logging. Calendar acts as an UI and is used for adding, modifying, reviewing event.
+- There are two types of calendars we will use. The write calendar will be modified by the clients. The read calendar will be modified by the GAS service. When an event is modified on a write calendar, GAS applies the modification on the read calendar.
 
 <!-- ROADMAP -->
 ## Roadmap
