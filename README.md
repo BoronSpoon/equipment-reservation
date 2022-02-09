@@ -3,7 +3,8 @@
 - This project is intended for use in environments where sharing the same equipments among multiple people is required. For example, laboratory equipment, server nodes, room reservations and so on.
 - We would like to relieve the stress of having to negotiate or speculate other peoples reservation.
    - **Make Reservations** in Google Calendar
-   - **Check other users' reservations** in Google Calendar.
+   - **Check other users' reservations** in Google Calendar
+   - **Write experiment conditions** in Google Sheets
 
 <!-- GETTING STARTED -->
 ## Setting Up (administrator side)
@@ -85,6 +86,12 @@
 1. Observe events on Google Calendar
 2. Event title is `[Name] [Device] [State]`.
 3. If there are too many reservations and it is overwhelming, you can hide the Read calendar in your calendar app and view it only when you need to.
+
+### Writing experiment conditions (Experiment Sheets)
+1. Open Experiment Sheets
+2. Find the current event that you created in Google Calendar
+3. Write experiment conditions in Sheets
+4. The conditions will automatically get updated to the event in Google \Calendar.
 
 >The implementations details are in [details (Japanese)](https://github.com/rayanti/equipment-reservation/blob/master/details.md).
 
