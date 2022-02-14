@@ -11,7 +11,7 @@ The reservation will be automatically visible to other people
 
 **3. Check Reservations**   
 Check other peoples' reservations in Google Calendar   
-You will only see reservations of the equipments you chose
+You will only see reservations of the equipments you chose in 1
 
 <img width="100%" src="pics/horizontal_line.png">
 <img align="right" width="35%" hspace="2%" src="pics/flow2.png">
