@@ -32,10 +32,14 @@ Google Sheetsにて過去の実験の工程の確認を行うことができる
 **7. すべての操作をログとして保存**   
 予約の追加・変更・削除履歴をすべてGoogle Sheetsに保存することができる   
 
+<img width="100%" src="pics/horizontal_line.png">
+
 ## 必要なもの
 1. 管理者と各ユーザーがGoogleアカウントを作る必要がある
 2. Google CalendarとGoogle Sheetsにアクセスするための端末（スマートフォン・パソコン等）
 3. 現時点(2022/02/14)では無料で使用できる
+
+<img width="100%" src="pics/horizontal_line.png">
 
 ## アプリの処理の最大量
 1. 18ユーザー (スクリプトを同時に実行することで36ユーザー, 54ユーザー,...と増加させることができる)

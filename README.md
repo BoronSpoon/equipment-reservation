@@ -33,10 +33,14 @@ Saves events from 2 days ago to Google Sheets
 **7. Log all events**   
 Saves add/modify/delete event of reservations to Google Sheets   
 
+<img width="100%" src="pics/horizontal_line.png">
+
 ## Requirements
 1. Google Account for administrator and each users
 2. Smartphones or computers to access the Google Calendar and Sheets service
 3. No fees are required (at the time of writing: 2022/02/14)
+
+<img width="100%" src="pics/horizontal_line.png">
 
 ## Capability
 1. 18 users (can be increased to 36, 54,... by running scripts simultaneously)
