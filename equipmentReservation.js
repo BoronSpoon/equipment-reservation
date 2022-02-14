@@ -305,7 +305,7 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
     Logger.log('writing event no.' + (i+1).toString() +  ' to [ ' + filteredReadCalendarIds + ' ]');
     writeEvent(event, writeCalendarId, writeUser, filteredReadCalendarIds); // create event in write calendar and add read calendars as guests
   }
-  updateSyncToken(calendarId); // renew sync token after adding guest
+  updateSyncToken(writeCalendarId); // renew sync token after adding guest
   Logger.log('Wrote updated events to read calendar. Fullsync = ' + fullSync);
 }
 
@@ -324,8 +324,8 @@ function changeSubscribedDevices(sheet, readUser, index, users){
     const events = getEvents(writeCalendarId, fullSync);
     for (var j = 0; j < events.length; j++){
       const event = events[j];
-      const filteredUsers = filterUsers(writeUser, event, [readCalendarId], users, enabledDevicesList);
-      writeEvent(event, writeCalendarId, writeUser, readCalendarIds); // create event in write calendar and add read calendars as guests
+      const filteredReadCalendarIds = filterUsers(writeUser, event, [readCalendarId], users, enabledDevicesList).filteredReadCalendarIds;
+      writeEvent(event, writeCalendarId, writeUser, filteredReadCalendarIds); // create event in write calendar and add read calendars as guests
     }
     updateSyncToken(writeCalendarId);
   }
