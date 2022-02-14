@@ -15,8 +15,7 @@ Check other peoples' reservations in Google Calendar
 You will only see reservations of the equipments you chose
 
 <div style="clear:both"></div>
-
----
+<hr>
 <img align="right" width="40%" hspace="2%" src="pics/flow2.png">
 
 **4. Record Experiment Conditions**   
@@ -27,8 +26,7 @@ Save experiment conditions to the corresponding event in Google Calendar
 Check past experiment conditions in Google Sheets   
 
 <div style="clear:both"></div>
-
----
+<hr>
 <img align="left" width="45%" hspace="2%" src="pics/flow3.png">
 
 **6. Log all reservations**   
