@@ -1,6 +1,6 @@
 ## このアプリでできること
 
-<img align="left" display="block" width="40%" hspace="2%" src="pics/flow1.png">
+<img align="left" display="block" width="30%" hspace="2%" src="pics/flow1.png">
 
 **1. 設定の変更**   
 Google Sheetsにおいて使用する装置を指定することができる  
@@ -14,7 +14,7 @@ Google Calendarで他のユーザーの予約状況を確認することがで�
 1で選んだ装置のみ表示するようになっている
 
 <img width="100%" src="pics/horizontal_line.png">
-<img align="right" width="35%" hspace="2%" src="pics/flow2.png">
+<img align="right" width="30%" hspace="2%" src="pics/flow2.png">
 
 **4. 実験に用いた工程(温度・加熱時間・濃度など)の保存**   
 Google Sheetsにて実験の工程を記録することができる   
@@ -24,7 +24,7 @@ Google Calendarの対応する予約にコメントとして反映される
 Google Sheetsにて過去の実験の工程の確認を行うことができる   
 
 <img width="100%" src="pics/horizontal_line.png">
-<img align="left" width="45%" hspace="2%" src="pics/flow3.png">
+<img align="left" width="35%" hspace="2%" src="pics/flow3.png">
 
 **6. すべての予約をログとして保存**   
 毎日、朝4時に2日前の予約をGoogle Sheetsにログとして保存することができる   
