@@ -1,38 +1,66 @@
-<!-- ABOUT THE PROJECT -->
-## TL;DR
-- This project is intended for use in environments where sharing the same equipments among multiple people is required. For example, laboratory equipment, server nodes, room reservations and so on.
-- We would like to relieve the stress of having to negotiate or speculate other peoples reservation.
-   - **Make Reservations** in Google Calendar
-   - **Check other users' reservations** in Google Calendar
-   - **Write experiment conditions** in Google Sheets
-
-<!-- GETTING STARTED -->
 ## Setting Up (administrator side)
-1. Create a Google account
-2. Create a Google Group
-   1. Change the settings to maximum security in every aspect such as messaging, viewing uses,...
-   2. Enable group joining without admin permission
-3. Create a spreadsheet following the format of `equipmentSettings.xlsx`
-   1. Create 18 calendars in Google Calendar
-   2. For every calendar, set modification priveledge to Google Group users
-   3. write the calendar ids into `Write Calendar id` and `Read Calendar id` rows in sheets
-   4. write the calendar urls into sheet named `URL of Calendar`
-4. Create a GAS Project 
-   1. Copy the contents of `equipmentReservation.js` to the new project's source code
-   2. In the script, change {spreadsheetId} to your spreadsheet id, and {logSpreadsheetId} to your log spreadsheet id
-5. In the GAS project, run the function CreateTriggers()
-6. Publish the project
+### Create a Google account
+### Create a Google Group
+<img align="right" display="block" width="40%" hspace="2%" src="pics/google_groups.gif">
+
+1. Access https://groups.google.com/my-groups
+2. Create group as shown in the right
+   
+<img width="100%" src="pics/horizontal_line_invisible.png">
+3. Change settings as shown in below pictures
+
+<img align="right" width="90%" src="pics/google_groups_settings.png">
+
+<img width="100%" src="pics/horizontal_line.png">
+
+### Create a Spreadsheet
+<img align="right" display="block" width="40%" hspace="2%" src="pics/sheets_import.gif">
+
+1. Open https://docs.google.com/spreadsheets/ and create a empty spreadsheet
+2. import `equipmentSettings.xlsx` into spreadsheet
+<img width="100%" src="pics/horizontal_line_invisible.png">
+
+### Create Calendars
+<img align="right" display="block" width="40%" hspace="2%" src="pics/add_calendar.gif">
+
+1. Create **36** calendars in Google Calendar with an arbitary name
+<img width="100%" src="pics/horizontal_line_invisible.png">
+<img align="right" display="block" width="40%" hspace="2%" src="pics/add_group_share.gif">
+
+2. For every calendar, set modification priveledge to Google Group users
+<img width="100%" src="pics/horizontal_line_invisible.png">
+
+<img align="right" display="block" width="45%" hspace="2%" src="pics/add_calendar_to_sheets.png">   
+
+3. write the calendar ids into `Write Calendar id` and `Read Calendar id` rows in sheets
+4. write the calendar urls into sheet named `URL of Calendar`
+<img width="100%" src="pics/horizontal_line.png">
+
+### Create a GAS Project 
+1. Go to https://script.google.com/home and click New project
+2. Copy the contents of `equipmentReservation.js` to the new project's source code
+3. In the script, change {spreadsheetId} to your spreadsheet id, and {logSpreadsheetId} to your log spreadsheet id
+4. In the GAS project, run the function CreateTriggers()
+5. Publish the project
+
+<img width="100%" src="pics/horizontal_line.png">
 
 <!-- USAGE EXAMPLES -->
-## Setting Up (client side)
-### Join Google groups using the Google account used for your Google Calendar
+## Setting Up (user side)
+### Join Google groups
+
+<img align="right" display="block" width="35%" hspace="2%" src="pics/googlegroups1.png">   
+
 1. Create a Google account
-2. Access https://groups.google.com/forum/#!forum/{group_name}/join
+2. Access https://groups.google.com/forum/#!forum/{group_name}/join (ask the administrator for {group_name})
 3. Select "join group"
+<img width="100%" src="pics/horizontal_line_invisible.png">
+<img align="right" display="block" width="30%" hspace="2%" src="pics/googlegroups2.png">   
+
 4. Fill out the form like the following image. Use a display name that can be understood to the admin.
 5. Subscription is complete. The security settings in the google groups is very strict, therefore you cannot see other members, and cannot post group emails.   
-![](pics/googlegroups1.png)    
-![](pics/googlegroups2.png)   
+
+<img width="100%" src="pics/horizontal_line.png">
 
 ### Initial settings
 1. Adding you as an user
@@ -41,11 +69,13 @@
 2. Select devices you will use
    1. Check the devices you would like to use. Refer to ③ in the below picture.   
 ![](pics/sheets1.png)   
-![](pics/sheets2.png)   
 
 ### Add the user calendars to your calendar application (in your smartphone or on your PC)
 1. Links for Read(read only) calendar and Write(write only) calendar are prepared. (Don't use the link in ➁)
 2. Select the sheet named "URL of Calendar", and click the link like the figure below. Google calendar will open and you can add the calendar.   
+
+<img align="right" display="block" width="100%" src="pics/sheets2.png">   
+
 ![](pics/calendar1.png)   
 ![](pics/calendar2.png)   
 

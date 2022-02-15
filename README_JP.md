@@ -1,3 +1,5 @@
+[English version](README.md)   
+[How to setup this app](SETUP.md)
 ## このアプリでできること
 
 <img align="left" display="block" width="35%" hspace="2%" src="pics/flow1.png">
@@ -45,3 +47,5 @@ Google Sheetsにて過去の実験の工程の確認を行うことができる
 1. 18ユーザー (スクリプトを同時に実行することで36ユーザー, 54ユーザー,...と増加させることができる)
 2. 一日あたり合計150個の予約 (18ユーザーの場合)
 
+[English version](README.md)   
+[How to setup this app](SETUP.md)
