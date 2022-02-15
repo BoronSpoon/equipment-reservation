@@ -1,6 +1,6 @@
 ## このアプリでできること
 
-<img align="left" display="block" width="30%" hspace="2%" src="pics/flow1.png">
+<img align="left" display="block" width="35%" hspace="2%" src="pics/flow1.png">
 
 **1. 設定の変更**   
 Google Sheetsにおいて使用する装置を指定することができる  
