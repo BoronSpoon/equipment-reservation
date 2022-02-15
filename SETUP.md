@@ -70,18 +70,18 @@
 2. Select devices you will use
    1. Check the devices you would like to use. Refer to ③ in the below picture.   
 
-<img align="right" display="block" width="90%" hspace="4%" src="pics/sheets1.png">   
+<img align="right" display="block" width="85%" hspace="4%" src="pics/sheets1.png">   
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
 ### Add the user calendars to your calendar application (in your smartphone or on your PC)
 1. Links for Read(read only) calendar and Write(write only) calendar are prepared. (Don't use the link in ➁)
 2. Select the sheet named "URL of Calendar", and click the link like the figure below. Google calendar will open and you can add the calendar.   
 
-<img align="right" display="block" width="90%" hspace="4%" src="pics/sheets2.png">   
+<img align="right" display="block" width="85%" hspace="4%" src="pics/sheets2.png">   
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
 ### Adding a reservation (Write calendar)
-<img align="right" display="block" width="50%" src="pics/calendar1.png">   
+<img align="right" display="block" width="45%" src="pics/calendar1.png">   
 
 1. Add an event on Google calendar
 2. Title should be`[Device] [State]`. Refer to ① in the below picture. Refer to `naming conventions` for naming convention of Device and State.
