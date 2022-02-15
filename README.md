@@ -1,6 +1,6 @@
 ## What this App does
 
-<img align="left" display="block" width="40%" hspace="2%" src="pics/flow1.png">
+<img align="left" display="block" width="45%" hspace="2%" src="pics/flow1.png">
 
 **1. Edit Configuration**   
 Select equipments that you will be using in Google Sheets   
