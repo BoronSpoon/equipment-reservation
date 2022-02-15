@@ -11,7 +11,7 @@
 
 <img align="right" width="90%" src="pics/google_groups_settings.png">
 
-<img width="100%" src="pics/horizontal_line.png">
+<img width="100%" src="pics/horizontal_line_invisible.png">
 
 ### Create a Spreadsheet
 <img align="right" display="block" width="40%" hspace="2%" src="pics/sheets_import.gif">
@@ -35,7 +35,7 @@
 
 3. write the calendar ids into `Write Calendar id` and `Read Calendar id` rows in sheets
 4. write the calendar urls into sheet named `URL of Calendar`
-<img width="100%" src="pics/horizontal_line.png">
+<img width="100%" src="pics/horizontal_line_invisible.png">
 
 ### Create a GAS Project 
 1. Go to https://script.google.com/home and click New project
@@ -44,7 +44,7 @@
 4. In the GAS project, run the function CreateTriggers()
 5. Publish the project
 
-<img width="100%" src="pics/horizontal_line.png">
+<img width="100%" src="pics/horizontal_line_invisible.png">
 
 <!-- USAGE EXAMPLES -->
 ## Setting Up (user side)
@@ -61,7 +61,7 @@
 4. Fill out the form like the following image. Use a display name that can be understood to the admin.
 5. Subscription is complete. The security settings in the google groups is very strict, therefore you cannot see other members, and cannot post group emails.   
 
-<img width="100%" src="pics/horizontal_line.png">
+<img width="100%" src="pics/horizontal_line_invisible.png">
 
 ### Initial settings
 1. Adding you as an user
@@ -86,7 +86,7 @@
 1. Add an event on Google calendar
 2. Title should be`[Device] [State]`. Refer to ① in the below picture. Refer to `naming conventions` for naming convention of Device and State.
 3. Add the event to `Write [User Name]`. Refer to ① in the below picture.
-<img width="100%" src="pics/horizontal_line.png">
+<img width="100%" src="pics/horizontal_line_invisible.png">
 
 ### naming conventions
 - Devices (__You can change the name of devices in Sheets__)
