@@ -2,7 +2,7 @@
 <summary>
 
 ## Setting Up (administrator side) 
-⚠️ _click ▶ to expand_
+⚠️ _click &#9654; to expand_
 </summary>
 
 ### 1. Create a Google account
