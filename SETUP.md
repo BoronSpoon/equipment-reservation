@@ -77,14 +77,14 @@
 2. Select devices you will use
    1. Check the devices you would like to use. Refer to ③ in the below picture.   
 
-<img align="right" display="block" width="80%" hspace="4%" src="pics/sheets1.png">   
+<img align="right" display="block" width="70%" hspace="4%" src="pics/sheets1.png">   
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
 ### 3. Add the user calendars to your calendar application (in your smartphone or on your PC)
 1. Links for Read(read only) calendar and Write(write only) calendar are prepared. (Don't use the link in ➁)
 2. Select the sheet named "URL of Calendar", and click the link like the figure below. Google calendar will open and you can add the calendar.   
 
-<img align="right" display="block" width="80%" hspace="4%" src="pics/sheets2.png">   
+<img align="right" display="block" width="70%" hspace="4%" src="pics/sheets2.png">   
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
 ### 4. Adding a reservation (Write calendar)
