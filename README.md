@@ -1,3 +1,5 @@
+[日本語バージョン](README_JP.md)   
+[How to setup this app](SETUP.md)
 ## What this App does
 
 <img align="left" display="block" width="45%" hspace="2%" src="pics/flow1.png">
@@ -46,3 +48,5 @@ Saves add/modify/delete event of reservations to Google Sheets
 1. 18 users (can be increased to 36, 54,... by running scripts simultaneously)
 2. 150 reservations total per day (for 18 users)
 
+[日本語バージョン](README_JP.md)   
+[How to setup this app](SETUP.md)
