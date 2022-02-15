@@ -1,8 +1,7 @@
+## Setting Up (administrator side) 
 <details>
 <summary>
-
-## Setting Up (administrator side) 
-⚠️ _click &#9654; to expand_
+(click to expand)
 </summary>
 
 ### 1. Create a Google account
