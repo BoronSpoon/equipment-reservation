@@ -1,6 +1,6 @@
 ## Setting Up (administrator side)
-### Create a Google account
-### Create a Google Group
+### 1. Create a Google account
+### 2. Create a Google Group
 <img align="right" display="block" width="40%" hspace="2%" src="pics/google_groups.gif">
 
 1. Access https://groups.google.com/my-groups
@@ -13,14 +13,14 @@
 
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-### Create a Spreadsheet
+### 3. Create a Spreadsheet
 <img align="right" display="block" width="40%" hspace="2%" src="pics/sheets_import.gif">
 
 1. Open https://docs.google.com/spreadsheets/ and create a empty spreadsheet
 2. import `equipmentSettings.xlsx` into spreadsheet
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-### Create Calendars
+### 4. Create Calendars
 <img align="right" display="block" width="40%" hspace="2%" src="pics/add_calendar.gif">
 
 1. Create **36** calendars in Google Calendar with an arbitary name
@@ -37,7 +37,7 @@
 4. write the calendar urls into sheet named `URL of Calendar`
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-### Create a GAS Project 
+### 5. Create a Google Apps Script Project 
 1. Go to https://script.google.com/home and click New project
 2. Copy the contents of `equipmentReservation.js` to the new project's source code
 3. In the script, change {spreadsheetId} to your spreadsheet id, and {logSpreadsheetId} to your log spreadsheet id
@@ -48,7 +48,7 @@
 
 <!-- USAGE EXAMPLES -->
 ## Setting Up (user side)
-### Join Google groups
+### 1. Join Google groups
 
 <img align="right" display="block" width="35%" hspace="2%" src="pics/googlegroups1.png">   
 
@@ -63,7 +63,7 @@
 
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-### Initial settings
+### 2. Initial settings
 1. Adding you as an user
    1. Enter your name. Refer to ① in the below picture.
    2. Link for sheets：https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit?usp=sharing
@@ -73,14 +73,14 @@
 <img align="right" display="block" width="80%" hspace="4%" src="pics/sheets1.png">   
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-### Add the user calendars to your calendar application (in your smartphone or on your PC)
+### 3. Add the user calendars to your calendar application (in your smartphone or on your PC)
 1. Links for Read(read only) calendar and Write(write only) calendar are prepared. (Don't use the link in ➁)
 2. Select the sheet named "URL of Calendar", and click the link like the figure below. Google calendar will open and you can add the calendar.   
 
 <img align="right" display="block" width="80%" hspace="4%" src="pics/sheets2.png">   
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-### Adding a reservation (Write calendar)
+### 4. Adding a reservation (Write calendar)
 <img align="right" display="block" width="30%" src="pics/calendar1.png">   
 
 1. Add an event on Google calendar
@@ -88,7 +88,7 @@
 3. Add the event to `Write [User Name]`. Refer to ① in the below picture.
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-### naming conventions
+### 5. naming conventions
 - Devices (__You can change the name of devices in Sheets__)
 -  | Device | Description |
    | ---- | ---- |
@@ -116,12 +116,12 @@
    | Chen.F1 | Chen Fan |
    | Zhu.Y1  | Zhu Yu |
 
-### Observing reservations (Write calendar)
+### 6. Observing reservations (Write calendar)
 1. Observe events on Google Calendar
 2. Event title is `[Name] [Device] [State]`.
 3. If there are too many reservations and it is overwhelming, you can hide the Read calendar in your calendar app and view it only when you need to.
 
-### Writing experiment conditions (Experiment Sheets)
+### 7. Writing experiment conditions (Experiment Sheets)
 1. Open Experiment Sheets
 2. Find the current event that you created in Google Calendar
 3. Write experiment conditions in Sheets
