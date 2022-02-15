@@ -1,4 +1,10 @@
-## Setting Up (administrator side)
+<details>
+<summary>
+
+## Setting Up (administrator side) 
+⚠️ _click ▶ to expand_
+</summary>
+
 ### 1. Create a Google account
 ### 2. Create a Google Group
 <img align="right" display="block" width="40%" hspace="2%" src="pics/google_groups.gif">
@@ -45,6 +51,8 @@
 5. Publish the project
 
 <img width="100%" src="pics/horizontal_line_invisible.png">
+
+</details>
 
 <!-- USAGE EXAMPLES -->
 ## Setting Up (user side)
