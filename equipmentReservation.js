@@ -4,8 +4,8 @@ function setup() {
   if (groupUrl.includes('?')) { // detect default value
     throw new Error('ERROR: change "?????@googlegroups.com" to your google group name');
   }
-  createSpreadsheet(18); // create spreadsheet for 18 users
-  createCalendars(18, groupUrl); // create 19 read + 18 write calendars
+  createSpreadsheet(1); // create spreadsheet for 18 users
+  createCalendars(1, groupUrl); // create 19 read + 18 write calendars
   createTriggers();
 }
 
@@ -14,28 +14,26 @@ function createSpreadsheet(count) {
   // create spreadsheet for configuration
   var configSpreadsheet = SpreadsheetApp.create('configSpreadsheet');
   configSpreadsheet.insertSheet('users');
-  configSpreadsheet.insertSheet('URL of calendar');
+  configSpreadsheet.insertSheet('properties');
   configSpreadsheet.deleteSheet(configSpreadsheet.getSheetByName('Sheet1'));
   var activeSheet = configSpreadsheet.getSheetByName('users');
-  activeSheet.getRange(1, 1, 1, 7).setValues(
-    [['User (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read calendarId', 'Write calendarId']]
+  activeSheet.getRange(1, 1, 1, 9).setValues(
+    [['User (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read calendarId', 'Write calendarId', 'Read Cal URL', 'Write Cal URL']]
   );
   activeSheet.hideColumns(2, 6); // hide columns used for debug
-  activeSheet.getRange(2, 8, count, 100).insertCheckboxes('no'); // create unchecked checkbox for 100 columns
+  activeSheet.getRange(2, 10, count, 100).insertCheckboxes('no'); // create unchecked checkbox for 100 columns (devices)
   var fillValue = [];
   for (var i = 0; i < count; i++) {
     fillValue[i] = ['First Last'];
   }
   activeSheet.getRange(2, 1, count).setValues(fillValue);
-  activeSheet.getRange(2+count+1, 8, 1, 100).insertCheckboxes('yes'); // create checked checkbox for "ALL EVENTS"
+  activeSheet.getRange(2+count+1, 10, 1, 100).insertCheckboxes('yes'); // create checked checkbox for "ALL EVENTS"
   activeSheet.getRange(2+count+1, 1).setValue('ALL EVENTS');
-  var activeSheet = configSpreadsheet.getSheetByName('URL of calendar');
-  activeSheet.getRange(1, 1, 1, 3).setValues(
-    [['User', 'Read Cal URL', 'Write Cal URL']]
-  );
-  for (var i = 0; i < count+1; i++){
-    activeSheet.getRange(2+i, 1).setFormula(`=users!R${2+i}C${1}`); // refer to sheet "users for user name"
+  var fillValue = [[]];
+  for (var i = 0; i < 100; i++) {
+    fillValue[0][i] = `=properties!R${1+i}C${1}`; // refer to sheet "properties" for device name
   }
+  activeSheet.getRange(10, 1, 1, 100).setFormulas(fillValue); // copy device name
 
   // create spreadsheet for logging
   var loggingSpreadsheet = SpreadsheetApp.create('loggingSpreadsheet');
@@ -66,9 +64,8 @@ function createCalendars(count, groupUrl) {
     var readCalendarId = calendar.getId();
     Calendar.Acl.insert(resource, readCalendarId); // add access permission to google group
     var activeSheet = configSpreadsheet.getSheetByName('users');
-    activeSheet.getRange(1+i, 6).setValue(readCalendarId);
-    var activeSheet = configSpreadsheet.getSheetByName('URL of calendar');
-    activeSheet.getRange(1+i, 2).setValue(`https://calendar.google.com/calendar/u/0?cid=${readCalendarId}`);
+    activeSheet.getRange(2+i, 6).setValue(readCalendarId);
+    activeSheet.getRange(2+i, 8).setValue(`https://calendar.google.com/calendar/u/0?cid=${readCalendarId}`);
     Logger.log(`Created read calendar ${calendar.getName()}, with the ID ${readCalendarId}.`);
   }
   // create {count} write calendars
@@ -78,9 +75,8 @@ function createCalendars(count, groupUrl) {
     var writeCalendarId = calendar.getId();
     Calendar.Acl.insert(resource, writeCalendarId); // add access permission to google group
     var activeSheet = configSpreadsheet.getSheetByName('users');
-    activeSheet.getRange(1+i, 7).setValue(writeCalendarId);
-    var activeSheet = configSpreadsheet.getSheetByName('URL of calendar');
-    activeSheet.getRange(1+i, 3).setValue(`https://calendar.google.com/calendar/u/0?cid=${writeCalendarId}`);
+    activeSheet.getRange(2+i, 7).setValue(writeCalendarId);
+    activeSheet.getRange(2+i, 9).setValue(`https://calendar.google.com/calendar/u/0?cid=${writeCalendarId}`);
     Logger.log(`Created write calendar ${calendar.getName()}, with the ID ${writeCalendarId}.`);
   }
 }
@@ -480,7 +476,7 @@ function getReadCalendars(sheet) {
     calendarIds.push(calendarId);
     // get enabledDevice and add to enabledDevices
     const enabledDevices = [];
-    for (var column = 8; column < lastColumn+1; column++) { 
+    for (var column = 10; column < lastColumn+1; column++) { 
       const device = sheet.getRange(1, column).getValue();
       const checked = sheet.getRange(row, column).isChecked();
       if (checked === true){
@@ -678,9 +674,9 @@ function setUserNames(sheet){
 // create checkboxes for selecting which equipment to show in the calendar
 function setCheckboxes(sheet, cell) {
   const lastColumn = sheet.getLastColumn();
-  if (sheet.getRange(cell.getRow(), 8).isChecked() == null){ // if cell is not a checkbox
+  if (sheet.getRange(cell.getRow(), 10).isChecked() == null){ // if cell is not a checkbox
     // create checkboxes
-    for (var column = 8; column < lastColumn+1; column++) { 
+    for (var column = 10; column < lastColumn+1; column++) { 
       sheet.getRange(cell.getRow(), column).insertCheckboxes();  
     }
   }
