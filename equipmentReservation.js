@@ -30,7 +30,7 @@ function createSpreadsheet(count) {
     [['Full Name (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read CalendarId', 'Write CalendarId', 'Read Calendar URL', 'Write Calendar URL']]
   );
   activeSheet.hideColumns(2, 6); // hide columns used for debug
-  activeSheet.getRange(2, 10, count, 100).insertCheckboxes('no'); // create unchecked checkbox for 100 columns (devices)
+  activeSheet.getRange(2, 10, count, 100).insertCheckboxes('no'); // create unchecked checkbox for 100 columns (equipments)
   var fillValue = [];
   for (var i = 0; i < count; i++) {
     fillValue[i] = ['First Last'];
@@ -40,9 +40,9 @@ function createSpreadsheet(count) {
   activeSheet.getRange(2+count, 1).setValue('ALL EVENTS');
   var fillValue = [[]];
   for (var i = 0; i < 100; i++) {
-    fillValue[0][i] = `=properties!R${2+i}C${1}`; // refer to sheet "properties" for device name
+    fillValue[0][i] = `=properties!R${2+i}C${1}`; // refer to sheet "properties" for equipment name
   }
-  activeSheet.getRange(1, 10, 1, 100).setFormulas(fillValue); // copy device name
+  activeSheet.getRange(1, 10, 1, 100).setFormulas(fillValue); // copy equipment name
 
   var activeSheet = configSpreadsheet.getSheetByName('properties');
   activeSheet.getRange(1, 1, 101, 100).setWrap(true); // wrap overflowing text
@@ -56,11 +56,28 @@ function createSpreadsheet(count) {
   ]);
 
   // create spreadsheet for logging
+  var experimentConditionSpreadsheet = SpreadsheetApp.create('experimentConditionSpreadsheet');
+  experimentConditionSpreadsheet.insertSheet('eventLog');
+  experimentConditionSpreadsheet.deleteSheet(experimentConditionSpreadsheet.getSheetByName('Sheet1'));
+  var activeSheet = experimentConditionSpreadsheet.getSheetByName('eventLog');
+  activeSheet.getRange(1, 1, 500000, 10).setWrap(true); // wrap overflowing text
+  activeSheet.getRange(1, 1, 1, 10).setValues(
+    [['startTime', 'endTime', 'name', 'equipment', 'status', 'comment', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime']]
+  );
+  
+  // create spreadsheet for finalized logging
   var loggingSpreadsheet = SpreadsheetApp.create('loggingSpreadsheet');
-  // todo: add header
+  loggingSpreadsheet.insertSheet('finalLog');
+  loggingSpreadsheet.deleteSheet(loggingSpreadsheet.getSheetByName('Sheet1'));
+  var activeSheet = loggingSpreadsheet.getSheetByName('finalLog');
+  activeSheet.getRange(1, 1, 500000, 10).setWrap(true); // wrap overflowing text
+  activeSheet.getRange(1, 1, 1, 10).setValues(
+    [['startTime', 'endTime', 'name', 'equipment', 'status', 'comment', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime']]
+  );
 
   var property = {
     configSpreadsheetId : configSpreadsheet.getId(),
+    experimentConditionSpreadsheetId : experimentConditionSpreadsheet.getId(),
     loggingSpreadsheetId : loggingSpreadsheet.getId(),
   };
   setIds(property);
@@ -105,13 +122,19 @@ function createCalendars(count, groupUrl) {
 function setIds(property) {
   const properties = PropertiesService.getUserProperties();
   properties.setProperty('configSpreadsheetId', property.configSpreadsheetId);
+  properties.setProperty('experimentConditionSpreadsheetId', property.experimentConditionSpreadsheetId);
   properties.setProperty('loggingSpreadsheetId', property.loggingSpreadsheetId);
 }
 
-function setIdsManual(y) {
-  //const configSpreadsheetId = ;
-  //const loggingSpreadsheetId = ;
+function setIdsManual() {
+  const properties = PropertiesService.getUserProperties();
+  //property = {
+  //  configSpreadsheetId : ;
+  //  experimentConditionSpreadsheetId : ;
+  //  loggingSpreadsheetId : ;
+  //}
   properties.setProperty('configSpreadsheetId', property.configSpreadsheetId);
+  properties.setProperty('experimentConditionSpreadsheetId', property.experimentConditionSpreadsheetId);
   properties.setProperty('loggingSpreadsheetId', property.loggingSpreadsheetId);
 }
 
@@ -148,7 +171,7 @@ function createTriggers() {
       .onEdit()
       .create();
   // create 1 Sheets trigger for daily logging past events
-  ScriptApp.newTrigger("eventLogging")
+  ScriptApp.newTrigger("finalLogging")
     .timeBased()
     .atHour(4) // 4:00
     .nearMinute(0)  
@@ -165,8 +188,8 @@ function onCalendarEdit(e) {
   const writeCalendarIds = getWriteCalendarIds(sheet);
   const index = writeCalendarIds.indexOf(calendarId);
   const fullSync = false;
-  adminLoggingSetup(); // setup admin logging
-  adminLogging({ 
+  eventLoggingSetup(); // setup admin logging
+  eventLogging({ 
     name: users[index],
     action: "add/move/del event", 
   });
@@ -191,7 +214,7 @@ function onSheetsEdit(e) {
   const calendarId = writeCalendarIds[index]
   const fullSync = true;
   
-  adminLoggingSetup(); // setup admin logging
+  eventLoggingSetup(); // setup admin logging
   if (row == 1 || row > lastRow || column > lastColumn || (column > 1 && column < 6)){
     action = "edited invalid area";
   } else if (column === 1) {
@@ -201,24 +224,18 @@ function onSheetsEdit(e) {
   } else if (column === 7) {
     action = "edited write calendarId";
   } else if (column > 7) {
-    action = "edited device";
+    action = "edited equipment";
   } 
-  const executionDateTime = new Date(); // current time
-    adminLogging({
-      executionYear: executionDateTime.getFullYear(),
-      executionMonth: executionDateTime.getMonth()+1, // Jan. is 0, Dec is 11 --change--> 1~12
-      executionDay: executionDateTime.getDate(),
-      executionHour: executionDateTime.getHours(),
-      executionMin: executionDateTime.getMinutes(),
-      executionSec: executionDateTime.getSeconds(),
-      executionMilliSec: executionDateTime.getMilliseconds(),
+  const executionTime = new Date(); // current time
+  eventLogging({
+    executionTime: executionTime,
     name: readUser,
     action: 'sheets (row, col) = (' + row + ', ' + column + '): ' + action,
   });  
   // when the checkbox (H2~nm) is edited in sheets on sheet 'users'
-  // update corresponding user's subscribed devices
+  // update corresponding user's subscribed equipments
   if (sheet.getName() === 'users' && row > 1 && column > 7){ 
-    changeSubscribedDevices(sheet, readUser, index, users);
+    changeSubscribedEquipments(sheet, readUser, index, users);
   }
   // when the full name (A2~An) is edited in sheets on sheet 'users'
   // update all of the corresponding user's event title
@@ -228,57 +245,31 @@ function onSheetsEdit(e) {
   }
 }
 
-function adminLoggingSetup() { // prepares constant for adminLogging
+function eventLoggingSetup() { // prepares constant for eventLogging
   const properties = PropertiesService.getUserProperties();
-  book = SpreadsheetApp.openById(properties.getProperty('loggingSpreadsheetId')); // spreadsheet for loggingrepares constant for adminLogging
-  const lastRow = book.getSheetByName('admin_log').getLastRow();
+  book = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')); // spreadsheet for loggingrepares constant for eventLogging
+  const lastRow = book.getSheetByName('eventLog').getLastRow();
   const row = lastRow + 1; // write on new row
   properties.setProperty('row', row.toString());
-  properties.setProperty('adminLoggingDone', 'false'); // reset execution state of admin logging
+  properties.setProperty('eventLoggingDone', 'false'); // reset execution state of admin logging
 }
 
-function adminLogging(logObj) { // logs everything
+function eventLogging(logObj) { // logs everything
   const properties = PropertiesService.getUserProperties();
   const columnDescriptions = { // shows which description corresponds to which column
-    executionYear: 1,
-    executionMonth: 2,
-    executionDay: 3,
-    executionHour: 4,
-    executionMin: 5,
-    executionSec: 6,
-    executionMilliSec: 7,
-    startYear: 8,
-    startMonth: 9,
-    startDay: 10,
-    startHour: 11,
-    startMin: 12,
-    startSec: 13,
-    startMilliSec: 14,
-    endYear: 15,
-    endMonth: 16,
-    endDay: 17,
-    endHour: 18,
-    endMin: 19,
-    endSec: 20,
-    endMilliSec: 21,
-    durationYear: 22,
-    durationMonth: 23,
-    durationDay: 24,
-    durationHour: 25,
-    durationMin: 26,
-    durationSec: 27,
-    durationMilliSec: 28,
-    specialAllDay: 29,
-    specialReccuring: 30,
-    specialRecurringDays: 31,
-    name: 32,
-    device: 33,
-    status: 34,
-    comment: 35,
-    action: 36,
-  }; // didn't put this in adminLoggingSetup because it cannot hold js objects
+    startTime: 1,
+    endTime: 2,
+    name: 3,
+    equipment: 4,
+    status: 5,
+    comment: 6,
+    isAllDayEvent: 7,
+    isRecurringEvent: 8,
+    action: 9,
+    executionTime: 10,
+  }; // didn't put this in eventLoggingSetup because it cannot hold js objects
   const row = parseInt(properties.getProperty('row'));
-  const adminLogSheet = SpreadsheetApp.openById(properties.getProperty('loggingSpreadsheetId')).getSheetByName('admin_log'); // spreadsheet for logging
+  const adminLogSheet = SpreadsheetApp.openById(properties.getProperty('SpreadsheetId')).getSheetByName('eventLog'); // spreadsheet for logging
   for (const key in logObj) { // iterate through log object
     var value = logObj[key];
     var col = columnDescriptions[key];
@@ -286,34 +277,22 @@ function adminLogging(logObj) { // logs everything
   }
 }
 
-function eventLogging() { // logs just the necessary data
+function finalLogging() { // logs just the necessary data
   const properties = PropertiesService.getUserProperties();
-  const eventLogSheet = SpreadsheetApp.openById(properties.getProperty('loggingSpreadsheetId')).getSheetByName('event_log')
+  const eventLogSheet = SpreadsheetApp.openById(properties.getProperty('loggingSpreadsheetId')).getSheetByName('finalLog')
   const lastRow = eventLogSheet.getLastRow();
   const row = lastRow + 1; // write on new row
   const columnDescriptions = { // shows which description corresponds to which column
-    startYear: 1,
-    startMonth: 2,
-    startDay: 3,
-    startHour: 4,
-    startMin: 5,
-    endYear: 6,
-    endMonth: 7,
-    endDay: 8,
-    endHour: 9,
-    endMin: 10,
-    durationYear: 11,
-    durationMonth: 12,
-    durationDay: 13,
-    durationHour: 14,
-    durationMin: 15,
-    specialAllDay: 16,
-    specialReccuring: 17,
-    specialRecurringDays: 18,
-    name: 19,
-    device: 20,
-    status: 21,
-    comment: 22,
+    startTime: 1,
+    endTime: 2,
+    name: 3,
+    equipment: 4,
+    status: 5,
+    comment: 6,
+    isAllDayEvent: 7,
+    isRecurringEvent: 8,
+    action: 9,
+    executionTime: 10,
   };
   const sheet = SpreadsheetApp.openById(properties.getProperty('configSpreadsheetId')).getSheetByName('users');
   const writeCalendarIds = getWriteCalendarIds(sheet);
@@ -350,37 +329,25 @@ function eventLogging() { // logs just the necessary data
     for (var j = 0; j < events.length; j++){
       Utilities.sleep(100);
       var event = events[j];
-      const deviceStateFromEvent = getDeviceStateFromEvent(event); // this must be called first before getCalendarById
-      const device = deviceStateFromEvent.device;
-      const state = deviceStateFromEvent.state;
+      const equipmentStateFromEvent = getEquipmentStateFromEvent(event); // this must be called first before getCalendarById
+      const equipment = equipmentStateFromEvent.equipment;
+      const state = equipmentStateFromEvent.state;
       const eid = event.iCalUID;
       event = CalendarApp.getCalendarById(writeCalendarId).getEventById(eid);
-      const startDateTime = event.getStartTime();
-      const endDateTime = event.getEndTime();
-      const durationDateTime = new Date(endDateTime - startDateTime);
+      const startTime = event.getStartTime();
+      const endTime = event.getEndTime();
+      const durationTime = new Date(endTime - startTime);
       var logObj = {
-          startYear: startDateTime.getFullYear(),
-          startMonth: startDateTime.getMonth()+1,
-          startDay: startDateTime.getDate(),
-          startHour: startDateTime.getHours(),
-          startMin: startDateTime.getMinutes(),
-          endYear: endDateTime.getFullYear(),
-          endMonth: endDateTime.getMonth()+1,
-          endDay: endDateTime.getDate(),
-          endHour: endDateTime.getHours(),
-          endMin: endDateTime.getMinutes(),
-          durationYear: durationDateTime.getFullYear() - 1970, // starts at 1970
-          durationMonth: durationDateTime.getMonth(), // dont add 1 to difference
-          durationDay: durationDateTime.getDate()-1, // dont know why it shows 1 when it should be 0
-          durationHour: durationDateTime.getHours(),
-          durationMin: durationDateTime.getMinutes(),
-          specialAllDay: event.isAllDayEvent(),
-          specialReccuring: event.isRecurringEvent(),
-          specialRecurringDays: "",
+          startTime: startTime,
+          endTime: endTime,
           name: writeUser,
-          device: device,
+          equipment: equipment,
           status: state,
-          comment: "",
+          comment: '',
+          isAllDayEvent: event.isAllDayEvent(),
+          isRecurringEvent: event.isRecurringEvent(),
+          action: '',
+          executionTime: '',
       }
       for (const key in logObj) { // iterate through log object
         var value = logObj[key];
@@ -391,16 +358,16 @@ function eventLogging() { // logs just the necessary data
   }
 }
 
-// filter readUsers who are not writeUser and have the device
-function filterUsers(writeUser, event, readCalendarIds, users, enabledDevicesList) {
+// filter readUsers who are not writeUser and have the equipment
+function filterUsers(writeUser, event, readCalendarIds, users, enabledEquipmentsList) {
   var filteredReadCalendarIds = []; // readCalendarIds excluding the same user as writeCalendarId
   var filteredReadUsers = []; // readUsers excluding the same user as writeCalendarId
-  const device = getDeviceStateFromEvent(event).device; // device used in the event
+  const equipment = getEquipmentStateFromEvent(event).equipment; // equipment used in the event
   for (var i = 0; i < readCalendarIds.length; i++){
     const readCalendarId = readCalendarIds[i];
     const readUser = users[i];
-    const enabledDevices = enabledDevicesList[i];
-    if (enabledDevices.includes(device) === true){ // if device is enabled for readUser
+    const enabledEquipments = enabledEquipmentsList[i];
+    if (enabledEquipments.includes(equipment) === true){ // if equipment is enabled for readUser
       if (readUser != writeUser) { // avoid duplicating event for same user's read and write calendars      
         filteredReadCalendarIds.push(readCalendarId);
         filteredReadUsers.push(readUser);
@@ -413,7 +380,7 @@ function filterUsers(writeUser, event, readCalendarIds, users, enabledDevicesLis
 // write events to read calendar based on updated events in write calendar
 function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
   const readCalendarIds = getReadCalendars(sheet).readCalendarIds;
-  const enabledDevicesList = getReadCalendars(sheet).enabledDevicesList;
+  const enabledEquipmentsList = getReadCalendars(sheet).enabledEquipmentsList;
   const writeCalendarIds = getWriteCalendarIds(sheet);
   const users = getUsers(sheet);
   const writeUser = users[index];
@@ -421,7 +388,7 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
   Logger.log(readCalendarIds.length + ' read calendars');
   for (var i = 0; i < events.length; i++){
     const event = events[i];
-    const filteredReadCalendarIds = filterUsers(writeUser, event, readCalendarIds, users, enabledDevicesList).filteredReadCalendarIds;
+    const filteredReadCalendarIds = filterUsers(writeUser, event, readCalendarIds, users, enabledEquipmentsList).filteredReadCalendarIds;
     Logger.log('writing event no.' + (i+1).toString() +  ' to [ ' + filteredReadCalendarIds + ' ]');
     writeEvent(event, writeCalendarId, writeUser, filteredReadCalendarIds); // create event in write calendar and add read calendars as guests
   }
@@ -429,14 +396,14 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
   Logger.log('Wrote updated events to read calendar. Fullsync = ' + fullSync);
 }
 
-// update corresponding user's subscribed devices 
-function changeSubscribedDevices(sheet, readUser, index, users){
+// update corresponding user's subscribed equipments 
+function changeSubscribedEquipments(sheet, readUser, index, users){
   const fullSync = true;
   const readCalendarIds = getReadCalendars(sheet).readCalendarIds;
-  const enabledDevicesList = getReadCalendars(sheet).enabledDevicesList;
+  const enabledEquipmentsList = getReadCalendars(sheet).enabledEquipmentsList;
   const writeCalendarIds = getWriteCalendarIds(sheet);
   const readCalendarId = readCalendarIds[index];
-  const enabledDevices = enabledDevicesList[index];
+  const enabledEquipments = enabledEquipmentsList[index];
   Logger.log(writeCalendarIds.length + ' write calendars');
   for (var i = 0; i < writeCalendarIds.length; i++){
     const writeUser = users[i];
@@ -444,12 +411,12 @@ function changeSubscribedDevices(sheet, readUser, index, users){
     const events = getEvents(writeCalendarId, fullSync);
     for (var j = 0; j < events.length; j++){
       const event = events[j];
-      const filteredReadCalendarIds = filterUsers(writeUser, event, [readCalendarId], users, enabledDevicesList).filteredReadCalendarIds;
+      const filteredReadCalendarIds = filterUsers(writeUser, event, [readCalendarId], users, enabledEquipmentsList).filteredReadCalendarIds;
       writeEvent(event, writeCalendarId, writeUser, filteredReadCalendarIds); // create event in write calendar and add read calendars as guests
     }
     updateSyncToken(writeCalendarId);
   }
-  Logger.log('Changed subscribed devices');
+  Logger.log('Changed subscribed equipments');
 }
   
 // update calendar's User Name based on full name input
@@ -486,28 +453,28 @@ function getWriteCalendarIds(sheet) {
 // get all the read calendar's calendarIds
 function getReadCalendars(sheet) {
   const calendarIds = [];  
-  const enabledDevicesList = [];
+  const enabledEquipmentsList = [];
   const lastRow = sheet.getLastRow();
   const lastColumn = sheet.getLastColumn();
-  // get calendarId and enabledDevice
+  // get calendarId and enabledEquipment
   for (var row = 2; row < lastRow+1; row++) { 
     // get calendarId and add to calendarIds
     const calendarId = sheet.getRange(row, 6).getValue();
     calendarIds.push(calendarId);
-    // get enabledDevice and add to enabledDevices
-    const enabledDevices = [];
+    // get enabledEquipment and add to enabledEquipments
+    const enabledEquipments = [];
     for (var column = 10; column < lastColumn+1; column++) { 
-      const device = sheet.getRange(1, column).getValue();
+      const equipment = sheet.getRange(1, column).getValue();
       const checked = sheet.getRange(row, column).isChecked();
       if (checked === true){
-        enabledDevices.push(device);
+        enabledEquipments.push(equipment);
       }
     }
-    enabledDevicesList.push(enabledDevices);
+    enabledEquipmentsList.push(enabledEquipments);
   }
   return {
     readCalendarIds: calendarIds,
-    enabledDevicesList: enabledDevicesList,
+    enabledEquipmentsList: enabledEquipmentsList,
   };
 }
 
@@ -569,82 +536,56 @@ function getEvents(calendarId, fullSync) {
   return events;
 }
 
-// get device and state from event summary
-function getDeviceStateFromEvent(event){
+// get equipment and state from event summary
+function getEquipmentStateFromEvent(event){
   const summary = event.summary;
-  const status = summary.split(' '); // split to device and state
-  if (status.length === 1) { // just the device name (state is 'use')
-    var device = status[0];
+  const status = summary.split(' '); // split to equipment and state
+  if (status.length === 1) { // just the equipment name (state is 'use')
+    var equipment = status[0];
     var state = 'use';
-  } else if (status.length === 2 || status.length === 3) { // (User Name) + device + state
-    var device = status[status.length-2];
+  } else if (status.length === 2 || status.length === 3) { // (User Name) + equipment + state
+    var equipment = status[status.length-2];
     var state = status[status.length-1];
   }
-  return {device, state};
+  return {equipment, state};
 }
 
 // rename and write event in write calendar and add read calendars as guests
 function writeEvent(event, writeCalendarId, writeUser, readCalendarIds) {
   Utilities.sleep(100);
-  const deviceStateFromEvent = getDeviceStateFromEvent(event);
-  const device = deviceStateFromEvent.device;
-  const state = deviceStateFromEvent.state;
+  const equipmentStateFromEvent = getEquipmentStateFromEvent(event);
+  const equipment = equipmentStateFromEvent.equipment;
+  const state = equipmentStateFromEvent.state;
   const eid = event.iCalUID;
   var event = CalendarApp.getCalendarById(writeCalendarId).getEventById(eid);
-  // if device is enabled in sheets, add to guest subscription
-  // change title from '(User Name) + device + state' to 'User Name + device + state'
-  const summary = writeUser  + ' ' + device + ' ' + state;
+  // if equipment is enabled in sheets, add to guest subscription
+  // change title from '(User Name) + equipment + state' to 'User Name + equipment + state'
+  const summary = writeUser  + ' ' + equipment + ' ' + state;
   event.setTitle(summary);
   // add read calendars as guests
   for (var i = 0; i < readCalendarIds.length; i++) {
     const readCalendarId = readCalendarIds[i];
     event.addGuest(readCalendarId);
   }
-  const executionDateTime = new Date(); // current time
-  const startDateTime = event.getStartTime();
-  const endDateTime = event.getEndTime();
-  const durationDateTime = new Date(endDateTime - startDateTime);
+  const executionTime = new Date(); // current time
+  const startTime = event.getStartTime();
+  const endTime = event.getEndTime();
+  const durationTime = new Date(endTime - startTime);
   const properties = PropertiesService.getUserProperties();
-  var adminLoggingDone = properties.getProperty('adminLoggingDone');
-  if (adminLoggingDone === 'false'){ // do admin logging only once
-    adminLogging({
-      executionYear: executionDateTime.getFullYear(),
-      executionMonth: executionDateTime.getMonth()+1, // Jan. is 0, Dec is 11 --change--> 1~12
-      executionDay: executionDateTime.getDate(),
-      executionHour: executionDateTime.getHours(),
-      executionMin: executionDateTime.getMinutes(),
-      executionSec: executionDateTime.getSeconds(),
-      executionMilliSec: executionDateTime.getMilliseconds(),
-      startYear: startDateTime.getFullYear(),
-      startMonth: startDateTime.getMonth()+1,
-      startDay: startDateTime.getDate(),
-      startHour: startDateTime.getHours(),
-      startMin: startDateTime.getMinutes(),
-      startSec: startDateTime.getSeconds(),
-      startMilliSec: startDateTime.getMilliseconds(),
-      endYear: endDateTime.getFullYear(),
-      endMonth: endDateTime.getMonth()+1,
-      endDay: endDateTime.getDate(),
-      endHour: endDateTime.getHours(),
-      endMin: endDateTime.getMinutes(),
-      endSec: endDateTime.getSeconds(),
-      endMilliSec: endDateTime.getMilliseconds(),
-      durationYear: durationDateTime.getFullYear() - 1970, // starts at 1970
-      durationMonth: durationDateTime.getMonth(), // dont add 1 to difference
-      durationDay: durationDateTime.getDate()-1, // dont know why it shows 1 when it should be 0
-      durationHour: durationDateTime.getHours(),
-      durationMin: durationDateTime.getMinutes(),
-      durationSec: durationDateTime.getSeconds(),
-      durationMilliSec: durationDateTime.getMilliseconds(),
-      specialAllDay: event.isAllDayEvent(),
-      specialReccuring: event.isRecurringEvent(),
-      specialRecurringDays: "",
-      device: device,
+  var eventLoggingDone = properties.getProperty('eventLoggingDone');
+  if (eventLoggingDone === 'false'){ // do admin logging only once
+    eventLogging({
+      executionTime: executionTime,
+      startTime: startTime,
+      endTime: endTime,
+      equipment: equipment,
       status: state,
       comment: "",
+      isAllDayEvent: event.isAllDayEvent(),
+      isRecurringEvent: event.isRecurringEvent(),
     });
-    Logger.log('admin logging done');
-    properties.setProperty('adminLoggingDone', 'true');
+    Logger.log('event logging done');
+    properties.setProperty('eventLoggingDone', 'true');
   }
 }
 
@@ -718,13 +659,13 @@ function changeCalendarName(calendarId, userName, readOrWrite) {
   if (readOrWrite === 'Read') { 
     var summary = 'Read' + ' ' + userName;
     var description = '装置の予約状況\n' +
-      'schedule for selected devices';  
+      'schedule for selected equipments';  
   } else if (readOrWrite === 'Write') { 
     var summary = 'Write' + ' ' + userName;
     var description = '装置を予約する\n' +
-      'Reserve devices\n' +
-      'Formatting: [Device] [State]\n' +
-      'Devices: rie, nrie(new RIE), cvd, ncvd(new CVD), pvd, fts\n' +
+      'Reserve equipments\n' +
+      'Formatting: [Equipment] [State]\n' +
+      'Equipments: rie, nrie(new RIE), cvd, ncvd(new CVD), pvd, fts\n' +
       'States: evac(evacuation), use(or no entry), cool(cooldown), o2(RIE O2 ashing)\n';  
   } else {
     Logger.log('readOrWrite has to be \'Read\' or \'Write\'');
