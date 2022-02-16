@@ -1,5 +1,106 @@
+// setup
+function setup() {
+  const groupUrl = '?????@googlegroups.com'; // replace this line
+  if (groupUrl.includes('?')) { // detect default value
+    throw new Error('ERROR: change "?????@googlegroups.com" to your google group name');
+  }
+  createSpreadsheet(18); // create spreadsheet for 18 users
+  createCalendars(18, groupUrl); // create 19 read + 18 write calendars
+  createTriggers();
+}
+
+// creates spreadsheet for {count} users
+function createSpreadsheet(count) {
+  // create spreadsheet for configuration
+  var configSpreadsheet = SpreadsheetApp.create('configSpreadsheet');
+  configSpreadsheet.insertSheet('users');
+  configSpreadsheet.insertSheet('URL of calendar');
+  configSpreadsheet.deleteSheet(configSpreadsheet.getSheetByName('Sheet1'));
+  var activeSheet = configSpreadsheet.getSheetByName('users');
+  activeSheet.getRange(1, 1, 1, 7).setValues(
+    [['User (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read calendarId', 'Write calendarId']]
+  );
+  activeSheet.hideColumns(2, 6); // hide columns used for debug
+  activeSheet.getRange(2, 8, count, 100).insertCheckboxes('no'); // create unchecked checkbox for 100 columns
+  var fillValue = [];
+  for (var i = 0; i < count; i++) {
+    fillValue[i] = ['First Last'];
+  }
+  activeSheet.getRange(2, 1, count).setValues(fillValue);
+  activeSheet.getRange(2+count+1, 8, 1, 100).insertCheckboxes('yes'); // create checked checkbox for "ALL EVENTS"
+  activeSheet.getRange(2+count+1, 1).setValue('ALL EVENTS');
+  var activeSheet = configSpreadsheet.getSheetByName('URL of calendar');
+  activeSheet.getRange(1, 1, 1, 3).setValues(
+    [['User', 'Read Cal URL', 'Write Cal URL']]
+  );
+  for (var i = 0; i < count+1; i++){
+    activeSheet.getRange(2+i, 1).setFormula(`=users!R${2+i}C${1}`); // refer to sheet "users for user name"
+  }
+
+  // create spreadsheet for logging
+  var loggingSpreadsheet = SpreadsheetApp.create('loggingSpreadsheet');
+  // todo: add header
+
+  var property = {
+    configSpreadsheetId : configSpreadsheet.getId(),
+    loggingSpreadsheetId : loggingSpreadsheet.getId(),
+  };
+  setIds(property);
+}
+
+// creates calendars for {count} users
+function createCalendars(count, groupUrl) {
+  const properties = PropertiesService.getUserProperties();
+  const configSpreadsheet = SpreadsheetApp.openById(properties.getProperty('configSpreadsheetId'));
+  const resource = { // used to add google group as guest
+    'scope': {
+      'type': 'group',
+      'value': groupUrl,
+    },
+    'role': 'writer',
+  }
+  // create {count+1} read calendars
+  for (var i = 0; i < count+1; i++){
+    Utilities.sleep(3000);
+    var calendar = CalendarApp.createCalendar(`read ${i+1}`);
+    var readCalendarId = calendar.getId();
+    Calendar.Acl.insert(resource, readCalendarId); // add access permission to google group
+    var activeSheet = configSpreadsheet.getSheetByName('users');
+    activeSheet.getRange(1+i, 6).setValue(readCalendarId);
+    var activeSheet = configSpreadsheet.getSheetByName('URL of calendar');
+    activeSheet.getRange(1+i, 2).setValue(`https://calendar.google.com/calendar/u/0?cid=${readCalendarId}`);
+    Logger.log(`Created read calendar ${calendar.getName()}, with the ID ${readCalendarId}.`);
+  }
+  // create {count} write calendars
+  for (var i = 0; i < count; i++){
+    Utilities.sleep(3000);
+    var calendar = CalendarApp.createCalendar(`write ${i+1}`);
+    var writeCalendarId = calendar.getId();
+    Calendar.Acl.insert(resource, writeCalendarId); // add access permission to google group
+    var activeSheet = configSpreadsheet.getSheetByName('users');
+    activeSheet.getRange(1+i, 7).setValue(writeCalendarId);
+    var activeSheet = configSpreadsheet.getSheetByName('URL of calendar');
+    activeSheet.getRange(1+i, 3).setValue(`https://calendar.google.com/calendar/u/0?cid=${writeCalendarId}`);
+    Logger.log(`Created write calendar ${calendar.getName()}, with the ID ${writeCalendarId}.`);
+  }
+}
+
+// set ids
+function setIds(property) {
+  const properties = PropertiesService.getUserProperties();
+  properties.setProperty('configSpreadsheetId', property.configSpreadsheetId);
+  properties.setProperty('loggingSpreadsheetId', property.loggingSpreadsheetId);
+}
+
+function setIdsManual(y) {
+  //const configSpreadsheetId = ;
+  //const loggingSpreadsheetId = ;
+  properties.setProperty('configSpreadsheetId', property.configSpreadsheetId);
+  properties.setProperty('loggingSpreadsheetId', property.loggingSpreadsheetId);
+}
+
 // delete all triggers for this script
-function deleteTriggers(){
+function deleteTriggers() {
   const triggers = ScriptApp.getProjectTriggers();
   for (var i = 0; i < triggers.length; i++){
     trigger = triggers[i];
@@ -11,7 +112,8 @@ function deleteTriggers(){
 // only 20 triggers can be made for single script
 // we will use 18 for write calendars, 1 for daily logging, 1 for spreadsheet
 function createTriggers() {
-  const sheet = SpreadsheetApp.openById('{spreadsheetid}').getSheetByName('users');
+  const properties = PropertiesService.getUserProperties();
+  const sheet = SpreadsheetApp.openById(properties.getProperty('configSpreadsheetId')).getSheetByName('users');
   const writeCalendarIds = getWriteCalendarIds(sheet);
   
   // create trigger for each of the 18 write calendars
@@ -26,7 +128,7 @@ function createTriggers() {
   }
   // create 1 Sheets trigger (calls function 'onSheetsEdit' on trigger)
   ScriptApp.newTrigger('onSheetsEdit')
-      .forSpreadsheet('{spreadsheetid}')
+      .forSpreadsheet(properties.getProperty('configSpreadsheetId'))
       .onEdit()
       .create();
   // create 1 Sheets trigger for daily logging past events
@@ -40,8 +142,8 @@ function createTriggers() {
 
 // when calendar gets edited
 function onCalendarEdit(e) {
-  const sheet = SpreadsheetApp.openById('{spreadsheetid}').getSheetByName('users');
-  const sheet = book.getSheetByName('users');
+  const properties = PropertiesService.getUserProperties();
+  const sheet = SpreadsheetApp.openById(properties.getProperty('configSpreadsheetId')).getSheetByName('users');
   const users = getUsers(sheet);
   const calendarId = e.calendarId;
   const writeCalendarIds = getWriteCalendarIds(sheet);
@@ -57,7 +159,8 @@ function onCalendarEdit(e) {
 
 // when sheets gets edited
 function onSheetsEdit(e) {
-  const book = SpreadsheetApp.openById('{spreadsheetid}');
+  const properties = PropertiesService.getUserProperties();
+  const book = SpreadsheetApp.openById(properties.getProperty('configSpreadsheetId'));
   const sheet = e.source.getActiveSheet();
   const cell = e.source.getActiveRange();
   const newValue = e.value;
@@ -110,8 +213,8 @@ function onSheetsEdit(e) {
 }
 
 function adminLoggingSetup() { // prepares constant for adminLogging
-  book = SpreadsheetApp.openById('{loggingspreadsheetid}'); // spreadsheet for loggingrepares constant for adminLogging
   const properties = PropertiesService.getUserProperties();
+  book = SpreadsheetApp.openById(properties.getProperty('loggingSpreadsheetId')); // spreadsheet for loggingrepares constant for adminLogging
   const lastRow = book.getSheetByName('admin_log').getLastRow();
   const row = lastRow + 1; // write on new row
   properties.setProperty('row', row.toString());
@@ -119,6 +222,7 @@ function adminLoggingSetup() { // prepares constant for adminLogging
 }
 
 function adminLogging(logObj) { // logs everything
+  const properties = PropertiesService.getUserProperties();
   const columnDescriptions = { // shows which description corresponds to which column
     executionYear: 1,
     executionMonth: 2,
@@ -157,9 +261,8 @@ function adminLogging(logObj) { // logs everything
     comment: 35,
     action: 36,
   }; // didn't put this in adminLoggingSetup because it cannot hold js objects
-  const properties = PropertiesService.getUserProperties();
   const row = parseInt(properties.getProperty('row'));
-  const adminLogSheet = SpreadsheetApp.openById('{loggingspreadsheetid}').getSheetByName('admin_log'); // spreadsheet for logging
+  const adminLogSheet = SpreadsheetApp.openById(properties.getProperty('loggingSpreadsheetId')).getSheetByName('admin_log'); // spreadsheet for logging
   for (const key in logObj) { // iterate through log object
     var value = logObj[key];
     var col = columnDescriptions[key];
@@ -168,7 +271,8 @@ function adminLogging(logObj) { // logs everything
 }
 
 function eventLogging() { // logs just the necessary data
-  const eventLogSheet = SpreadsheetApp.openById('{loggingspreadsheetid}').getSheetByName('event_log')
+  const properties = PropertiesService.getUserProperties();
+  const eventLogSheet = SpreadsheetApp.openById(properties.getProperty('loggingSpreadsheetId')).getSheetByName('event_log')
   const lastRow = eventLogSheet.getLastRow();
   const row = lastRow + 1; // write on new row
   const columnDescriptions = { // shows which description corresponds to which column
@@ -195,7 +299,7 @@ function eventLogging() { // logs just the necessary data
     status: 21,
     comment: 22,
   };
-  const sheet = SpreadsheetApp.openById('{spreadsheetid}').getSheetByName('users');
+  const sheet = SpreadsheetApp.openById(properties.getProperty('configSpreadsheetId')).getSheetByName('users');
   const writeCalendarIds = getWriteCalendarIds(sheet);
   const users = getUsers(sheet);
   // get events from 2~3 days ago
