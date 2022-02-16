@@ -4,8 +4,8 @@ function setup() {
   if (groupUrl.includes('?')) { // detect default value
     throw new Error('ERROR: change "?????@googlegroups.com" to your google group name');
   }
-  createSpreadsheet(1); // create spreadsheet for 18 users
-  createCalendars(1, groupUrl); // create 19 read + 18 write calendars
+  createSpreadsheet(18); // create spreadsheet for 18 users
+  createCalendars(18, groupUrl); // create 19 read + 18 write calendars
   createTriggers();
 }
 
