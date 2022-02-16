@@ -19,7 +19,7 @@ function createSpreadsheet(count) {
   var activeSheet = configSpreadsheet.getSheetByName('users');
   activeSheet.getRange(1, 1, 200, 200).setWrap(true); // wrap overflowing text
   activeSheet.getRange(1, 1, 1, 9).setValues(
-    [['Full Name (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read calendarId', 'Write calendarId', 'Read Cal URL', 'Write Cal URL']]
+    [['Full Name (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read CalendarId', 'Write CalendarId', 'Read Calendar URL', 'Write Calendar URL']]
   );
   activeSheet.hideColumns(2, 6); // hide columns used for debug
   activeSheet.getRange(2, 10, count, 100).insertCheckboxes('no'); // create unchecked checkbox for 100 columns (devices)
@@ -28,19 +28,20 @@ function createSpreadsheet(count) {
     fillValue[i] = ['First Last'];
   }
   activeSheet.getRange(2, 1, count).setValues(fillValue);
-  activeSheet.getRange(2+count+1, 10, 1, 100).insertCheckboxes('yes'); // create checked checkbox for "ALL EVENTS"
-  activeSheet.getRange(2+count+1, 1).setValue('ALL EVENTS');
+  activeSheet.getRange(2+count, 10, 1, 100).insertCheckboxes('yes'); // create checked checkbox for "ALL EVENTS"
+  activeSheet.getRange(2+count, 1).setValue('ALL EVENTS');
   var fillValue = [[]];
   for (var i = 0; i < 100; i++) {
-    fillValue[0][i] = `=properties!R${1+i}C${1}`; // refer to sheet "properties" for device name
+    fillValue[0][i] = `=properties!R${2+i}C${1}`; // refer to sheet "properties" for device name
   }
-  activeSheet.getRange(10, 1, 1, 100).setFormulas(fillValue); // copy device name
+  activeSheet.getRange(1, 10, 1, 100).setFormulas(fillValue); // copy device name
 
   var activeSheet = configSpreadsheet.getSheetByName('properties');
   activeSheet.getRange(1, 1, 200, 200).setWrap(true); // wrap overflowing text
-  activeSheet.getRange(1, 1, 1, 2).setValues(
-    [['Equipment', 'Properties (ex. temp, pressure, time) ->']]
-  );
+  activeSheet.getRange(1, 1, 2, 6).setValues([
+    ['Equipment', 'Properties ->', '', '', '', ''],
+    ['(Example) Sputter', 'Pressure', 'Flow', 'Time', 'Fwd. Power', 'Ref. Power'],
+  ]);
 
   // create spreadsheet for logging
   var loggingSpreadsheet = SpreadsheetApp.create('loggingSpreadsheet');
