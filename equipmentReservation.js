@@ -17,7 +17,15 @@ function createSpreadsheet(count) {
   configSpreadsheet.insertSheet('properties');
   configSpreadsheet.deleteSheet(configSpreadsheet.getSheetByName('Sheet1'));
   var activeSheet = configSpreadsheet.getSheetByName('users');
-  activeSheet.getRange(1, 1, 200, 200).setWrap(true); // wrap overflowing text
+  activeSheet.getRange(1, 1, 109, 109).setWrap(true); // wrap overflowing text
+  // draw borders
+  activeSheet.getRange(1, 1, count+2, 109).setBorder(true, true, true, true, null, null, "black", SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, count+2, 109).setBorder(true, true, true, true, null, true, "black", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  activeSheet.getRange(1, 1, 1, 109).setBorder(null, null, true, null, null, null, "black", SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, count+2, 1).setBorder(null, null, null, true, null, null, "black", SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 5, count+2, 1).setBorder(null, null, null, true, null, null, "black", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  activeSheet.getRange(1, 7, count+2, 1).setBorder(null, null, null, true, null, null, "black", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  activeSheet.getRange(1, 9, count+2, 1).setBorder(null, null, null, true, null, null, "black", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   activeSheet.getRange(1, 1, 1, 9).setValues(
     [['Full Name (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read CalendarId', 'Write CalendarId', 'Read Calendar URL', 'Write Calendar URL']]
   );
@@ -37,7 +45,11 @@ function createSpreadsheet(count) {
   activeSheet.getRange(1, 10, 1, 100).setFormulas(fillValue); // copy device name
 
   var activeSheet = configSpreadsheet.getSheetByName('properties');
-  activeSheet.getRange(1, 1, 200, 200).setWrap(true); // wrap overflowing text
+  activeSheet.getRange(1, 1, 101, 100).setWrap(true); // wrap overflowing text
+  // draw borders
+  activeSheet.getRange(1, 1, 101, 100).setBorder(true, true, true, true, null, null, "black", SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, 1, 100).setBorder(null, null, true, null, null, null, "black", SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, 101, 1).setBorder(null, null, null, true, null, null, "black", SpreadsheetApp.BorderStyle.SOLID_THICK);
   activeSheet.getRange(1, 1, 2, 6).setValues([
     ['Equipment', 'Properties ->', '', '', '', ''],
     ['(Example) Sputter', 'Pressure', 'Flow', 'Time', 'Fwd. Power', 'Ref. Power'],
