@@ -17,8 +17,9 @@ function createSpreadsheet(count) {
   configSpreadsheet.insertSheet('properties');
   configSpreadsheet.deleteSheet(configSpreadsheet.getSheetByName('Sheet1'));
   var activeSheet = configSpreadsheet.getSheetByName('users');
+  activeSheet.getRange(1, 1, 200, 200).setWrap(true); // wrap overflowing text
   activeSheet.getRange(1, 1, 1, 9).setValues(
-    [['User (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read calendarId', 'Write calendarId', 'Read Cal URL', 'Write Cal URL']]
+    [['Full Name (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read calendarId', 'Write calendarId', 'Read Cal URL', 'Write Cal URL']]
   );
   activeSheet.hideColumns(2, 6); // hide columns used for debug
   activeSheet.getRange(2, 10, count, 100).insertCheckboxes('no'); // create unchecked checkbox for 100 columns (devices)
@@ -34,6 +35,12 @@ function createSpreadsheet(count) {
     fillValue[0][i] = `=properties!R${1+i}C${1}`; // refer to sheet "properties" for device name
   }
   activeSheet.getRange(10, 1, 1, 100).setFormulas(fillValue); // copy device name
+
+  var activeSheet = configSpreadsheet.getSheetByName('properties');
+  activeSheet.getRange(1, 1, 200, 200).setWrap(true); // wrap overflowing text
+  activeSheet.getRange(1, 1, 1, 2).setValues(
+    [['Equipment', 'Properties (ex. temp, pressure, time) ->']]
+  );
 
   // create spreadsheet for logging
   var loggingSpreadsheet = SpreadsheetApp.create('loggingSpreadsheet');
