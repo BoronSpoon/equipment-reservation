@@ -189,10 +189,6 @@ function onCalendarEdit(e) {
   const index = writeCalendarIds.indexOf(calendarId);
   const fullSync = false;
   eventLoggingSetup(); // setup admin logging
-  eventLoggingStoreData({ 
-    name: users[index],
-    action: "add/move/del event", 
-  });
   writeEventsToReadCalendar(sheet, calendarId, index, fullSync);
 }
 
@@ -252,7 +248,6 @@ function eventLoggingSetup() { // prepares constant for eventLogging
   const row = lastRow + 1; // write on new row
   properties.setProperty('row', row.toString());
   properties.setProperty('eventLoggingData', JSON.stringify({}));
-  properties.setProperty('eventLoggingDone', 'false'); // reset execution state of admin logging
 }
 
 function eventLoggingStoreData(logObj) { // set data for logging
@@ -355,7 +350,7 @@ function finalLogging() { // logs just the necessary data
           name: writeUser,
           equipment: equipment,
           status: state,
-          description: event.description,
+          description: event.getDescription(),
           isAllDayEvent: event.isAllDayEvent(),
           isRecurringEvent: event.isRecurringEvent(),
           action: '',
@@ -396,16 +391,36 @@ function filterUsers(writeUser, event, readCalendarIds, users, enabledEquipments
 function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
   const readCalendarIds = getReadCalendars(sheet).readCalendarIds;
   const enabledEquipmentsList = getReadCalendars(sheet).enabledEquipmentsList;
-  const writeCalendarIds = getWriteCalendarIds(sheet);
   const users = getUsers(sheet);
   const writeUser = users[index];
   const events = getEvents(writeCalendarId, fullSync);
+  const eid = events.getId();
   Logger.log(readCalendarIds.length + ' read calendars');
   for (var i = 0; i < events.length; i++){
     const event = events[i];
     const filteredReadCalendarIds = filterUsers(writeUser, event, readCalendarIds, users, enabledEquipmentsList).filteredReadCalendarIds;
     Logger.log('writing event no.' + (i+1).toString() +  ' to [ ' + filteredReadCalendarIds + ' ]');
     writeEvent(event, writeCalendarId, writeUser, filteredReadCalendarIds); // create event in write calendar and add read calendars as guests
+    if (Calendar.Events.get(writeCalendarId, eid).status === "cancelled") {
+      var action = 'canceled';
+    } else {
+      var action = 'added';
+    }
+    eventLoggingStoreData({ // log event
+      startTime: event.getStartTime(),
+      endTime: event.getEndTime(),
+      name: writeUser,
+      equipment: equipment,
+      status: state,
+      description: event.getDescription(),
+      isAllDayEvent: event.isAllDayEvent(),
+      isRecurringEvent: event.isRecurringEvent(),
+      action: action, 
+      executionTime: new Date(), // current time
+      id: eid, 
+    });
+    eventLoggingExecute();
+    Logger.log('event logging done');
   }
   updateSyncToken(writeCalendarId); // renew sync token after adding guest
   Logger.log('Wrote updated events to read calendar. Fullsync = ' + fullSync);
@@ -581,24 +596,6 @@ function writeEvent(event, writeCalendarId, writeUser, readCalendarIds) {
   for (var i = 0; i < readCalendarIds.length; i++) {
     const readCalendarId = readCalendarIds[i];
     event.addGuest(readCalendarId);
-  }
-  const properties = PropertiesService.getUserProperties();
-  var eventLoggingDone = properties.getProperty('eventLoggingDone');
-  if (eventLoggingDone === 'false'){ // do event logging only once
-    eventLoggingStoreData({
-      startTime: event.getStartTime(),
-      endTime: event.getEndTime(),
-      equipment: equipment,
-      status: state,
-      description: event.description,
-      isAllDayEvent: event.isAllDayEvent(),
-      isRecurringEvent: event.isRecurringEvent(),
-      executionTime: new Date(), // current time
-      id: '', 
-    });
-    eventLoggingExecute();
-    Logger.log('event logging done');
-    properties.setProperty('eventLoggingDone', 'true');
   }
 }
 
