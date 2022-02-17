@@ -60,9 +60,9 @@ function createSpreadsheet(count) {
   experimentConditionSpreadsheet.insertSheet('eventLog');
   experimentConditionSpreadsheet.deleteSheet(experimentConditionSpreadsheet.getSheetByName('Sheet1'));
   var activeSheet = experimentConditionSpreadsheet.getSheetByName('eventLog');
-  activeSheet.getRange(1, 1, 500000, 10).setWrap(true); // wrap overflowing text
-  activeSheet.getRange(1, 1, 1, 10).setValues(
-    [['startTime', 'endTime', 'name', 'equipment', 'status', 'comment', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime']]
+  activeSheet.getRange(1, 1, 400000, 11).setWrap(true); // wrap overflowing text
+  activeSheet.getRange(1, 1, 1, 11).setValues(
+    [['startTime', 'endTime', 'name', 'equipment', 'status', 'comment', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id']]
   );
   
   // create spreadsheet for finalized logging
@@ -70,9 +70,9 @@ function createSpreadsheet(count) {
   loggingSpreadsheet.insertSheet('finalLog');
   loggingSpreadsheet.deleteSheet(loggingSpreadsheet.getSheetByName('Sheet1'));
   var activeSheet = loggingSpreadsheet.getSheetByName('finalLog');
-  activeSheet.getRange(1, 1, 500000, 10).setWrap(true); // wrap overflowing text
-  activeSheet.getRange(1, 1, 1, 10).setValues(
-    [['startTime', 'endTime', 'name', 'equipment', 'status', 'comment', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime']]
+  activeSheet.getRange(1, 1, 400000, 11).setWrap(true); // wrap overflowing text
+  activeSheet.getRange(1, 1, 1, 11).setValues(
+    [['startTime', 'endTime', 'name', 'equipment', 'status', 'comment', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id']]
   );
 
   var property = {
@@ -189,7 +189,7 @@ function onCalendarEdit(e) {
   const index = writeCalendarIds.indexOf(calendarId);
   const fullSync = false;
   eventLoggingSetup(); // setup admin logging
-  eventLogging({ 
+  eventLoggingStoreData({ 
     name: users[index],
     action: "add/move/del event", 
   });
@@ -227,7 +227,7 @@ function onSheetsEdit(e) {
     action = "edited equipment";
   } 
   const executionTime = new Date(); // current time
-  eventLogging({
+  eventLoggingStoreData({
     executionTime: executionTime,
     name: readUser,
     action: 'sheets (row, col) = (' + row + ', ' + column + '): ' + action,
@@ -251,10 +251,20 @@ function eventLoggingSetup() { // prepares constant for eventLogging
   const lastRow = book.getSheetByName('eventLog').getLastRow();
   const row = lastRow + 1; // write on new row
   properties.setProperty('row', row.toString());
+  properties.setProperty('eventLoggingData', JSON.stringify({}));
   properties.setProperty('eventLoggingDone', 'false'); // reset execution state of admin logging
 }
 
-function eventLogging(logObj) { // logs everything
+function eventLoggingStoreData(logObj) { // set data for logging
+  const properties = PropertiesService.getUserProperties();
+  var eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData'));
+  for (const key in logObj) { // iterate through log object
+    eventLoggingData[key] = value;
+  }
+  properties.setProperty('eventLoggingData', JSON.stringify(eventLoggingData));
+}
+
+function eventLoggingExecute(logObj) { // execute logging to sheets
   const properties = PropertiesService.getUserProperties();
   const columnDescriptions = { // shows which description corresponds to which column
     startTime: 1,
@@ -267,14 +277,18 @@ function eventLogging(logObj) { // logs everything
     isRecurringEvent: 8,
     action: 9,
     executionTime: 10,
-  }; // didn't put this in eventLoggingSetup because it cannot hold js objects
+    id: 11,
+  };
   const row = parseInt(properties.getProperty('row'));
-  const adminLogSheet = SpreadsheetApp.openById(properties.getProperty('SpreadsheetId')).getSheetByName('eventLog'); // spreadsheet for logging
+  var eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData'));
+  const eventLogSheet = SpreadsheetApp.openById(properties.getProperty('SpreadsheetId')).getSheetByName('eventLog'); // spreadsheet for logging
+  var values = [[]];
   for (const key in logObj) { // iterate through log object
     var value = logObj[key];
     var col = columnDescriptions[key];
-    adminLogSheet.getRange(row,col).setValue(value);
+    values[0][col-1] = value;
   }
+  eventLogSheet.getRange(row, 1, 1, 11).setValue(values);
 }
 
 function finalLogging() { // logs just the necessary data
@@ -293,6 +307,7 @@ function finalLogging() { // logs just the necessary data
     isRecurringEvent: 8,
     action: 9,
     executionTime: 10,
+    id: 11,
   };
   const sheet = SpreadsheetApp.openById(properties.getProperty('configSpreadsheetId')).getSheetByName('users');
   const writeCalendarIds = getWriteCalendarIds(sheet);
@@ -573,8 +588,8 @@ function writeEvent(event, writeCalendarId, writeUser, readCalendarIds) {
   const durationTime = new Date(endTime - startTime);
   const properties = PropertiesService.getUserProperties();
   var eventLoggingDone = properties.getProperty('eventLoggingDone');
-  if (eventLoggingDone === 'false'){ // do admin logging only once
-    eventLogging({
+  if (eventLoggingDone === 'false'){ // do event logging only once
+    eventLoggingStoreData({
       executionTime: executionTime,
       startTime: startTime,
       endTime: endTime,
@@ -584,6 +599,7 @@ function writeEvent(event, writeCalendarId, writeUser, readCalendarIds) {
       isAllDayEvent: event.isAllDayEvent(),
       isRecurringEvent: event.isRecurringEvent(),
     });
+    eventLoggingExecute();
     Logger.log('event logging done');
     properties.setProperty('eventLoggingDone', 'true');
   }
