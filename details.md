@@ -247,6 +247,8 @@ Workbook内のすべてのSheetの合計Cell数は最大で10000000=1e7
 - variables
    - userCount = 18 users (19 when including the all event user)
    - equipmentCount = 50 equipments
+   - experimentConditionCount = 20 experiment conditions for a single equipment
+   - experimentConditionRows = 6000 rows in experiment condition
 ##### 1. configSpreadsheet
 - users sheet  
    - (equipmentCount+9) columns * userCount+2 rows  = 5100 cells
@@ -257,23 +259,23 @@ Workbook内のすべてのSheetの合計Cell数は最大で10000000=1e7
 |**userCount+1 rows**||||||||||
 
 - properties sheet  
-   - 100 columns * (equipmentCount+1) rows = 5100 cells
+   - (experimentConditionCount+2) columns * (equipmentCount+1) rows = 1122 cells
 
-|||||
-|-|-|-|-|-|
-|Equipment|sheetId|Properties|**100-3 cols**|
-|**equipmentCount rows**||||
+||||
+|-|-|-|
+|equipmentName|sheetName|**experimentConditionCount cols**|
+|**equipmentCount rows**|||
 
 ##### 2. experimentConditionSpreadsheet
-- 別々のworkbookにすると50個のWorkbookにTriggerを設定する必要があり、20 Triggerの制限を超える
-- そのため、同じworkbook中の別のsheetにした。
+- 別々のworkbookにすると50個のWorkbookにTriggerを設定する必要があり、20 Trigger/User/Appの制限を超える
+   - そのため、同じworkbook中の別のsheetにした。
 - equipment sheet
-   - 15 columns * 12000 rows * 50 = 9e6 < 1e7 cells
+   - (12+experimentConditionCount)columns * 6000 rows * 50 = 9.6e6 < 1e7 cells
 
 |||||||||
 |-|-|-|-|-|-|-|-|-|-|
 |start Time|end Time|name|equipment|status|description|is AllDay Event|is Recurring Event|action|executionTime|id|
-|**600000-1 rows**||||||||
+|**12000 rows**||||||||
  
 
 ## 5. 簡易版操作マニュアル
