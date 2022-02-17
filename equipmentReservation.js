@@ -34,50 +34,52 @@ function changeSheetSize(sheet, rows, columns) {
   sheet.getRange(1, 1, rows, columns).setWrap(true); // wrap overflowing text
 }
 
-// creates spreadsheet for {count} users
-function createSpreadsheet(count) {
+function arrayFill2d(rows, columns, value) { // create 2d array filled with value
+  return Array(rows).fill().map(() => Array(columns).fill(42));
+}
+
+// creates spreadsheet for {userCount} users
+function createSpreadsheet(userCount) {
   // create spreadsheet for configuration
   const equipmentCount = 50; // number of equipments
+  const experimentConditionCount = 100 // number of experiment conditions for a single equipment
   var configSpreadsheet = SpreadsheetApp.create('configSpreadsheet');
-  configSpreadsheet.insertSheet('users');
-  configSpreadsheet.insertSheet('properties');
+  // users sheet
+  var activeSheet = configSpreadsheet.insertSheet('users');
   configSpreadsheet.deleteSheet(configSpreadsheet.getSheetByName('Sheet1'));
-  var activeSheet = configSpreadsheet.getSheetByName('users');
-  changeSheetSize(activeSheet, count+2, equipmentCount+9);
+  changeSheetSize(activeSheet, userCount+2, equipmentCount+9);
+  activeSheet.hideColumns(2, 6); // hide columns used for debug
   // draw borders
-  activeSheet.getRange(1, 1, count+2, equipmentCount+9).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
-  activeSheet.getRange(1, 1, count+2, equipmentCount+9).setBorder(true, true, true, true, null, true, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  activeSheet.getRange(1, 1, userCount+2, equipmentCount+9).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, userCount+2, equipmentCount+9).setBorder(true, true, true, true, null, true, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   activeSheet.getRange(1, 1, 1, equipmentCount+9).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
-  activeSheet.getRange(1, 1, count+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
-  activeSheet.getRange(1, 5, count+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-  activeSheet.getRange(1, 7, count+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-  activeSheet.getRange(1, 9, count+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  activeSheet.getRange(1, 1, userCount+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 5, userCount+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  activeSheet.getRange(1, 7, userCount+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  activeSheet.getRange(1, 9, userCount+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   activeSheet.getRange(1, 1, 1, 9).setValues(
     [['Full Name (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read CalendarId', 'Write CalendarId', 'Read Calendar URL', 'Write Calendar URL']]
   );
-  activeSheet.hideColumns(2, 6); // hide columns used for debug
-  activeSheet.getRange(2, 10, count, equipmentCount).insertCheckboxes('no'); // create unchecked checkbox for 100 columns (equipments)
-  var fillValue = [];
-  for (var i = 0; i < count; i++) {
-    fillValue[i] = ['First Last'];
-  }
-  activeSheet.getRange(2, 1, count).setValues(fillValue);
-  activeSheet.getRange(2+count, 10, 1, equipmentCount).insertCheckboxes('yes'); // create checked checkbox for 'ALL EVENTS'
-  activeSheet.getRange(2+count, 1).setValue('ALL EVENTS');
-  var fillValue = [[]];
-  for (var i = 0; i < equipmentCount; i++) {
-    fillValue[0][i] = `=properties!R${2+i}C${1}`; // refer to sheet 'properties' for equipment name
-  }
-  activeSheet.getRange(1, 10, 1, equipmentCount).setFormulas(fillValue); // copy equipment name
+  // normal user row
+  activeSheet.getRange(2, 10, userCount, equipmentCount).insertCheckboxes('no'); // create unchecked checkbox for 100 columns (equipments)
+  var filledArray = arrayFill2d(userCount, 1, 'First Last');
+  activeSheet.getRange(2, 1, userCount).setValues(filledArray);
+  // 'ALL EVENTS' user row
+  activeSheet.getRange(2+userCount, 10, 1, equipmentCount).insertCheckboxes('yes'); // create checked checkbox for 'ALL EVENTS'
+  activeSheet.getRange(2+userCount, 1).setValue('ALL EVENTS');
+  // copy equipments name from properties sheet
+  var filledArray = arrayFill2d(1, equipmentCount, `=properties!R${2+i}C${1}`); // refer to sheet 'properties' for equipment name
+  activeSheet.getRange(1, 10, 1, equipmentCount).setFormulas(filledArray);
 
-  var activeSheet = configSpreadsheet.getSheetByName('properties');
-  changeSheetSize(activeSheet, equipmentCount+1, 100);
+  // properties sheet
+  var activeSheet = configSpreadsheet.insertSheet('properties');
+  changeSheetSize(activeSheet, equipmentCount+1, experimentConditionCount+2);
   // draw borders
-  activeSheet.getRange(1, 1, equipmentCount+1, 100).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
-  activeSheet.getRange(1, 1, 1, 100).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, equipmentCount+1, experimentConditionCount).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, 1, experimentConditionCount).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   activeSheet.getRange(1, 1, equipmentCount+1, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
 
-  // create spreadsheet for logging
+  // create spreadsheet for experiment condition logging
   var sheetIds = []; // store sheetId for each equipment
   var experimentConditionSpreadsheet = SpreadsheetApp.create('experimentConditionSpreadsheet');
   var activeSheet = experimentConditionSpreadsheet.insertSheet('eventLog');
@@ -90,16 +92,16 @@ function createSpreadsheet(count) {
         [['startTime', 'endTime', 'name', 'equipment', 'status', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists', 'sheetName']]
       );
       activeSheet.getRange(1, 13).setValue(sheet.getName()); // set sheet name
-      var fillValue = [[]];
+      var filledArray = [[]];
       for (var j = 0; j < 10000-1; j++) {
-        fillValue[j] = [];
+        filledArray[j] = [];
         // see if event exists (if it is 1[not canceled] and 2[unmodified(is the last entry with the same id)]) and the 3[equipment mathes the sheet name]
-        fillValue[j][12] = `=AND(COUNTIF(INDIRECT("R[1]C[-1]", FALSE):INDIRECT("R[100]C[-1]", FALSE),B4)=0, INDIRECT("R[0]C[-3]", FALSE)="add", INDIRECT("R[0]C[-8]", FALSE)=INDIRECT("R2C13", FALSE))`;
+        filledArray[j][12] = ;
         for (var k = 0; k < 11; k++){
-          fillValue[j][k+1] = `=INDIRECT("eventLog!R[0]C[0]", FALSE)`;
+          filledArray[j][k+1] = ;
         }
       }
-      activeSheet.getRange(3, 1, 400000, 12).setFormulas(fillValue);
+      activeSheet.getRange(3, 1, 400000, 12).setFormulas(filledArray);
       sheet.setColumnFilterCriteria(12, ); // todo
       sheetIds[i] = sheet.getId();
     Utilities.sleep(1000);
@@ -111,13 +113,13 @@ function createSpreadsheet(count) {
   );
 
   var activeSheet = configSpreadsheet.getSheetByName('properties');
-  var fillValue = [[]];
-  fillValue[0] = ['Equipment', 'sheetId', 'Properties ->', '', '', '', ''];
-  fillValue[1] = ['(Example) Sputter', sheetIds[0], 'Pressure', 'Flow', 'Time', 'Fwd. Power', 'Ref. Power'];
+  var filledArray = [[]];
+  filledArray[0] = ['Equipment', 'sheetId', 'Properties ->', '', '', '', ''];
+  filledArray[1] = ['(Example) Sputter', sheetIds[0], 'Pressure', 'Flow', 'Time', 'Fwd. Power', 'Ref. Power'];
   for (var i = 1; i < equipmentCount; i++) {
-    fillValue[1+i] = ['', sheetIds[i], '', '', '', '', '']
+    filledArray[1+i] = ['', sheetIds[i], '', '', '', '', '']
   }
-  activeSheet.getRange(1, 1, 1, 6).setValues(fillValue);
+  activeSheet.getRange(1, 1, 1, 6).setValues(filledArray);
   
   // create spreadsheet for finalized logging
   var loggingSpreadsheet = SpreadsheetApp.create('loggingSpreadsheet');
@@ -137,8 +139,8 @@ function createSpreadsheet(count) {
   setIds(property);
 }
 
-// creates calendars for {count} users
-function createCalendars(count, groupUrl) {
+// creates calendars for {userCount} users
+function createCalendars(userCount, groupUrl) {
   const properties = PropertiesService.getUserProperties();
   const configSpreadsheet = SpreadsheetApp.openById(properties.getProperty('configSpreadsheetId'));
   const resource = { // used to add google group as guest
@@ -148,8 +150,8 @@ function createCalendars(count, groupUrl) {
     },
     'role': 'writer',
   }
-  // create {count+1} read calendars
-  for (var i = 0; i < count+1; i++){
+  // create {userCount+1} read calendars
+  for (var i = 0; i < userCount+1; i++){
     Utilities.sleep(3000);
     var calendar = CalendarApp.createCalendar(`read ${i+1}`);
     var readCalendarId = calendar.getId();
@@ -159,8 +161,8 @@ function createCalendars(count, groupUrl) {
     activeSheet.getRange(2+i, 8).setValue(`https://calendar.google.com/calendar/u/0?cid=${readCalendarId}`);
     Logger.log(`Created read calendar ${calendar.getName()}, with the ID ${readCalendarId}.`);
   }
-  // create {count} write calendars
-  for (var i = 0; i < count; i++){
+  // create {userCount} write calendars
+  for (var i = 0; i < userCount; i++){
     Utilities.sleep(3000);
     var calendar = CalendarApp.createCalendar(`write ${i+1}`);
     var writeCalendarId = calendar.getId();
@@ -330,13 +332,13 @@ function eventLoggingExecute(logObj) { // execute logging to sheets
   const row = parseInt(properties.getProperty('row'));
   var eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData'));
   const eventLogSheet = SpreadsheetApp.openById(properties.getProperty('SpreadsheetId')).getSheetByName('eventLog'); // spreadsheet for logging
-  var fillValue = [[]];
+  var filledArray = [[]];
   for (const key in logObj) { // iterate through log object
     var value = logObj[key];
     var col = columnDescriptions[key];
-    fillValue[0][col-1] = value;
+    filledArray[0][col-1] = value;
   }
-  eventLogSheet.getRange(row, 1, 1, 11).setValue(fillValue);
+  eventLogSheet.getRange(row, 1, 1, 11).setValue(filledArray);
 }
 
 function finalLogging() { // logs just the necessary data
@@ -410,13 +412,13 @@ function finalLogging() { // logs just the necessary data
           executionTime: '',
           id: eid,
       }
-      var fillValue = [[]];
+      var filledArray = [[]];
       for (const key in logObj) { // iterate through log object
         var value = logObj[key];
         var col = columnDescriptions[key];
-        fillValue[0][col-1] = value;
+        filledArray[0][col-1] = value;
       }
-      finalLogSheet.getRange(row, 1, 1, 11).setValue(fillValue);
+      finalLogSheet.getRange(row, 1, 1, 11).setValue(filledArray);
     }
   }
 }
