@@ -76,9 +76,10 @@ function createSpreadsheet(userCount) {
   }
 
   // create spreadsheet for configuration
+  Utilities.sleep(1000);
   var configSpreadsheet = SpreadsheetApp.create('configSpreadsheet');
   // users sheet
-  var activeSheet = configSpreadsheet.insertSheet('users');
+  var activeSheet = configSpreadsheet.insertSheet('users'); 
   configSpreadsheet.deleteSheet(configSpreadsheet.getSheetByName('Sheet1'));
   changeSheetSize(activeSheet, userCount+2, equipmentCount+9);
   activeSheet.hideColumns(2, 6); // hide columns used for debug
@@ -105,6 +106,7 @@ function createSpreadsheet(userCount) {
   activeSheet.getRange(1, 10, 1, equipmentCount).setFormulas(filledArray);
 
   // properties sheet
+  Utilities.sleep(1000);
   var activeSheet = configSpreadsheet.insertSheet('properties');
   const configSpreadsheetId = configSpreadsheet.getId()
   changeSheetSize(activeSheet, equipmentCount+1, experimentConditionCount+1;
@@ -121,6 +123,7 @@ function createSpreadsheet(userCount) {
   activeSheet.hideColumns(2); // hide columns used for debug
   
   // create spreadsheet for finalized logging
+  Utilities.sleep(1000);
   var loggingSpreadsheet = SpreadsheetApp.create('loggingSpreadsheet');
   var activeSheet = loggingSpreadsheet.insertSheet('finalLog');
   loggingSpreadsheet.deleteSheet(loggingSpreadsheet.getSheetByName('Sheet1'));
