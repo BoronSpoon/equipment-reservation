@@ -56,7 +56,7 @@ function createSpreadsheet(userCount) {
     if (i === 0) {        
       experimentConditionSpreadsheet.deleteSheet(experimentConditionSpreadsheet.getSheetByName('Sheet1'));
     }
-    changeSheetSize(activeSheet, experimentConditionRows, 12+experimentConditionCount)
+    changeSheetSize(activeSheet, experimentConditionRows, 12+experimentConditionCount);
     activeSheet.getRange(1, 1, 1, 12).setValues(
       [['startTime', 'endTime', 'name', 'equipment', 'status', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists']]
     );
@@ -65,11 +65,10 @@ function createSpreadsheet(userCount) {
       filledArray[0][j] = `=properties!R[${2+i}][C${3+j}]`;
     }
     activeSheet.getRange(1, 13, 1, experimentConditionCount).setValues(filledArray); // copy experiment condition 
-    var filledArray = [[]];
+    var filledArray = arrayFill2d(experimentConditionRows, 12, '');
     for (var j = 0; j < experimentConditionRows; j++) {
-      filledArray[j] = [];
       // see if event exists (if it is 1[unmodified(is the last entry with the same id)] and 2[not canceled])
-      filledArray[j][12] = `=AND(COUNTIF(INDIRECT("R[1]C[-1]", FALSE):INDIRECT("R[$${experimentConditionRows-j}]C[-1]", FALSE),B4)=0, INDIRECT("R[0]C[-3]", FALSE)="add")`;
+      filledArray[j][11] = `=AND(COUNTIF(INDIRECT("R[1]C[-1]", FALSE):INDIRECT("R[$${experimentConditionRows-j}]C[-1]", FALSE),B4)=0, INDIRECT("R[0]C[-3]", FALSE)="add")`;
     }
     activeSheet.getRange(2, 1, experimentConditionRows, 12).setFormulas(filledArray);
     //sheet.setColumnFilterCriteria(12, ); // todo
@@ -109,7 +108,7 @@ function createSpreadsheet(userCount) {
   Utilities.sleep(1000);
   var activeSheet = configSpreadsheet.insertSheet('properties');
   const configSpreadsheetId = configSpreadsheet.getId()
-  changeSheetSize(activeSheet, equipmentCount+1, experimentConditionCount+1;
+  changeSheetSize(activeSheet, equipmentCount+1, experimentConditionCount+1);
   // draw borders
   activeSheet.getRange(1, 1, equipmentCount+1, experimentConditionCount).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   activeSheet.getRange(1, 1, 1, experimentConditionCount).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
