@@ -62,7 +62,7 @@ function createSpreadsheet(count) {
   var activeSheet = experimentConditionSpreadsheet.getSheetByName('eventLog');
   activeSheet.getRange(1, 1, 400000, 11).setWrap(true); // wrap overflowing text
   activeSheet.getRange(1, 1, 1, 11).setValues(
-    [['startTime', 'endTime', 'name', 'equipment', 'status', 'comment', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id']]
+    [['startTime', 'endTime', 'name', 'equipment', 'status', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id']]
   );
   
   // create spreadsheet for finalized logging
@@ -72,7 +72,7 @@ function createSpreadsheet(count) {
   var activeSheet = loggingSpreadsheet.getSheetByName('finalLog');
   activeSheet.getRange(1, 1, 400000, 11).setWrap(true); // wrap overflowing text
   activeSheet.getRange(1, 1, 1, 11).setValues(
-    [['startTime', 'endTime', 'name', 'equipment', 'status', 'comment', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id']]
+    [['startTime', 'endTime', 'name', 'equipment', 'status', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id']]
   );
 
   var property = {
@@ -272,7 +272,7 @@ function eventLoggingExecute(logObj) { // execute logging to sheets
     name: 3,
     equipment: 4,
     status: 5,
-    comment: 6,
+    description: 6,
     isAllDayEvent: 7,
     isRecurringEvent: 8,
     action: 9,
@@ -293,8 +293,8 @@ function eventLoggingExecute(logObj) { // execute logging to sheets
 
 function finalLogging() { // logs just the necessary data
   const properties = PropertiesService.getUserProperties();
-  const eventLogSheet = SpreadsheetApp.openById(properties.getProperty('loggingSpreadsheetId')).getSheetByName('finalLog')
-  const lastRow = eventLogSheet.getLastRow();
+  const finalLogSheet = SpreadsheetApp.openById(properties.getProperty('loggingSpreadsheetId')).getSheetByName('finalLog')
+  const lastRow = finalLogSheet.getLastRow();
   const row = lastRow + 1; // write on new row
   const columnDescriptions = { // shows which description corresponds to which column
     startTime: 1,
@@ -302,7 +302,7 @@ function finalLogging() { // logs just the necessary data
     name: 3,
     equipment: 4,
     status: 5,
-    comment: 6,
+    description: 6,
     isAllDayEvent: 7,
     isRecurringEvent: 8,
     action: 9,
@@ -342,28 +342,25 @@ function finalLogging() { // logs just the necessary data
     
     // log each event
     for (var j = 0; j < events.length; j++){
-      Utilities.sleep(1000);
+      Utilities.sleep(100);
       var event = events[j];
       const equipmentStateFromEvent = getEquipmentStateFromEvent(event); // this must be called first before getCalendarById
       const equipment = equipmentStateFromEvent.equipment;
       const state = equipmentStateFromEvent.state;
       const eid = event.iCalUID;
       event = CalendarApp.getCalendarById(writeCalendarId).getEventById(eid);
-      const startTime = event.getStartTime();
-      const endTime = event.getEndTime();
-      const durationTime = new Date(endTime - startTime);
       var logObj = {
-          startTime: startTime,
-          endTime: endTime,
+          startTime: event.getStartTime(),
+          endTime: event.getEndTime(),
           name: writeUser,
           equipment: equipment,
           status: state,
-          comment: '',
+          description: event.description,
           isAllDayEvent: event.isAllDayEvent(),
           isRecurringEvent: event.isRecurringEvent(),
           action: '',
           executionTime: '',
-          id: '',
+          id: eid,
       }
       var values = [[]];
       for (const key in logObj) { // iterate through log object
@@ -371,7 +368,7 @@ function finalLogging() { // logs just the necessary data
         var col = columnDescriptions[key];
         values[0][col-1] = value;
       }
-      eventLogSheet.getRange(row, 1, 1, 11).setValue(values);
+      finalLogSheet.getRange(row, 1, 1, 11).setValue(values);
     }
   }
 }
@@ -598,7 +595,7 @@ function writeEvent(event, writeCalendarId, writeUser, readCalendarIds) {
       endTime: endTime,
       equipment: equipment,
       status: state,
-      comment: "",
+      description: "",
       isAllDayEvent: event.isAllDayEvent(),
       isRecurringEvent: event.isRecurringEvent(),
     });
