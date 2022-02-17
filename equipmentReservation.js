@@ -46,9 +46,23 @@ function createSpreadsheet(userCount) {
   const finalLoggingRows = 1000000 // number of rows in final logging
 
   // create spreadsheet for experiment condition logging
+  Logger.log('Creating experimentConditionSpreadsheet');
   var sheetIds = [];
+  // create workbooks(spreadsheets) and sheets
   var experimentConditionSpreadsheet = SpreadsheetApp.create('experimentConditionSpreadsheet');
-  var activeSheet = experimentConditionSpreadsheet.insertSheet('eventLog');
+  var configSpreadsheet = SpreadsheetApp.create('configSpreadsheet');
+  configSpreadsheet.insertSheet('users'); 
+  configSpreadsheet.deleteSheet(configSpreadsheet.getSheetByName('Sheet1'));
+  configSpreadsheet.insertSheet('properties');
+  var loggingSpreadsheet = SpreadsheetApp.create('loggingSpreadsheet');
+  loggingSpreadsheet.insertSheet('finalLog');
+  loggingSpreadsheet.deleteSheet(loggingSpreadsheet.getSheetByName('Sheet1'));
+  // get ids
+  const configSpreadsheetId = configSpreadsheet.getId();
+  const experimentConditionSpreadsheetId = experimentConditionSpreadsheet.getId();
+  const loggingSpreadsheetId = loggingSpreadsheet.getId();
+
+  var activeSheet = experimentConditionSpreadsheet.getSheetByName('eventLog');
   for (var i = 0; i < equipmentCount; i++) { // create sheet for each equipment
     Utilities.sleep(1000);
     var activeSheet = experimentConditionSpreadsheet.insertSheet(`equipment ${i+1}`);
@@ -62,7 +76,7 @@ function createSpreadsheet(userCount) {
     );
     var filledArray = [[]];
     for (var j = 0; j < experimentConditionCount; j++) {
-      filledArray[0][j] = `=properties!R[${2+i}][C${3+j}]`;
+      filledArray[0][j] = ` =IMPORTRANGE("https://docs.google.com/spreadsheets/d/${configSpreadsheetId}", "properties!R[${2+i}][C${3+j}]")`;
     }
     activeSheet.getRange(1, 13, 1, experimentConditionCount).setValues(filledArray); // copy experiment condition 
     var filledArray = arrayFill2d(experimentConditionRows, 12, '');
@@ -76,10 +90,10 @@ function createSpreadsheet(userCount) {
 
   // create spreadsheet for configuration
   Utilities.sleep(1000);
-  var configSpreadsheet = SpreadsheetApp.create('configSpreadsheet');
+  Logger.log('Creating configSpreadsheet');
   // users sheet
-  var activeSheet = configSpreadsheet.insertSheet('users'); 
-  configSpreadsheet.deleteSheet(configSpreadsheet.getSheetByName('Sheet1'));
+  Logger.log('Creating usersSheet');
+  var activeSheet = configSpreadsheet.getSheetByName('users'); 
   changeSheetSize(activeSheet, userCount+2, equipmentCount+9);
   activeSheet.hideColumns(2, 6); // hide columns used for debug
   // draw borders
@@ -105,9 +119,9 @@ function createSpreadsheet(userCount) {
   activeSheet.getRange(1, 10, 1, equipmentCount).setFormulas(filledArray);
 
   // properties sheet
+  Logger.log('Creating propertiesSheet');
   Utilities.sleep(1000);
-  var activeSheet = configSpreadsheet.insertSheet('properties');
-  const configSpreadsheetId = configSpreadsheet.getId()
+  var activeSheet = configSpreadsheet.getSheetByName('properties');
   changeSheetSize(activeSheet, equipmentCount+1, experimentConditionCount+1);
   // draw borders
   activeSheet.getRange(1, 1, equipmentCount+1, experimentConditionCount).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
@@ -122,10 +136,10 @@ function createSpreadsheet(userCount) {
   activeSheet.hideColumns(2); // hide columns used for debug
   
   // create spreadsheet for finalized logging
+  Logger.log('Creating loggingSpreadsheet');
   Utilities.sleep(1000);
-  var loggingSpreadsheet = SpreadsheetApp.create('loggingSpreadsheet');
-  var activeSheet = loggingSpreadsheet.insertSheet('finalLog');
-  loggingSpreadsheet.deleteSheet(loggingSpreadsheet.getSheetByName('Sheet1'));
+  Logger.log('Creating finalLogSheet');
+  var activeSheet = loggingSpreadsheet.getSheetByName('finalLog');
   changeSheetSize(activeSheet, finalLoggingRows, 8);
   // draw borders
   activeSheet.getRange(1, 1, 1, 8).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
@@ -134,9 +148,9 @@ function createSpreadsheet(userCount) {
   );
 
   var property = {
-    configSpreadsheetId : configSpreadsheet.getId(),
-    experimentConditionSpreadsheetId : experimentConditionSpreadsheet.getId(),
-    loggingSpreadsheetId : loggingSpreadsheet.getId(),
+    configSpreadsheetId : configSpreadsheetId,
+    experimentConditionSpreadsheetId : experimentConditionSpreadsheetId,
+    loggingSpreadsheetId : loggingSpreadsheetId,
   };
   setIds(property);
 }
