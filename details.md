@@ -271,12 +271,12 @@ Workbook内のすべてのSheetの合計Cell数は最大で10000000=1e7
 - 別々のworkbookにすると50個のWorkbookにTriggerを設定する必要があり、20 Trigger/User/Appの制限を超える
    - そのため、同じworkbook中の別のsheetにした。
 - equipment sheet
-   - (12+experimentConditionCount) columns * 6000 rows * 50 = 9.6e6 < 1e7 cells
+   - (12+experimentConditionCount) columns * (experimentConditionRows+1) rows * 50 = 9.6e6 < 1e7 cells
 
 |||||||||
 |-|-|-|-|-|-|-|-|-|-|
 |start Time|end Time|name|equipment|status|description|is AllDay Event|is Recurring Event|action|executionTime|id|
-|**12000 rows**||||||||
+|**experimentConditionRows rows**||||||||
 
 ##### 3. loggingSpreadsheet
 - finalLog sheet

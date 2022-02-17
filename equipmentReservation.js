@@ -40,6 +40,11 @@ function arrayFill2d(rows, columns, value) { // create 2d array filled with valu
 
 // creates spreadsheet for {userCount} users
 function createSpreadsheet(userCount) {
+  const equipmentCount = 50; // number of equipments
+  const experimentConditionCount = 20 // number of experiment conditions for a single equipment
+  const experimentConditionRows = 6000 // number of rows in experiment condition
+  const finalLoggingRows = 1000000 // number of rows in final logging
+
   // create spreadsheet for experiment condition logging
   var sheetIds = [];
   var experimentConditionSpreadsheet = SpreadsheetApp.create('experimentConditionSpreadsheet');
@@ -51,26 +56,26 @@ function createSpreadsheet(userCount) {
     if (i === 0) {        
       experimentConditionSpreadsheet.deleteSheet(experimentConditionSpreadsheet.getSheetByName('Sheet1'));
     }
-    changeSheetSize(activeSheet, 10000, 15)
+    changeSheetSize(activeSheet, experimentConditionRows, 12+experimentConditionCount)
     activeSheet.getRange(1, 1, 1, 12).setValues(
       [['startTime', 'endTime', 'name', 'equipment', 'status', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists']]
     );
-    activeSheet.getRange(1, 13).setValue(sheet.getName()); // set sheet name
     var filledArray = [[]];
-    for (var j = 0; j < 10000-1; j++) {
+    for (var j = 0; j < experimentConditionCount; j++) {
+      filledArray[0][j] = `=properties!R[${2+i}][C${3+j}]`;
+    }
+    activeSheet.getRange(1, 13, 1, experimentConditionCount).setValues(filledArray); // copy experiment condition 
+    var filledArray = [[]];
+    for (var j = 0; j < experimentConditionRows; j++) {
       filledArray[j] = [];
       // see if event exists (if it is 1[unmodified(is the last entry with the same id)] and 2[not canceled])
-      filledArray[j][12] = `=AND(COUNTIF(INDIRECT("R[1]C[-1]", FALSE):INDIRECT("R[1]C[-1]", FALSE),B4)=0, INDIRECT("R[0]C[-3]", FALSE)="add")`;
+      filledArray[j][12] = `=AND(COUNTIF(INDIRECT("R[1]C[-1]", FALSE):INDIRECT("R[$${experimentConditionRows-j}]C[-1]", FALSE),B4)=0, INDIRECT("R[0]C[-3]", FALSE)="add")`;
     }
     activeSheet.getRange(2, 1, experimentConditionRows, 12).setFormulas(filledArray);
-    sheet.setColumnFilterCriteria(12, ); // todo
+    //sheet.setColumnFilterCriteria(12, ); // todo
   }
 
   // create spreadsheet for configuration
-  const equipmentCount = 50; // number of equipments
-  const experimentConditionCount = 20 // number of experiment conditions for a single equipment
-  const experimentConditionRows = 6000 // number of rows in experiment condition
-  const finalLoggingRows = 1000000 // number of rows in final logging
   var configSpreadsheet = SpreadsheetApp.create('configSpreadsheet');
   // users sheet
   var activeSheet = configSpreadsheet.insertSheet('users');
@@ -96,7 +101,7 @@ function createSpreadsheet(userCount) {
   activeSheet.getRange(2+userCount, 10, 1, equipmentCount).insertCheckboxes('yes'); // create checked checkbox for 'ALL EVENTS'
   activeSheet.getRange(2+userCount, 1).setValue('ALL EVENTS');
   // copy equipments name from properties sheet
-  var filledArray = arrayFill2d(1, equipmentCount, `=properties!R${2+i}C${1}`); // refer to sheet 'properties' for equipment name
+  var filledArray = arrayFill2d(1, equipmentCount, `=INDIRECT("properties!R[${2+i}]C[${1}]")`); // refer to sheet 'properties' for equipment name
   activeSheet.getRange(1, 10, 1, equipmentCount).setFormulas(filledArray);
 
   // properties sheet
