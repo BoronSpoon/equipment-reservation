@@ -105,6 +105,7 @@ function createSpreadsheet(userCount) {
   var activeSheet = experimentConditionSpreadsheet.getSheetByName('users'); 
   changeSheetSize(activeSheet, userCount+2, equipmentCount+9);
   activeSheet.hideColumns(2, 6); // hide columns used for debug
+  activeSheet.getRange(2, 6, userCount+1, 2).setHorizontalAlignment("left"); // show https://... not the center of url
   activeSheet.getRange(2, 6, userCount+1, 2).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
   // draw borders
   activeSheet.getRange(1, 1, userCount+2, equipmentCount+9).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
@@ -144,6 +145,7 @@ function createSpreadsheet(userCount) {
     filledArray[i+1] = ['', `equipment ${i+1}`, `https://docs.google.com/spreadsheets/d/${experimentConditionSpreadsheetId}/edit#gid=${sheetIds[i]}`, ''];
   }
   activeSheet.getRange(1, 1, equipmentCount+1, 4).setValues(filledArray);
+  activeSheet.getRange(1, 1, equipmentCount+1, 4).setHorizontalAlignment("left"); // show https://... not the center of url
   activeSheet.getRange(1, 1, equipmentCount+1, 4).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
   activeSheet.hideColumns(2); // hide columns used for debug
   
