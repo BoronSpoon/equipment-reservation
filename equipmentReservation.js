@@ -4,8 +4,8 @@ function setup() {
   if (groupUrl.includes('?')) { // detect default value
     throw new Error('ERROR: change "?????@googlegroups.com" to your google group name');
   }
-  createSpreadsheet(17); // create spreadsheet for 17 users
-  createCalendars(17, groupUrl); // create 18 read + 17 write calendars
+  createSpreadsheet(18); // create spreadsheet for 17 users
+  createCalendars(18, groupUrl); // create 18 read + 17 write calendars
   createTriggers();
 }
 
@@ -49,15 +49,12 @@ function createSpreadsheet(userCount) {
 
   // create workbooks(spreadsheets) and sheets
   var experimentConditionSpreadsheet = SpreadsheetApp.create('experimentConditionSpreadsheet');
-  var configSpreadsheet = SpreadsheetApp.create('configSpreadsheet');
-  configSpreadsheet.insertSheet('users'); 
-  configSpreadsheet.deleteSheet(configSpreadsheet.getSheetByName('Sheet1'));
-  configSpreadsheet.insertSheet('properties');
+  experimentConditionSpreadsheet.insertSheet('users'); 
+  experimentConditionSpreadsheet.insertSheet('properties');
   var loggingSpreadsheet = SpreadsheetApp.create('loggingSpreadsheet');
   loggingSpreadsheet.insertSheet('finalLog');
   loggingSpreadsheet.deleteSheet(loggingSpreadsheet.getSheetByName('Sheet1'));
   // get ids
-  const configSpreadsheetId = configSpreadsheet.getId();
   const experimentConditionSpreadsheetId = experimentConditionSpreadsheet.getId();
   const loggingSpreadsheetId = loggingSpreadsheet.getId();
 
@@ -82,7 +79,7 @@ function createSpreadsheet(userCount) {
     activeSheet.getRange(1, 12, experimentConditionRows, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
     var filledArray = [[]];
     for (var j = 0; j < experimentConditionCount; j++) {
-      filledArray[0][j] = `=IMPORTRANGE("https://docs.google.com/spreadsheets/d/${configSpreadsheetId}", "properties!R[${2+i}]C[${3+j}]")`;
+      filledArray[0][j] = `=INDIRECT("properties!R${2+i}C${4+j}")`;
     }
     activeSheet.getRange(1, 13, 1, experimentConditionCount).setValues(filledArray); // copy experiment condition 
     var filledArray = arrayFill2d(experimentConditionRows, 12, '');
@@ -101,14 +98,11 @@ function createSpreadsheet(userCount) {
   }
   // todo: add new events to sheets
   // todo: apply filter when data changed
-  // todo: merge experimentConditionSpreadsheet and configSpreadsheet as importrange has to be enabled manually
 
-  // create spreadsheet for configuration
   Utilities.sleep(1000);
-  Logger.log('Creating configSpreadsheet');
   // users sheet
   Logger.log('Creating usersSheet');
-  var activeSheet = configSpreadsheet.getSheetByName('users'); 
+  var activeSheet = experimentConditionSpreadsheet.getSheetByName('users'); 
   changeSheetSize(activeSheet, userCount+2, equipmentCount+9);
   activeSheet.hideColumns(2, 6); // hide columns used for debug
   activeSheet.getRange(2, 6, userCount+1, 2).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
@@ -137,7 +131,7 @@ function createSpreadsheet(userCount) {
   // properties sheet
   Logger.log('Creating propertiesSheet');
   Utilities.sleep(1000);
-  var activeSheet = configSpreadsheet.getSheetByName('properties');
+  var activeSheet = experimentConditionSpreadsheet.getSheetByName('properties');
   changeSheetSize(activeSheet, equipmentCount+1, experimentConditionCount+1);
   // draw borders
   activeSheet.getRange(1, 1, equipmentCount+1, experimentConditionCount+1).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
@@ -147,7 +141,7 @@ function createSpreadsheet(userCount) {
   var filledArray = [[]];
   filledArray[0] = ['equipmentName', 'sheetName', 'sheetUrl', 'Properties ->'];
   for (var i = 0; i < equipmentCount; i++) {
-    filledArray[i+1] = ['', `equipment ${i+1}`, `https://docs.google.com/spreadsheets/d/${configSpreadsheetId}/edit#gid=${sheetIds[i]}`, ''];
+    filledArray[i+1] = ['', `equipment ${i+1}`, `https://docs.google.com/spreadsheets/d/${experimentConditionSpreadsheetId}/edit#gid=${sheetIds[i]}`, ''];
   }
   activeSheet.getRange(1, 1, equipmentCount+1, 4).setValues(filledArray);
   activeSheet.getRange(1, 1, equipmentCount+1, 4).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
@@ -166,7 +160,6 @@ function createSpreadsheet(userCount) {
   );
 
   var property = {
-    configSpreadsheetId : configSpreadsheetId,
     experimentConditionSpreadsheetId : experimentConditionSpreadsheetId,
     loggingSpreadsheetId : loggingSpreadsheetId,
   };
@@ -176,7 +169,7 @@ function createSpreadsheet(userCount) {
 // creates calendars for {userCount} users
 function createCalendars(userCount, groupUrl) {
   const properties = PropertiesService.getUserProperties();
-  const configSpreadsheet = SpreadsheetApp.openById(properties.getProperty('configSpreadsheetId'));
+  const experimentConditionSpreadsheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId'));
   const resource = { // used to add google group as guest
     'scope': {
       'type': 'group',
@@ -190,7 +183,7 @@ function createCalendars(userCount, groupUrl) {
     var calendar = CalendarApp.createCalendar(`read ${i+1}`);
     var readCalendarId = calendar.getId();
     Calendar.Acl.insert(resource, readCalendarId); // add access permission to google group
-    var activeSheet = configSpreadsheet.getSheetByName('users');
+    var activeSheet = experimentConditionSpreadsheet.getSheetByName('users');
     activeSheet.getRange(2+i, 6).setValue(readCalendarId);
     activeSheet.getRange(2+i, 8).setValue(`https://calendar.google.com/calendar/u/0?cid=${readCalendarId}`);
     Logger.log(`Created read calendar ${calendar.getName()}, with the ID ${readCalendarId}.`);
@@ -201,7 +194,7 @@ function createCalendars(userCount, groupUrl) {
     var calendar = CalendarApp.createCalendar(`write ${i+1}`);
     var writeCalendarId = calendar.getId();
     Calendar.Acl.insert(resource, writeCalendarId); // add access permission to google group
-    var activeSheet = configSpreadsheet.getSheetByName('users');
+    var activeSheet = experimentConditionSpreadsheet.getSheetByName('users');
     activeSheet.getRange(2+i, 7).setValue(writeCalendarId);
     activeSheet.getRange(2+i, 9).setValue(`https://calendar.google.com/calendar/u/0?cid=${writeCalendarId}`);
     Logger.log(`Created write calendar ${calendar.getName()}, with the ID ${writeCalendarId}.`);
@@ -211,7 +204,6 @@ function createCalendars(userCount, groupUrl) {
 // set ids
 function setIds(property) {
   const properties = PropertiesService.getUserProperties();
-  properties.setProperty('configSpreadsheetId', property.configSpreadsheetId);
   properties.setProperty('experimentConditionSpreadsheetId', property.experimentConditionSpreadsheetId);
   properties.setProperty('loggingSpreadsheetId', property.loggingSpreadsheetId);
 }
@@ -219,11 +211,9 @@ function setIds(property) {
 function setIdsManual() {
   const properties = PropertiesService.getUserProperties();
   //property = {
-  //  configSpreadsheetId : ;
   //  experimentConditionSpreadsheetId : ;
   //  loggingSpreadsheetId : ;
   //}
-  properties.setProperty('configSpreadsheetId', property.configSpreadsheetId);
   properties.setProperty('experimentConditionSpreadsheetId', property.experimentConditionSpreadsheetId);
   properties.setProperty('loggingSpreadsheetId', property.loggingSpreadsheetId);
 }
@@ -242,7 +232,7 @@ function deleteTriggers() {
 // we will use 17 for write calendars, 1 for daily logging, 1 for spreadsheet
 function createTriggers() {
   const properties = PropertiesService.getUserProperties();
-  const sheet = SpreadsheetApp.openById(properties.getProperty('configSpreadsheetId')).getSheetByName('users');
+  const sheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('users');
   const writeCalendarIds = getWriteCalendarIds(sheet);
   
   // create trigger for each of the 17 write calendars
@@ -255,11 +245,7 @@ function createTriggers() {
       .onEventUpdated()
       .create(); 
   }
-  // create 2 Sheets trigger (calls function 'onSheetsEdit' on trigger)
-  ScriptApp.newTrigger('onSheetsEdit')
-      .forSpreadsheet(properties.getProperty('configSpreadsheetId'))
-      .onEdit()
-      .create();
+  // create 1 Sheets trigger (calls function 'onSheetsEdit' on trigger)
   ScriptApp.newTrigger('onSheetsEdit')
       .forSpreadsheet(properties.getProperty('experimentConditionSpreadsheetId'))
       .onEdit()
@@ -276,7 +262,7 @@ function createTriggers() {
 // when calendar gets edited
 function onCalendarEdit(e) {
   const properties = PropertiesService.getUserProperties();
-  const sheet = SpreadsheetApp.openById(properties.getProperty('configSpreadsheetId')).getSheetByName('users');
+  const sheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('users');
   const calendarId = e.calendarId;
   const writeCalendarIds = getWriteCalendarIds(sheet);
   const index = writeCalendarIds.indexOf(calendarId);
@@ -287,8 +273,6 @@ function onCalendarEdit(e) {
 
 // when sheets gets edited
 function onSheetsEdit(e) {
-  const properties = PropertiesService.getUserProperties();
-  const book = SpreadsheetApp.openById(properties.getProperty('configSpreadsheetId'));
   const sheet = e.source.getActiveSheet();
   const cell = e.source.getActiveRange();
   const newValue = e.value;
@@ -397,7 +381,7 @@ function finalLogging() { // logs just the necessary data
     executionTime: 10,
     id: 11,
   };
-  const sheet = SpreadsheetApp.openById(properties.getProperty('configSpreadsheetId')).getSheetByName('users');
+  const sheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('users');
   const writeCalendarIds = getWriteCalendarIds(sheet);
   const users = getUsers(sheet);
   // get events from 2~3 days ago
