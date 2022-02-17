@@ -79,7 +79,7 @@ function createSpreadsheet(userCount) {
     activeSheet.getRange(1, 12, experimentConditionRows, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
     var filledArray = [[]];
     for (var j = 0; j < experimentConditionCount; j++) {
-      filledArray[0][j] = `=INDIRECT("properties!R${2+i}C${4+j}")`;
+      filledArray[0][j] = `=INDIRECT("properties!R${2+i}C${4+j}", FALSE)`;
     }
     activeSheet.getRange(1, 13, 1, experimentConditionCount).setValues(filledArray); // copy experiment condition 
     var filledArray = arrayFill2d(experimentConditionRows, 12, '');
@@ -126,7 +126,10 @@ function createSpreadsheet(userCount) {
   activeSheet.getRange(2+userCount, 10, 1, equipmentCount).insertCheckboxes('yes'); // create checked checkbox for 'ALL EVENTS'
   activeSheet.getRange(2+userCount, 1).setValue('ALL EVENTS');
   // copy equipments name from properties sheet
-  var filledArray = arrayFill2d(1, equipmentCount, `=INDIRECT("properties!R${2+i}C1", FALSE)`); // refer to sheet 'properties' for equipment name
+  var filledArray = [[]];
+  for (var i = 0; i < equipmentCount; i++) {
+    filledArray[0][i] = `=INDIRECT("properties!R${2+i}C1", FALSE)`; // refer to sheet 'properties' for equipment name
+  }
   activeSheet.getRange(1, 10, 1, equipmentCount).setFormulas(filledArray);
 
   // properties sheet
