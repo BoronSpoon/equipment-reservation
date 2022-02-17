@@ -19,13 +19,13 @@ function createSpreadsheet(count) {
   var activeSheet = configSpreadsheet.getSheetByName('users');
   activeSheet.getRange(1, 1, 109, 109).setWrap(true); // wrap overflowing text
   // draw borders
-  activeSheet.getRange(1, 1, count+2, 109).setBorder(true, true, true, true, null, null, "black", SpreadsheetApp.BorderStyle.SOLID_THICK);
-  activeSheet.getRange(1, 1, count+2, 109).setBorder(true, true, true, true, null, true, "black", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-  activeSheet.getRange(1, 1, 1, 109).setBorder(null, null, true, null, null, null, "black", SpreadsheetApp.BorderStyle.SOLID_THICK);
-  activeSheet.getRange(1, 1, count+2, 1).setBorder(null, null, null, true, null, null, "black", SpreadsheetApp.BorderStyle.SOLID_THICK);
-  activeSheet.getRange(1, 5, count+2, 1).setBorder(null, null, null, true, null, null, "black", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-  activeSheet.getRange(1, 7, count+2, 1).setBorder(null, null, null, true, null, null, "black", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-  activeSheet.getRange(1, 9, count+2, 1).setBorder(null, null, null, true, null, null, "black", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  activeSheet.getRange(1, 1, count+2, 109).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, count+2, 109).setBorder(true, true, true, true, null, true, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  activeSheet.getRange(1, 1, 1, 109).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, count+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 5, count+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  activeSheet.getRange(1, 7, count+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  activeSheet.getRange(1, 9, count+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   activeSheet.getRange(1, 1, 1, 9).setValues(
     [['Full Name (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read CalendarId', 'Write CalendarId', 'Read Calendar URL', 'Write Calendar URL']]
   );
@@ -36,20 +36,20 @@ function createSpreadsheet(count) {
     fillValue[i] = ['First Last'];
   }
   activeSheet.getRange(2, 1, count).setValues(fillValue);
-  activeSheet.getRange(2+count, 10, 1, 100).insertCheckboxes('yes'); // create checked checkbox for "ALL EVENTS"
+  activeSheet.getRange(2+count, 10, 1, 100).insertCheckboxes('yes'); // create checked checkbox for 'ALL EVENTS'
   activeSheet.getRange(2+count, 1).setValue('ALL EVENTS');
   var fillValue = [[]];
   for (var i = 0; i < 100; i++) {
-    fillValue[0][i] = `=properties!R${2+i}C${1}`; // refer to sheet "properties" for equipment name
+    fillValue[0][i] = `=properties!R${2+i}C${1}`; // refer to sheet 'properties' for equipment name
   }
   activeSheet.getRange(1, 10, 1, 100).setFormulas(fillValue); // copy equipment name
 
   var activeSheet = configSpreadsheet.getSheetByName('properties');
   activeSheet.getRange(1, 1, 101, 100).setWrap(true); // wrap overflowing text
   // draw borders
-  activeSheet.getRange(1, 1, 101, 100).setBorder(true, true, true, true, null, null, "black", SpreadsheetApp.BorderStyle.SOLID_THICK);
-  activeSheet.getRange(1, 1, 1, 100).setBorder(null, null, true, null, null, null, "black", SpreadsheetApp.BorderStyle.SOLID_THICK);
-  activeSheet.getRange(1, 1, 101, 1).setBorder(null, null, null, true, null, null, "black", SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, 101, 100).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, 1, 100).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, 101, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   activeSheet.getRange(1, 1, 2, 6).setValues([
     ['Equipment', 'Properties ->', '', '', '', ''],
     ['(Example) Sputter', 'Pressure', 'Flow', 'Time', 'Fwd. Power', 'Ref. Power'],
@@ -171,7 +171,7 @@ function createTriggers() {
       .onEdit()
       .create();
   // create 1 Sheets trigger for daily logging past events
-  ScriptApp.newTrigger("finalLogging")
+  ScriptApp.newTrigger('finalLogging')
     .timeBased()
     .atHour(4) // 4:00
     .nearMinute(0)  
@@ -211,15 +211,15 @@ function onSheetsEdit(e) {
   
   eventLoggingSetup(); // setup admin logging
   if (row == 1 || row > lastRow || column > lastColumn || (column > 1 && column < 6)){
-    action = "edited invalid area";
+    action = 'edited invalid area';
   } else if (column === 1) {
-    action = "edited name";
+    action = 'edited name';
   } else if (column === 6) {
-    action = "edited read calendarId";
+    action = 'edited read calendarId';
   } else if (column === 7) {
-    action = "edited write calendarId";
+    action = 'edited write calendarId';
   } else if (column > 7) {
-    action = "edited equipment";
+    action = 'edited equipment';
   } 
   const executionTime = new Date(); // current time
   eventLoggingStoreData({
@@ -400,7 +400,7 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
     const filteredReadCalendarIds = filterUsers(writeUser, event, readCalendarIds, users, enabledEquipmentsList).filteredReadCalendarIds;
     Logger.log(`writing event no.${i+1} to [ ${filteredReadCalendarIds} ]`);
     writeEvent(event, writeCalendarId, writeUser, filteredReadCalendarIds); // create event in write calendar and add read calendars as guests
-    if (Calendar.Events.get(writeCalendarId, eid).status === "cancelled") {
+    if (Calendar.Events.get(writeCalendarId, eid).status === 'cancelled') {
       var action = 'canceled';
     } else {
       var action = 'added';
@@ -530,7 +530,7 @@ function getEvents(calendarId, fullSync) {
   do {
     try {
       if (pageToken === null) { // first page
-        delete options.pageToken; // delete key "pageToken"
+        delete options.pageToken; // delete key 'pageToken'
       } else {
         options.pageToken = pageToken;
       }
