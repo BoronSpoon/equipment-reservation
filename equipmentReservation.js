@@ -342,7 +342,7 @@ function finalLogging() { // logs just the necessary data
     
     // log each event
     for (var j = 0; j < events.length; j++){
-      Utilities.sleep(100);
+      Utilities.sleep(1000);
       var event = events[j];
       const equipmentStateFromEvent = getEquipmentStateFromEvent(event); // this must be called first before getCalendarById
       const equipment = equipmentStateFromEvent.equipment;
@@ -363,12 +363,15 @@ function finalLogging() { // logs just the necessary data
           isRecurringEvent: event.isRecurringEvent(),
           action: '',
           executionTime: '',
+          id: '',
       }
+      var values = [[]];
       for (const key in logObj) { // iterate through log object
         var value = logObj[key];
         var col = columnDescriptions[key];
-        eventLogSheet.getRange(row,col).setValue(value);
+        values[0][col-1] = value;
       }
+      eventLogSheet.getRange(row, 1, 1, 11).setValue(values);
     }
   }
 }
