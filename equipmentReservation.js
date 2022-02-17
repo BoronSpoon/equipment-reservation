@@ -40,6 +40,32 @@ function arrayFill2d(rows, columns, value) { // create 2d array filled with valu
 
 // creates spreadsheet for {userCount} users
 function createSpreadsheet(userCount) {
+  // create spreadsheet for experiment condition logging
+  var sheetIds = [];
+  var experimentConditionSpreadsheet = SpreadsheetApp.create('experimentConditionSpreadsheet');
+  var activeSheet = experimentConditionSpreadsheet.insertSheet('eventLog');
+  for (var i = 0; i < equipmentCount; i++) { // create sheet for each equipment
+    Utilities.sleep(1000);
+    var activeSheet = experimentConditionSpreadsheet.insertSheet(`equipment ${i+1}`);
+    sheetIds[i] = activeSheet.getSheetId();
+    if (i === 0) {        
+      experimentConditionSpreadsheet.deleteSheet(experimentConditionSpreadsheet.getSheetByName('Sheet1'));
+    }
+    changeSheetSize(activeSheet, 10000, 15)
+    activeSheet.getRange(1, 1, 1, 12).setValues(
+      [['startTime', 'endTime', 'name', 'equipment', 'status', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists']]
+    );
+    activeSheet.getRange(1, 13).setValue(sheet.getName()); // set sheet name
+    var filledArray = [[]];
+    for (var j = 0; j < 10000-1; j++) {
+      filledArray[j] = [];
+      // see if event exists (if it is 1[unmodified(is the last entry with the same id)] and 2[not canceled])
+      filledArray[j][12] = `=AND(COUNTIF(INDIRECT("R[1]C[-1]", FALSE):INDIRECT("R[1]C[-1]", FALSE),B4)=0, INDIRECT("R[0]C[-3]", FALSE)="add")`;
+    }
+    activeSheet.getRange(2, 1, experimentConditionRows, 12).setFormulas(filledArray);
+    sheet.setColumnFilterCriteria(12, ); // todo
+  }
+
   // create spreadsheet for configuration
   const equipmentCount = 50; // number of equipments
   const experimentConditionCount = 20 // number of experiment conditions for a single equipment
@@ -74,42 +100,19 @@ function createSpreadsheet(userCount) {
 
   // properties sheet
   var activeSheet = configSpreadsheet.insertSheet('properties');
+  const configSpreadsheetId = configSpreadsheet.getId()
   changeSheetSize(activeSheet, equipmentCount+1, experimentConditionCount+1;
   // draw borders
   activeSheet.getRange(1, 1, equipmentCount+1, experimentConditionCount).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   activeSheet.getRange(1, 1, 1, experimentConditionCount).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   activeSheet.getRange(1, 1, equipmentCount+1, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   var filledArray = [[]];
-  filledArray[0] = ['equipmentName', 'sheetName', 'Properties ->'];
+  filledArray[0] = ['equipmentName', 'sheetName', 'sheetUrl', 'Properties ->'];
   for (var i = 0; i < equipmentCount; i++) {
-    filledArray[i+1] = ['', `equipment ${i+1}`, ''];
+    filledArray[i+1] = ['', `equipment ${i+1}`, `https://docs.google.com/spreadsheets/d/${configSpreadsheetId}/edit#gid=${sheetIds[i]}`, ''];
   }
-  activeSheet.getRange(1, 1, equipmentCount+1, 3).setValues(filledArray);
+  activeSheet.getRange(1, 1, equipmentCount+1, 4).setValues(filledArray);
   activeSheet.hideColumns(2); // hide columns used for debug
-
-  // create spreadsheet for experiment condition logging
-  var experimentConditionSpreadsheet = SpreadsheetApp.create('experimentConditionSpreadsheet');
-  var activeSheet = experimentConditionSpreadsheet.insertSheet('eventLog');
-  for (var i = 0; i < equipmentCount; i++) { // create sheet for each equipment
-    Utilities.sleep(1000);
-    var activeSheet = experimentConditionSpreadsheet.insertSheet(`equipment ${i+1}`);
-    if (i === 0) {        
-      experimentConditionSpreadsheet.deleteSheet(experimentConditionSpreadsheet.getSheetByName('Sheet1'));
-    }
-    changeSheetSize(activeSheet, 10000, 15)
-    activeSheet.getRange(1, 1, 1, 12).setValues(
-      [['startTime', 'endTime', 'name', 'equipment', 'status', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists']]
-    );
-    activeSheet.getRange(1, 13).setValue(sheet.getName()); // set sheet name
-    var filledArray = [[]];
-    for (var j = 0; j < 10000-1; j++) {
-      filledArray[j] = [];
-      // see if event exists (if it is 1[unmodified(is the last entry with the same id)] and 2[not canceled])
-      filledArray[j][12] = `=AND(COUNTIF(INDIRECT("R[1]C[-1]", FALSE):INDIRECT("R[1]C[-1]", FALSE),B4)=0, INDIRECT("R[0]C[-3]", FALSE)="add")`;
-    }
-    activeSheet.getRange(2, 1, experimentConditionRows, 12).setFormulas(filledArray);
-    sheet.setColumnFilterCriteria(12, ); // todo
-  }
   
   // create spreadsheet for finalized logging
   var loggingSpreadsheet = SpreadsheetApp.create('loggingSpreadsheet');

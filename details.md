@@ -259,12 +259,12 @@ Workbook内のすべてのSheetの合計Cell数は最大で10000000=1e7
 |**userCount+1 rows**||||||||||
 
 - properties sheet  
-   - (experimentConditionCount+2) columns * (equipmentCount+1) rows = 1122 cells
+   - (experimentConditionCount+3) columns * (equipmentCount+1) rows = 1173 cells
 
-||||
-|-|-|-|
-|equipmentName|sheetName|**experimentConditionCount cols**|
-|**equipmentCount rows**|||
+|||||
+|-|-|-|-|
+|equipmentName|sheetName|sheetUrl|**experimentConditionCount cols**|
+|**equipmentCount rows**||||
 
 ##### 2. experimentConditionSpreadsheet
 - 別々のworkbookにすると50個のWorkbookにTriggerを設定する必要があり、20 Trigger/User/Appの制限を超える
