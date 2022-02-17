@@ -50,20 +50,29 @@ function createSpreadsheet(count) {
   activeSheet.getRange(1, 1, 101, 100).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   activeSheet.getRange(1, 1, 1, 100).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   activeSheet.getRange(1, 1, 101, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
-  activeSheet.getRange(1, 1, 2, 6).setValues([
-    ['Equipment', 'Properties ->', '', '', '', ''],
-    ['(Example) Sputter', 'Pressure', 'Flow', 'Time', 'Fwd. Power', 'Ref. Power'],
-  ]);
 
   // create spreadsheet for logging
+  var sheetIds = []; // store sheetId for each equipment
   var experimentConditionSpreadsheet = SpreadsheetApp.create('experimentConditionSpreadsheet');
   experimentConditionSpreadsheet.insertSheet('eventLog');
+  for (var i = 0; i < 100; i++) {
+    sheetIds[i] = experimentConditionSpreadsheet.insertSheet('');
+  }
   experimentConditionSpreadsheet.deleteSheet(experimentConditionSpreadsheet.getSheetByName('Sheet1'));
   var activeSheet = experimentConditionSpreadsheet.getSheetByName('eventLog');
   activeSheet.getRange(1, 1, 400000, 11).setWrap(true); // wrap overflowing text
   activeSheet.getRange(1, 1, 1, 11).setValues(
     [['startTime', 'endTime', 'name', 'equipment', 'status', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id']]
   );
+
+  var activeSheet = configSpreadsheet.getSheetByName('properties');
+  var fillValue = [[]];
+  fillValue[0] = ['Equipment', 'sheetId', 'Properties ->', '', '', '', ''];
+  fillValue[1] = ['(Example) Sputter', sheetIds[0], 'Pressure', 'Flow', 'Time', 'Fwd. Power', 'Ref. Power'];
+  for (var i = 1; i < 100; i++) {
+    fillValue[1+i] = ['', sheetIds[i], '', '', '', '', '']
+  }
+  activeSheet.getRange(1, 1, 101, 6).setValues(fillValue);
   
   // create spreadsheet for finalized logging
   var loggingSpreadsheet = SpreadsheetApp.create('loggingSpreadsheet');
@@ -276,13 +285,13 @@ function eventLoggingExecute(logObj) { // execute logging to sheets
   const row = parseInt(properties.getProperty('row'));
   var eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData'));
   const eventLogSheet = SpreadsheetApp.openById(properties.getProperty('SpreadsheetId')).getSheetByName('eventLog'); // spreadsheet for logging
-  var values = [[]];
+  var fillValue = [[]];
   for (const key in logObj) { // iterate through log object
     var value = logObj[key];
     var col = columnDescriptions[key];
-    values[0][col-1] = value;
+    fillValue[0][col-1] = value;
   }
-  eventLogSheet.getRange(row, 1, 1, 11).setValue(values);
+  eventLogSheet.getRange(row, 1, 1, 11).setValue(fillValue);
 }
 
 function finalLogging() { // logs just the necessary data
@@ -356,13 +365,13 @@ function finalLogging() { // logs just the necessary data
           executionTime: '',
           id: eid,
       }
-      var values = [[]];
+      var fillValue = [[]];
       for (const key in logObj) { // iterate through log object
         var value = logObj[key];
         var col = columnDescriptions[key];
-        values[0][col-1] = value;
+        fillValue[0][col-1] = value;
       }
-      finalLogSheet.getRange(row, 1, 1, 11).setValue(values);
+      finalLogSheet.getRange(row, 1, 1, 11).setValue(fillValue);
     }
   }
 }
@@ -401,9 +410,9 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
     Logger.log(`writing event no.${i+1} to [ ${filteredReadCalendarIds} ]`);
     writeEvent(event, writeCalendarId, writeUser, filteredReadCalendarIds); // create event in write calendar and add read calendars as guests
     if (Calendar.Events.get(writeCalendarId, eid).status === 'cancelled') {
-      var action = 'canceled';
+      var action = 'cancel';
     } else {
-      var action = 'added';
+      var action = 'add';
     } // todo: add modified status
     eventLoggingStoreData({ // log event
       startTime: event.getStartTime(),
