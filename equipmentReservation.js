@@ -183,7 +183,6 @@ function createTriggers() {
 function onCalendarEdit(e) {
   const properties = PropertiesService.getUserProperties();
   const sheet = SpreadsheetApp.openById(properties.getProperty('configSpreadsheetId')).getSheetByName('users');
-  const users = getUsers(sheet);
   const calendarId = e.calendarId;
   const writeCalendarIds = getWriteCalendarIds(sheet);
   const index = writeCalendarIds.indexOf(calendarId);
@@ -322,7 +321,7 @@ function finalLogging() { // logs just the necessary data
       for (var j = 0; j < eventsList.items.length; j++) {
         const event = eventsList.items[j];
         if (event.status === 'cancelled') {
-          Logger.log('Event id %s was cancelled.', event.id);
+          Logger.log(`Event id ${event.id} was cancelled.`);
         } else{
           events.push(event);
         }
@@ -330,9 +329,9 @@ function finalLogging() { // logs just the necessary data
     } 
 
     if (events.length === 0) {
-      Logger.log('No events found for: ' + writeCalendarId);
+      Logger.log(`No events found for: ${writeCalendarId}`);
     } else {
-      Logger.log(events.length + ' events found for: ' + writeCalendarId);
+      Logger.log(`${events.length} events found for: ${writeCalendarId}`);
     }
     
     // log each event
@@ -395,17 +394,17 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
   const writeUser = users[index];
   const events = getEvents(writeCalendarId, fullSync);
   const eid = events.getId();
-  Logger.log(readCalendarIds.length + ' read calendars');
+  Logger.log(`${readCalendarIds.length} read calendars`);
   for (var i = 0; i < events.length; i++){
     const event = events[i];
     const filteredReadCalendarIds = filterUsers(writeUser, event, readCalendarIds, users, enabledEquipmentsList).filteredReadCalendarIds;
-    Logger.log('writing event no.' + (i+1).toString() +  ' to [ ' + filteredReadCalendarIds + ' ]');
+    Logger.log(`writing event no.${i+1} to [ ${filteredReadCalendarIds} ]`);
     writeEvent(event, writeCalendarId, writeUser, filteredReadCalendarIds); // create event in write calendar and add read calendars as guests
     if (Calendar.Events.get(writeCalendarId, eid).status === "cancelled") {
       var action = 'canceled';
     } else {
       var action = 'added';
-    }
+    } // todo: add modified status
     eventLoggingStoreData({ // log event
       startTime: event.getStartTime(),
       endTime: event.getEndTime(),
@@ -423,7 +422,7 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
     Logger.log('event logging done');
   }
   updateSyncToken(writeCalendarId); // renew sync token after adding guest
-  Logger.log('Wrote updated events to read calendar. Fullsync = ' + fullSync);
+  Logger.log(`Wrote updated events to read calendar. Fullsync = ${fullSync}`);
 }
 
 // update corresponding user's subscribed equipments 
@@ -434,7 +433,7 @@ function changeSubscribedEquipments(sheet, readUser, index, users){
   const writeCalendarIds = getWriteCalendarIds(sheet);
   const readCalendarId = readCalendarIds[index];
   const enabledEquipments = enabledEquipmentsList[index];
-  Logger.log(writeCalendarIds.length + ' write calendars');
+  Logger.log(`${writeCalendarIds.length} write calendars`);
   for (var i = 0; i < writeCalendarIds.length; i++){
     const writeUser = users[i];
     const writeCalendarId = writeCalendarIds[i];
@@ -515,8 +514,8 @@ function getEvents(calendarId, fullSync) {
   const options = {
     maxResults: 100
   };
-  const syncToken = properties.getProperty('syncToken'+calendarId);
-  Logger.log('Current sync token: ' + syncToken);
+  const syncToken = properties.getProperty(`syncToken ${calendarId}`);
+  Logger.log(`Current sync token: ${syncToken}`);
   if (syncToken && !fullSync) {
     options.syncToken = syncToken;
   } else {
@@ -541,7 +540,7 @@ function getEvents(calendarId, fullSync) {
       // if so, perform a full sync instead.
       if (e.message === 'API call to calendar.events.list failed with error: Sync token is no longer valid, a full sync is required.') {
         Logger.log('Sync token invalidated -> Full sync initiated');
-        properties.deleteProperty('syncToken'+calendarId);
+        properties.deleteProperty(`syncToken ${calendarId}`);
         events = getEvents(calendarId, true);
         return events;
       } else {
@@ -562,7 +561,7 @@ function getEvents(calendarId, fullSync) {
     }
     pageToken = eventsList.nextPageToken;
   } while (pageToken);
-  properties.setProperty('syncToken'+calendarId, eventsList.nextSyncToken);
+  properties.setProperty(`syncToken ${calendarId}`, eventsList.nextSyncToken);
   return events;
 }
 
@@ -590,7 +589,7 @@ function writeEvent(event, writeCalendarId, writeUser, readCalendarIds) {
   var event = CalendarApp.getCalendarById(writeCalendarId).getEventById(eid);
   // if equipment is enabled in sheets, add to guest subscription
   // change title from '(User Name) + equipment + state' to 'User Name + equipment + state'
-  const summary = writeUser  + ' ' + equipment + ' ' + state;
+  const summary = `${writeUser} ${equipment} ${state}`;
   event.setTitle(summary);
   // add read calendars as guests
   for (var i = 0; i < readCalendarIds.length; i++) {
@@ -667,11 +666,11 @@ function setCalendars(sheet, cell) {
 function changeCalendarName(calendarId, userName, readOrWrite) {
   // calendar name (summary) and description changes for read and write calendar
   if (readOrWrite === 'Read') { 
-    var summary = 'Read' + ' ' + userName;
+    var summary = `Read ${userName}`;
     var description = '装置の予約状況\n' +
       'schedule for selected equipments';  
   } else if (readOrWrite === 'Write') { 
-    var summary = 'Write' + ' ' + userName;
+    var summary = `Write ${userName}`;
     var description = '装置を予約する\n' +
       'Reserve equipments\n' +
       'Formatting: [Equipment] [State]\n' +
@@ -694,6 +693,6 @@ function updateSyncToken(calendarId) {
   };
   var eventsList;
   eventsList = Calendar.Events.list(calendarId, options);
-  properties.setProperty('syncToken'+calendarId, eventsList.nextSyncToken);
+  properties.setProperty(`syncToken ${calendarId}`, eventsList.nextSyncToken);
   Logger.log('Updated sync token. New sync token: ' + eventsList.nextSyncToken);
 }
