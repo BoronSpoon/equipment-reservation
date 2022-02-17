@@ -582,22 +582,19 @@ function writeEvent(event, writeCalendarId, writeUser, readCalendarIds) {
     const readCalendarId = readCalendarIds[i];
     event.addGuest(readCalendarId);
   }
-  const executionTime = new Date(); // current time
-  const startTime = event.getStartTime();
-  const endTime = event.getEndTime();
-  const durationTime = new Date(endTime - startTime);
   const properties = PropertiesService.getUserProperties();
   var eventLoggingDone = properties.getProperty('eventLoggingDone');
   if (eventLoggingDone === 'false'){ // do event logging only once
     eventLoggingStoreData({
-      executionTime: executionTime,
-      startTime: startTime,
-      endTime: endTime,
+      startTime: event.getStartTime(),
+      endTime: event.getEndTime(),
       equipment: equipment,
       status: state,
-      description: "",
+      description: event.description,
       isAllDayEvent: event.isAllDayEvent(),
       isRecurringEvent: event.isRecurringEvent(),
+      executionTime: new Date(), // current time
+      id: '', 
     });
     eventLoggingExecute();
     Logger.log('event logging done');
