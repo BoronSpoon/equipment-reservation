@@ -35,7 +35,7 @@ function changeSheetSize(sheet, rows, columns) {
 }
 
 function arrayFill2d(rows, columns, value) { // create 2d array filled with value
-  return Array(rows).fill().map(() => Array(columns).fill(42));
+  return Array(rows).fill().map(() => Array(columns).fill(value));
 }
 
 // creates spreadsheet for {userCount} users
@@ -120,6 +120,8 @@ function createSpreadsheet(userCount) {
   var activeSheet = loggingSpreadsheet.insertSheet('finalLog');
   loggingSpreadsheet.deleteSheet(loggingSpreadsheet.getSheetByName('Sheet1'));
   changeSheetSize(activeSheet, finalLoggingRows, 8);
+  // draw borders
+  activeSheet.getRange(1, 1, 1, 8).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   activeSheet.getRange(1, 1, 1, 8).setValues(
     [['startTime', 'endTime', 'name', 'equipment', 'status', 'description', 'isAllDayEvent', 'isRecurringEvent']]
   );
