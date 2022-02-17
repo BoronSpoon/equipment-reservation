@@ -73,7 +73,7 @@ function createSpreadsheet(userCount) {
       experimentConditionSpreadsheet.deleteSheet(experimentConditionSpreadsheet.getSheetByName('Sheet1'));
     }
     changeSheetSize(activeSheet, experimentConditionRows, 12+experimentConditionCount);
-    activeSheet.hideColumns(5, 8); // hide columns used for debug
+    activeSheet.hideColumns(6, 7); // hide columns used for debug
     activeSheet.getRange(1, 1, 1, 12).setValues(
       [['startTime', 'endTime', 'name', 'equipment', 'status', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists']]
     );
@@ -82,7 +82,7 @@ function createSpreadsheet(userCount) {
     activeSheet.getRange(1, 12, experimentConditionRows, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
     var filledArray = [[]];
     for (var j = 0; j < experimentConditionCount; j++) {
-      filledArray[0][j] = `=IMPORTRANGE("https://docs.google.com/spreadsheets/d/${configSpreadsheetId}", "properties!R[${2+i}][C${3+j}]")`;
+      filledArray[0][j] = `=IMPORTRANGE("https://docs.google.com/spreadsheets/d/${configSpreadsheetId}", "properties!R[${2+i}]C[${3+j}]")`;
     }
     activeSheet.getRange(1, 13, 1, experimentConditionCount).setValues(filledArray); // copy experiment condition 
     var filledArray = arrayFill2d(experimentConditionRows, 12, '');
@@ -91,8 +91,17 @@ function createSpreadsheet(userCount) {
       filledArray[j][11] = `=OR(AND(COUNTIF(INDIRECT("R[1]C[-1]", FALSE):INDIRECT("R[$${experimentConditionRows-j}]C[-1]", FALSE),B4)=0, INDIRECT("R[0]C[-3]", FALSE)="add"), INDIRECT("R[0]C[-3]", FALSE)="")`;
     }
     activeSheet.getRange(2, 1, experimentConditionRows, 12).setFormulas(filledArray);
-    //sheet.setColumnFilterCriteria(12, ); // todo
+
+    // when column 12 is not TRUE, hide row
+    var rule = SpreadsheetApp.newFilterCriteria()
+      .whenTextEqualTo('TRUE')
+      .build();
+    activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).createFilter().setColumnFilterCriteria(12, rule); 
+    activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).getFilter().sort(2, true); // sort by date
   }
+  // todo: add new events to sheets
+  // todo: apply filter when data changed
+  // todo: merge experimentConditionSpreadsheet and configSpreadsheet as importrange has to be enabled manually
 
   // create spreadsheet for configuration
   Utilities.sleep(1000);
