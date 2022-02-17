@@ -225,7 +225,7 @@ function onSheetsEdit(e) {
   eventLoggingStoreData({
     executionTime: executionTime,
     name: readUser,
-    action: 'sheets (row, col) = (' + row + ', ' + column + '): ' + action,
+    action: `sheets (row, col) = (${row}, ${column}): ${action}`,
   });  
   // when the checkbox (H2~nm) is edited in sheets on sheet 'users'
   // update corresponding user's subscribed equipments
