@@ -242,6 +242,42 @@ Google Apps Scriptには以下のquotaが設定されている。19人のユー�
 2. 閲覧する装置の変更
    1. 18ユーザーで3~5分ほど
 
+#### Google Sheetsのサイズ
+Workbook内のすべてのSheetの合計Cell数は最大で10000000=1e7   
+##### 1. configSpreadsheet
+- users sheet  
+   - equipmentCount+9 columns / count+2 rows
+   - vars
+      - count = 18
+      - equipmentCount = 50
+
+|||||||||||
+|-|-|-|-|-|-|-|-|-|-|-|
+|Full Name|Last Name|First Name|User Name 1|User Name 2|Read Cal Id|Write Cal Id|Read Cal URL|Write Cal URL|**equipmentCount cols**|
+|**count+1 rows**||||||||||
+
+- properties sheet  
+   - 100 columns / equipmentCount+1 rows
+
+|||||
+|-|-|-|-|-|
+|Equipment|sheetId|Properties|**100-3 cols**|
+|**equipmentCount rows**||||
+
+##### 2. eventLogSpreadsheet   
+- eventLog sheet
+   - 15 columns / 600000 rows = 9e6 < 1e7 cells
+
+|||||||||
+|-|-|-|-|-|-|-|-|-|-|
+|start Time|end Time|name|equipment|status|description|is AllDay Event|is Recurring Event|action|executionTime|id|
+|**600000-1 rows**||||||||
+
+##### 3. equipment 1~50 sheets
+- experimentCondition sheet
+   - 15 columns / 600000 rows = 9e6 < 1e7 cells
+ 
+
 ## 5. 簡易版操作マニュアル
 ### ユーザーの追加(初期設定)
 1. 新しいユーザーを追加する。
