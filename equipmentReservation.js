@@ -32,6 +32,8 @@ function changeSheetSize(sheet, rows, columns) {
     }
   }
   sheet.getRange(1, 1, rows, columns).setWrap(true); // wrap overflowing text
+  sheet.getRange(1, 1, rows, columns).setHorizontalAlignment("center"); // center text
+  sheet.getRange(1, 1, rows, columns).setVerticalAlignment("middle"); // center text
 }
 
 function arrayFill2d(rows, columns, value) { // create 2d array filled with value
@@ -45,9 +47,6 @@ function createSpreadsheet(userCount) {
   const experimentConditionRows = 6000 // number of rows in experiment condition
   const finalLoggingRows = 1000000 // number of rows in final logging
 
-  // create spreadsheet for experiment condition logging
-  Logger.log('Creating experimentConditionSpreadsheet');
-  var sheetIds = [];
   // create workbooks(spreadsheets) and sheets
   var experimentConditionSpreadsheet = SpreadsheetApp.create('experimentConditionSpreadsheet');
   var configSpreadsheet = SpreadsheetApp.create('configSpreadsheet');
@@ -62,6 +61,9 @@ function createSpreadsheet(userCount) {
   const experimentConditionSpreadsheetId = experimentConditionSpreadsheet.getId();
   const loggingSpreadsheetId = loggingSpreadsheet.getId();
 
+  // create spreadsheet for experiment condition logging
+  Logger.log('Creating experimentConditionSpreadsheet');
+  var sheetIds = [];
   var activeSheet = experimentConditionSpreadsheet.getSheetByName('eventLog');
   for (var i = 0; i < equipmentCount; i++) { // create sheet for each equipment
     Utilities.sleep(1000);
@@ -71,12 +73,16 @@ function createSpreadsheet(userCount) {
       experimentConditionSpreadsheet.deleteSheet(experimentConditionSpreadsheet.getSheetByName('Sheet1'));
     }
     changeSheetSize(activeSheet, experimentConditionRows, 12+experimentConditionCount);
+    activeSheet.hideColumns(5, 8); // hide columns used for debug
     activeSheet.getRange(1, 1, 1, 12).setValues(
       [['startTime', 'endTime', 'name', 'equipment', 'status', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists']]
     );
+    activeSheet.getRange(1, 1, 1, 12+experimentConditionCount).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+    activeSheet.getRange(1, 5, experimentConditionRows, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+    activeSheet.getRange(1, 12, experimentConditionRows, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
     var filledArray = [[]];
     for (var j = 0; j < experimentConditionCount; j++) {
-      filledArray[0][j] = ` =IMPORTRANGE("https://docs.google.com/spreadsheets/d/${configSpreadsheetId}", "properties!R[${2+i}][C${3+j}]")`;
+      filledArray[0][j] = `=IMPORTRANGE("https://docs.google.com/spreadsheets/d/${configSpreadsheetId}", "properties!R[${2+i}][C${3+j}]")`;
     }
     activeSheet.getRange(1, 13, 1, experimentConditionCount).setValues(filledArray); // copy experiment condition 
     var filledArray = arrayFill2d(experimentConditionRows, 12, '');
@@ -96,6 +102,7 @@ function createSpreadsheet(userCount) {
   var activeSheet = configSpreadsheet.getSheetByName('users'); 
   changeSheetSize(activeSheet, userCount+2, equipmentCount+9);
   activeSheet.hideColumns(2, 6); // hide columns used for debug
+  activeSheet.getRange(2, 6, userCount+1, 2).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
   // draw borders
   activeSheet.getRange(1, 1, userCount+2, equipmentCount+9).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   activeSheet.getRange(1, 1, userCount+2, equipmentCount+9).setBorder(true, true, true, true, null, true, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
@@ -115,7 +122,7 @@ function createSpreadsheet(userCount) {
   activeSheet.getRange(2+userCount, 10, 1, equipmentCount).insertCheckboxes('yes'); // create checked checkbox for 'ALL EVENTS'
   activeSheet.getRange(2+userCount, 1).setValue('ALL EVENTS');
   // copy equipments name from properties sheet
-  var filledArray = arrayFill2d(1, equipmentCount, `=INDIRECT("properties!R[${2+i}]C[${1}]")`); // refer to sheet 'properties' for equipment name
+  var filledArray = arrayFill2d(1, equipmentCount, `=INDIRECT("properties!R${2+i}C1", FALSE)`); // refer to sheet 'properties' for equipment name
   activeSheet.getRange(1, 10, 1, equipmentCount).setFormulas(filledArray);
 
   // properties sheet
@@ -124,15 +131,17 @@ function createSpreadsheet(userCount) {
   var activeSheet = configSpreadsheet.getSheetByName('properties');
   changeSheetSize(activeSheet, equipmentCount+1, experimentConditionCount+1);
   // draw borders
-  activeSheet.getRange(1, 1, equipmentCount+1, experimentConditionCount).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
-  activeSheet.getRange(1, 1, 1, experimentConditionCount).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, equipmentCount+1, experimentConditionCount+1).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, 1, experimentConditionCount+1).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   activeSheet.getRange(1, 1, equipmentCount+1, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 3, equipmentCount+1, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   var filledArray = [[]];
   filledArray[0] = ['equipmentName', 'sheetName', 'sheetUrl', 'Properties ->'];
   for (var i = 0; i < equipmentCount; i++) {
     filledArray[i+1] = ['', `equipment ${i+1}`, `https://docs.google.com/spreadsheets/d/${configSpreadsheetId}/edit#gid=${sheetIds[i]}`, ''];
   }
   activeSheet.getRange(1, 1, equipmentCount+1, 4).setValues(filledArray);
+  activeSheet.getRange(1, 1, equipmentCount+1, 4).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
   activeSheet.hideColumns(2); // hide columns used for debug
   
   // create spreadsheet for finalized logging
