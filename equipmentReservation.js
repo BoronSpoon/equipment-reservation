@@ -70,6 +70,7 @@ function createSpreadsheet(userCount) {
   const equipmentCount = 50; // number of equipments
   const experimentConditionCount = 20 // number of experiment conditions for a single equipment
   const experimentConditionRows = 6000 // number of rows in experiment condition
+  const finalLoggingRows = 1000000 // number of rows in final logging
   var configSpreadsheet = SpreadsheetApp.create('configSpreadsheet');
   // users sheet
   var activeSheet = configSpreadsheet.insertSheet('users');
@@ -116,12 +117,11 @@ function createSpreadsheet(userCount) {
   
   // create spreadsheet for finalized logging
   var loggingSpreadsheet = SpreadsheetApp.create('loggingSpreadsheet');
-  loggingSpreadsheet.insertSheet('finalLog');
+  var activeSheet = loggingSpreadsheet.insertSheet('finalLog');
   loggingSpreadsheet.deleteSheet(loggingSpreadsheet.getSheetByName('Sheet1'));
-  var activeSheet = loggingSpreadsheet.getSheetByName('finalLog');  
-  changeSheetSize(activeSheet, 100000, 11);
-  activeSheet.getRange(1, 1, 1, 11).setValues(
-    [['startTime', 'endTime', 'name', 'equipment', 'status', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id']]
+  changeSheetSize(activeSheet, finalLoggingRows, 8);
+  activeSheet.getRange(1, 1, 1, 8).setValues(
+    [['startTime', 'endTime', 'name', 'equipment', 'status', 'description', 'isAllDayEvent', 'isRecurringEvent']]
   );
 
   var property = {
