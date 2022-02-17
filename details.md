@@ -237,15 +237,15 @@ Google Apps Scriptには以下のquotaが設定されている。19人のユー�
 2. triggerの実行時間：一日当たり90分間実行可能
    1. 1回の実行時間を35秒とすると一日当たり150回実行可能
 ##### 実行時間
-1. 予定作成 (max 35s @ 18 users)
+1. 予定作成 (max 35s @ 17 users)
    2. 2人:9~10s, 13人:12~25s -> 18人14~32s
 2. 閲覧する装置の変更
-   1. 18ユーザーで3~5分ほど
+   1. 17ユーザーで3~5分ほど
 
 #### Google Sheetsのサイズ
 Workbook内のすべてのSheetの合計Cell数は最大で10000000=1e7   
 - variables
-   - userCount = 18 users (19 when including the all event user)
+   - userCount = 17 users (18 when including the all event user)
    - equipmentCount = 50 equipments
    - experimentConditionCount = 20 experiment conditions for a single equipment
    - experimentConditionRows = 6000 rows in experiment condition

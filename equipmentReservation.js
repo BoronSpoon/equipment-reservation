@@ -4,8 +4,8 @@ function setup() {
   if (groupUrl.includes('?')) { // detect default value
     throw new Error('ERROR: change "?????@googlegroups.com" to your google group name');
   }
-  createSpreadsheet(18); // create spreadsheet for 18 users
-  createCalendars(18, groupUrl); // create 19 read + 18 write calendars
+  createSpreadsheet(17); // create spreadsheet for 17 users
+  createCalendars(17, groupUrl); // create 18 read + 17 write calendars
   createTriggers();
 }
 
@@ -195,13 +195,13 @@ function deleteTriggers() {
 
 // create triggers
 // only 20 triggers can be made for single script
-// we will use 18 for write calendars, 1 for daily logging, 1 for spreadsheet
+// we will use 17 for write calendars, 1 for daily logging, 1 for spreadsheet
 function createTriggers() {
   const properties = PropertiesService.getUserProperties();
   const sheet = SpreadsheetApp.openById(properties.getProperty('configSpreadsheetId')).getSheetByName('users');
   const writeCalendarIds = getWriteCalendarIds(sheet);
   
-  // create trigger for each of the 18 write calendars
+  // create trigger for each of the 17 write calendars
   // (calls function 'onCalendarEdit' on trigger)
   Logger.log(writeCalendarIds.length + ' calendar triggers will be created');
   for (var i = 0; i < writeCalendarIds.length; i++){
@@ -211,9 +211,13 @@ function createTriggers() {
       .onEventUpdated()
       .create(); 
   }
-  // create 1 Sheets trigger (calls function 'onSheetsEdit' on trigger)
+  // create 2 Sheets trigger (calls function 'onSheetsEdit' on trigger)
   ScriptApp.newTrigger('onSheetsEdit')
       .forSpreadsheet(properties.getProperty('configSpreadsheetId'))
+      .onEdit()
+      .create();
+  ScriptApp.newTrigger('onSheetsEdit')
+      .forSpreadsheet(properties.getProperty('experimentConditionSpreadsheetId'))
       .onEdit()
       .create();
   // create 1 Sheets trigger for daily logging past events
