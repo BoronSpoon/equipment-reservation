@@ -439,7 +439,7 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
   const eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData')); 
   properties.deleteProperty('eventLoggingData');
   const lastRow = equipmentSheet.getLastRow();
-  const row = lastRow + 1; // write on new row
+  //const row = lastRow + 1; // write on new row
   const columnDescriptions = { // shows which description corresponds to which column
     startTime: 1,
     endTime: 2,
