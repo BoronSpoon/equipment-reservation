@@ -8,6 +8,7 @@ function setup() {
   if (groupUrl.includes('?')) { // detect default value
     throw new Error('ERROR: change "?????@googlegroups.com" to your google group name');
   }
+  defineConstants(); // define constants used over several scripts
   createSpreadsheet(18); // create spreadsheet for 17 users
   createCalendars(18, groupUrl); // create 18 read + 17 write calendars
   createTriggers();
@@ -44,12 +45,22 @@ function arrayFill2d(rows, columns, value) { // create 2d array filled with valu
   return Array(rows).fill().map(() => Array(columns).fill(value));
 }
 
+// define constants used over several scripts
+function defineConstants() {
+  const properties = PropertiesService.getUserProperties();
+  properties.setProperty('equipmentCount', 50); // number of equipments
+  properties.setProperty('experimentConditionCount', 20); // number of experiment conditions for a single equipment
+  properties.setProperty('experimentConditionRows', 6000); // number of rows in experiment condition
+  properties.setProperty('finalLoggingRows', 1000000); // number of rows in final logging
+}
+
 // creates spreadsheet for {userCount} users
 function createSpreadsheet(userCount) {
-  const equipmentCount = 50; // number of equipments
-  const experimentConditionCount = 20 // number of experiment conditions for a single equipment
-  const experimentConditionRows = 6000 // number of rows in experiment condition
-  const finalLoggingRows = 1000000 // number of rows in final logging
+  const properties = PropertiesService.getUserProperties();
+  const equipmentCount = properties.getProperty('equipmentCount');
+  const experimentConditionCount = properties.getProperty('experimentConditionCount');
+  const experimentConditionRows = properties.getProperty('experimentConditionRows');
+  const finalLoggingRows = properties.getProperty('finalLoggingRows');
 
   // create workbooks(spreadsheets) and sheets
   var experimentConditionSpreadsheet = SpreadsheetApp.create('experimentConditionSpreadsheet');
@@ -420,6 +431,8 @@ function eventLoggingStoreData(logObj) { // set data for logging
 
 function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
   const properties = PropertiesService.getUserProperties();
+  const experimentConditionCount = properties.getProperty('experimentConditionCount');
+  const experimentConditionRows = properties.getProperty('experimentConditionRows');
   // spreadsheet for experiment condition logging
   const equipmentSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName(equipmentSheetName);
   const eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData')); 
