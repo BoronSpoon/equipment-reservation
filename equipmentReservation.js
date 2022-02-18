@@ -93,8 +93,8 @@ function createSpreadsheet(userCount) {
     var rule = SpreadsheetApp.newFilterCriteria()
       .whenTextEqualTo('TRUE')
       .build();
-    activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).createFilter().setColumnFilterCriteria(12, rule); 
-    activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).getFilter().sort(2, true); // sort by date
+    activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).createFilter().sort(2, true); // sort by date
+    activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).getFilter().setColumnFilterCriteria(12, rule); 
   }
   // todo: apply filter when data changed
 
@@ -355,6 +355,12 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
     filledArray[0][col-1] = value;
   }
   eventLogSheet.getRange(row, 1, 1, 11).setValue(filledArray);
+  // when column 12 is not TRUE, hide row
+  var rule = SpreadsheetApp.newFilterCriteria()
+    .whenTextEqualTo('TRUE')
+    .build();
+  activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).createFilter().sort(2, true); // sort by date
+  activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).getFilter().setColumnFilterCriteria(12, rule); 
 }
 
 function finalLogging() { // logs just the necessary data
