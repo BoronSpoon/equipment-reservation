@@ -1,5 +1,3 @@
-// todo: change event summary when experiment condition gets edited
-// todo: add event when experiment without id gets added
 // todo: protect some areas from getting edited
 // todo: delete past events when events are overflowing in sheets
 // todo: when equipment gets changed, disable original event
