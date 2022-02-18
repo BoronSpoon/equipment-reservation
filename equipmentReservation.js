@@ -96,7 +96,6 @@ function createSpreadsheet(userCount) {
     activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).createFilter().sort(2, true); // sort by date
     activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).getFilter().setColumnFilterCriteria(12, rule); 
   }
-  // todo: apply filter when data changed
 
   Utilities.sleep(1000);
   // users sheet
@@ -295,7 +294,6 @@ function onSheetsEdit(e) {
   const column = cell.getColumn();
   const users = getUsers(sheet);
   const index = row-2;
-  const readUser = users[index];
   const writeCalendarIds = getWriteCalendarIds(sheet);
   const calendarId = writeCalendarIds[index]
   const fullSync = true;
@@ -354,13 +352,13 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
     var col = columnDescriptions[key];
     filledArray[0][col-1] = value;
   }
-  eventLogSheet.getRange(row, 1, 1, 11).setValue(filledArray);
+  equipmentSheet.getRange(row, 1, 1, 11).setValue(filledArray);
   // when column 12 is not TRUE, hide row
   var rule = SpreadsheetApp.newFilterCriteria()
     .whenTextEqualTo('TRUE')
     .build();
-  activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).createFilter().sort(2, true); // sort by date
-  activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).getFilter().setColumnFilterCriteria(12, rule); 
+  equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).createFilter().sort(2, true); // sort by date
+  equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).getFilter().setColumnFilterCriteria(12, rule); 
 }
 
 function finalLogging() { // logs just the necessary data
