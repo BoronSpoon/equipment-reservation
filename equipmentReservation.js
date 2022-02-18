@@ -282,8 +282,6 @@ function onSheetsEdit(e) {
   const newValue = e.value;
   const row = cell.getRow();
   const column = cell.getColumn();
-  const lastRow = sheet.getLastRow();
-  const lastColumn = sheet.getLastColumn();
   const users = getUsers(sheet);
   const index = row-2;
   const readUser = users[index];
