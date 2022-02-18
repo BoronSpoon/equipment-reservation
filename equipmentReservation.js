@@ -197,6 +197,19 @@ function getEquipmentSheetNames() {
   return equipmentSheetNames;
 }
 
+// get sheet id for each equipment
+function getEquipmentSheetIds() {
+  const book = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId'));
+  const propertiesSheet = book.getSheetByName('properties');
+  var equipmentSheetIds = {};
+  const lastRow = propertiesSheet.getLastRow();
+  const values = propertiesSheet.getRange(2, 1, lastRow-1, 2).getValues();
+  for (var i = 0; i < lastRow-1; i++){
+    equipmentSheetIds[values[i][0]] = values[i][1]; // get sheetId
+  }
+  return equipmentSheetIds;
+}
+
 // creates calendars for {userCount} users
 function createCalendars(userCount, groupUrl) {
   const properties = PropertiesService.getUserProperties();
@@ -347,32 +360,50 @@ function onEquipmentConditionEdit(sheet, cell, row, column) {
   const usersSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('users');
   const users = getUsers(usersSheet);
   const writeCalendarIds = getWriteCalendarIds(usersSheet);
-  if (id === '') { // 1. when experiment id doesn't exist -> add event 
-    // add startTime
-    // add endTime
-    // add name
-    // add state
-  } else { // 2. when experiment id exists -> modify event
-    if (users.includes(user)) { // if user exists
-      const writeCalendarId = writeCalendarIds(users.indexOf(user)); // get writeCalendarId for specified user
-      var event = CalendarApp.getCalendarById(writeCalendarId).getEventById(id);
-      if (event === null) {
-        Logger.log('the specified event id does not exist');
-      } else {
-        event.setTime(startTime, endTime)// edit start and end time
-        event.setTitle(`${user} ${equipment} ${state}`); // edit equipmentName, name ,state
-        var experimentCondition = {};
-        for (var i = 0; i < lastColumn-13; i++)
-          if (headers[0][13+i] !== '') { // if condition is not ''
-            experimentCondition[headers[13+i]] = values[0][13+i];
-          }
-        event.setDescription(JSON.stringify({experimentCondition})); // save experiment condition as stringified JSON
-      }
-    } else {
-      Logger.log('the specified user does not exist')
+  const equipmentSheetIds = getEquipmentSheetIds();
+  const equipment = Object.keys(equipmentSheetIds).filter( (key) => { 
+    return equipmentSheetIds[key] === sheet.getSheetId();
+  });
+  if (users.includes(user)) { // if user exists
+    var writeCalendarId = writeCalendarIds(users.indexOf(user)); // get writeCalendarId for specified user
+    var writeCalendar = CalendarApp.getCalendarById(writeCalendarId);
+  } else {
+    Logger.log('the specified user does not exist')
+    return;
+  }
+  if (startTime === '' || endTime === '' || user === '') {
+    Logger.log('startTime, endTime, user cannot be empty')
+    return;
+  }
+  var experimentCondition = {};
+  for (var i = 0; i < lastColumn-13; i++) {
+    if (headers[0][13+i] !== '') { // if condition is not ''
+      experimentCondition[headers[13+i]] = values[0][13+i];
     }
-  }  
-}
+  }
+  event.setDescription(JSON.stringify({experimentCondition})); // save experiment condition as stringified JSON
+  if (id === '') { // 1. when experiment id doesn't exist -> add event 
+    if (state === ''){
+      var title = `${user} ${equipment}`;
+    } else {
+      var title = `${user} ${equipment} ${state}`;
+    }
+    var event = writeCalendar.createEvent(title, startTime, endTime, {description: experimentCondition});
+  } else { // 2. when experiment id exists -> modify event
+    var event = writeCalendar.getEventById(id);
+    if (event === null) {
+      Logger.log('the specified event id does not exist');
+    } else {
+      event.setTime(startTime, endTime)// edit start and end time
+      event.setTitle(`${user} ${equipment} ${state}`); // edit equipmentName, name ,state
+      event.setDescription(experimentCondition); // write experiment condition in details
+    }
+  }
+  // write event of calendar back to sheets  
+  const index = writeCalendarIds.indexOf(writeCalendarId);
+  const fullSync = false;
+  writeEventsToReadCalendar(usersSheet, writeCalendarId, index, fullSync);
+}  
 
 function eventLoggingSetup() { // prepares constants for eventLogging
   const properties = PropertiesService.getUserProperties();
@@ -536,7 +567,7 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
   const eid = events.getId();
   Logger.log(`${readCalendarIds.length} read calendars`);
   const equipmentSheetNames = getEquipmentSheetNames();
-  eventLoggingSetup(); // setup admin logging
+  eventLoggingSetup(); // setup event logging
   for (var i = 0; i < events.length; i++){
     const event = events[i];
     const filteredReadCalendarIds = filterUsers(writeUser, event, readCalendarIds, users, enabledEquipmentsList).filteredReadCalendarIds;
