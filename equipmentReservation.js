@@ -96,7 +96,6 @@ function createSpreadsheet(userCount) {
     activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).createFilter().setColumnFilterCriteria(12, rule); 
     activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).getFilter().sort(2, true); // sort by date
   }
-  // todo: add new events to sheets
   // todo: apply filter when data changed
 
   Utilities.sleep(1000);
@@ -105,7 +104,7 @@ function createSpreadsheet(userCount) {
   var activeSheet = experimentConditionSpreadsheet.getSheetByName('users'); 
   changeSheetSize(activeSheet, userCount+2, equipmentCount+9);
   activeSheet.hideColumns(2, 6); // hide columns used for debug
-  activeSheet.getRange(2, 6, userCount+1, 2).setHorizontalAlignment("left"); // show https://... not the center of url
+  activeSheet.getRange(2, 6, userCount+1, 2).setHorizontalAlignment("left"); // show "https://..." not the center of url
   activeSheet.getRange(2, 6, userCount+1, 2).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
   // draw borders
   activeSheet.getRange(1, 1, userCount+2, equipmentCount+9).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
@@ -313,7 +312,7 @@ function onSheetsEdit(e) {
   // when the checkbox (H2~nm) is edited in sheets on sheet 'users'
   // update corresponding user's subscribed equipments
   if (sheet.getName() === 'users' && row > 1 && column > 7){ 
-    changeSubscribedEquipments(sheet, readUser, index, users);
+    changeSubscribedEquipments(sheet, index, users);
   }
   // when the full name (A2~An) is edited in sheets on sheet 'users'
   // update all of the corresponding user's event title
@@ -357,7 +356,6 @@ function eventLoggingExecute(logObj) { // execute logging to sheets
     id: 11,
   };
   const row = parseInt(properties.getProperty('row'));
-  var eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData'));
   const eventLogSheet = SpreadsheetApp.openById(properties.getProperty('SpreadsheetId')).getSheetByName('eventLog'); // spreadsheet for logging
   var filledArray = [[]];
   for (const key in logObj) { // iterate through log object
@@ -487,7 +485,7 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
       var action = 'cancel';
     } else {
       var action = 'add';
-    } // todo: add modified status
+    }
     eventLoggingStoreData({ // log event
       startTime: event.getStartTime(),
       endTime: event.getEndTime(),
@@ -509,13 +507,12 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
 }
 
 // update corresponding user's subscribed equipments 
-function changeSubscribedEquipments(sheet, readUser, index, users){
+function changeSubscribedEquipments(sheet, index, users){
   const fullSync = true;
   const readCalendarIds = getReadCalendars(sheet).readCalendarIds;
   const enabledEquipmentsList = getReadCalendars(sheet).enabledEquipmentsList;
   const writeCalendarIds = getWriteCalendarIds(sheet);
   const readCalendarId = readCalendarIds[index];
-  const enabledEquipments = enabledEquipmentsList[index];
   Logger.log(`${writeCalendarIds.length} write calendars`);
   for (var i = 0; i < writeCalendarIds.length; i++){
     const writeUser = users[i];
@@ -634,7 +631,7 @@ function getEvents(calendarId, fullSync) {
       for (var i = 0; i < eventsList.items.length; i++) {
         const event = eventsList.items[i];
         if (event.status === 'cancelled') {
-          Logger.log('Event id %s was cancelled.', event.id);
+          Logger.log(`Event id ${event.id} was cancelled.`);
         } else{
           events.push(event);
         }
