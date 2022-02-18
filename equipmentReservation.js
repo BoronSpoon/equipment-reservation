@@ -653,7 +653,7 @@ function getReadCalendars(sheet) {
   const lastRow = sheet.getLastRow();
   const lastColumn = sheet.getLastColumn();
   // get calendarId and add to calendarIds
-  var values = sheet.getRange(2, 7, lastRow-1).getValues();
+  var values = sheet.getRange(2, 6, lastRow-1).getValues();
   var calendarIds = [];
   for (var i = 0; i < lastRow-1; i++) {
     calendarIds[i] = values[i][0];
