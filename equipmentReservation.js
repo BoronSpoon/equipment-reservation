@@ -291,21 +291,9 @@ function onSheetsEdit(e) {
   const calendarId = writeCalendarIds[index]
   const fullSync = true;
   
-  eventLoggingSetup(); // setup admin logging
-  if (row == 1 || row > lastRow || column > lastColumn || (column > 1 && column < 6)){
-    action = 'edited invalid area';
-  } else if (column === 1) {
-    action = 'edited name';
-  } else if (column === 6) {
-    action = 'edited read calendarId';
-  } else if (column === 7) {
-    action = 'edited write calendarId';
-  } else if (column > 7) {
-    action = 'edited equipment';
-  } 
-  const executionTime = new Date(); // current time
+  eventLoggingSetup(); // event logging
   eventLoggingStoreData({
-    executionTime: executionTime,
+    executionTime: new Date(), // current time
     name: readUser,
     action: `sheets (row, col) = (${row}, ${column}): ${action}`,
   });  
@@ -322,9 +310,9 @@ function onSheetsEdit(e) {
   }
 }
 
-function eventLoggingSetup() { // prepares constant for eventLogging
+function eventLoggingSetup() { // prepares constants for eventLogging
   const properties = PropertiesService.getUserProperties();
-  book = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')); // spreadsheet for loggingrepares constant for eventLogging
+  const book = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')); // spreadsheet for loggingrepares constant for eventLogging
   const lastRow = book.getSheetByName('eventLog').getLastRow();
   const row = lastRow + 1; // write on new row
   properties.setProperty('row', row.toString());
@@ -541,47 +529,39 @@ function updateCalendarUserName(sheet, cell, newValue){
 
 // get all the User Names
 function getUsers(sheet) {
-  const users = [];
   const lastRow = sheet.getLastRow();
-  for (var row = 2; row < lastRow+1; row++) { 
-    const user = sheet.getRange(row, 5).getValue();
-    users.push(user);
-  }
+  const values = sheet.getRange(2, 5, lastRow-1).getValues();
+  const users = values[0];
   return users;
 }
 
 // get all the write calendar's calendarIds
 function getWriteCalendarIds(sheet) {
-  const calendarIds = [];
   const lastRow = sheet.getLastRow();
-  for (var row = 2; row < lastRow+1; row++) { 
-    calendarId = sheet.getRange(row, 7).getValue();
-    calendarIds.push(calendarId);
-  }
+  const values = sheet.getRange(2, 7, lastRow-1).getValues();
+  const calendarIds = values[0];
   return calendarIds;
 }
 
 // get all the read calendar's calendarIds
 function getReadCalendars(sheet) {
-  const calendarIds = [];  
-  const enabledEquipmentsList = [];
+  var enabledEquipmentsList = [];
   const lastRow = sheet.getLastRow();
   const lastColumn = sheet.getLastColumn();
-  // get calendarId and enabledEquipment
-  for (var row = 2; row < lastRow+1; row++) { 
-    // get calendarId and add to calendarIds
-    const calendarId = sheet.getRange(row, 6).getValue();
-    calendarIds.push(calendarId);
-    // get enabledEquipment and add to enabledEquipments
-    const enabledEquipments = [];
-    for (var column = 10; column < lastColumn+1; column++) { 
-      const equipment = sheet.getRange(1, column).getValue();
-      const checked = sheet.getRange(row, column).isChecked();
-      if (checked === true){
-        enabledEquipments.push(equipment);
+  // get calendarId and add to calendarIds
+  var values = sheet.getRange(2, 7, lastRow-1).getValues();
+  const calendarIds = values[0];
+
+  // get enabledEquipment and add to enabledEquipments
+  var equipmentValues = sheet.getRange(1, 10, 1, lastColumn-9).getValues();
+  var checkedValues = sheet.getRange(2, 10, lastRow-1, lastColumn-9).isChecked();
+  for (var i = 0; i < lastRow-1; i++) {
+    enabledEquipmentsList[i] = [];
+    for (var j = 0; j < lastColumn-9; j++) {
+      if (checkedValues[i][j] === true) {
+        enabledEquipmentsList[i].push(equipmentValues[0][j]);
       }
     }
-    enabledEquipmentsList.push(enabledEquipments);
   }
   return {
     readCalendarIds: calendarIds,
@@ -695,11 +675,11 @@ function setFirstLastNames(sheet, cell, newValue){
   const names = newValue.split(' ', 2); // split to last and first name
   const lastName = names[1];
   const firstName = names[0];
-  sheet.getRange(cell.getRow(), 2).setValue(lastName);
-  sheet.getRange(cell.getRow(), 3).setValue(firstName);
+  const row = cell.getRow();
   // set User Name 1 using last and first name
   // User Name 1 = {Last Name up to 4 letters}.{First Name up to 1 letter}
-  sheet.getRange(cell.getRow(), 4).setValue(lastName.slice(0,4)+'.'+firstName.slice(0,1));
+  const filledArray = [[lastName, firstName, lastName.slice(0,4)+'.'+firstName.slice(0,1)]];
+  sheet.getRange(row, 2, 1, 2).setValues(filledArray);
 }
 
 // set User Name 2 using User Name 1
