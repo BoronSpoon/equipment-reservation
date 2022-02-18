@@ -413,7 +413,7 @@ function eventLoggingStoreData(logObj) { // set data for logging
     var eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData'));    
   }
   for (const key in logObj) { // iterate through log object
-    eventLoggingData[key] = value;
+    eventLoggingData[key] = logObj[key];
   }
   properties.setProperty('eventLoggingData', JSON.stringify(eventLoggingData));
 }
@@ -513,8 +513,8 @@ function finalLogging() { // logs just the necessary data
       const eid = event.iCalUID;
       event = CalendarApp.getCalendarById(writeCalendarId).getEventById(eid);
       var logObj = {
-          startTime: event.getStartTime(),
-          endTime: event.getEndTime(),
+        startTime: event.getStartTime(),
+        endTime: event.getEndTime(),
           name: writeUser,
           equipment: equipment,
           state: state,
@@ -566,8 +566,11 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
   Logger.log(`${readCalendarIds.length} read calendars`);
   const equipmentSheetNames = getEquipmentSheetNames();
   for (var i = 0; i < events.length; i++){
-    const event = events[i];
+    var event = events[i];
     const eid = event.getId();
+    const equipmentState = getEquipmentStateFromEvent(event);
+    const equipment = equipmentState.equipment;
+    const state = equipmentState.state;
     const filteredReadCalendarIds = filterUsers(writeUser, event, readCalendarIds, users, enabledEquipmentsList).filteredReadCalendarIds;
     Logger.log(`writing event no.${i+1} to [ ${filteredReadCalendarIds} ]`);
     writeEvent(event, writeCalendarId, writeUser, filteredReadCalendarIds); // create event in write calendar and add read calendars as guests
@@ -576,6 +579,7 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
     } else {
       var action = 'add';
     }
+    event = CalendarApp.getCalendarById(writeCalendarId).getEventById(eid);
     eventLoggingStoreData({ // log event
       startTime: event.getStartTime(),
       endTime: event.getEndTime(),
