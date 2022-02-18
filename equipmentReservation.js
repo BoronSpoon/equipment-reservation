@@ -180,8 +180,8 @@ function getEquipmentSheetId() {
   const sheets = book.getSheets();
   var sheetName = '';
   var equipmentSheetNames = {};
-  const lastRow = sheet.getLastRow();
-  const values = sheet.getRange(2, 1, lastRow-1, 2).getValues();
+  const lastRow = propertiesSheet.getLastRow();
+  const values = propertiesSheet.getRange(2, 1, lastRow-1, 2).getValues();
   for (var i = 0; i < lastRow-1; i++){
     // convert sheetId to sheetName
     var sheetId = values[i][1];
