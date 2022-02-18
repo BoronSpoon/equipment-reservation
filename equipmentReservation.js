@@ -405,18 +405,13 @@ function onEquipmentConditionEdit(sheet, cell, row, column) {
   writeEventsToReadCalendar(usersSheet, writeCalendarId, index, fullSync);
 }  
 
-function eventLoggingSetup() { // prepares constants for eventLogging
-  const properties = PropertiesService.getUserProperties();
-  const book = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')); // spreadsheet for loggingrepares constant for eventLogging
-  const lastRow = book.getSheetByName('eventLog').getLastRow();
-  const row = lastRow + 1; // write on new row
-  properties.setProperty('row', row.toString());
-  properties.setProperty('eventLoggingData', JSON.stringify({}));
-}
-
 function eventLoggingStoreData(logObj) { // set data for logging
   const properties = PropertiesService.getUserProperties();
-  var eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData'));
+  if (properties.getProperty('eventLoggingData') === null) { // if key value pair not defined
+    var eventLoggingData = {}; // initialize
+  } else {
+    var eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData'));    
+  }
   for (const key in logObj) { // iterate through log object
     eventLoggingData[key] = value;
   }
@@ -425,6 +420,12 @@ function eventLoggingStoreData(logObj) { // set data for logging
 
 function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
   const properties = PropertiesService.getUserProperties();
+  // spreadsheet for experiment condition logging
+  const equipmentSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName(equipmentSheetName);
+  const eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData')); 
+  properties.deleteProperty('eventLoggingData');
+  const lastRow = equipmentSheet.getLastRow();
+  const row = lastRow + 1; // write on new row
   const columnDescriptions = { // shows which description corresponds to which column
     startTime: 1,
     endTime: 2,
@@ -438,11 +439,9 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
     executionTime: 10,
     id: 11,
   };
-  const row = parseInt(properties.getProperty('row'));
-  const equipmentSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName(equipmentSheetName); // spreadsheet for logging
   var filledArray = [[]];
-  for (const key in logObj) { // iterate through log object
-    var value = logObj[key];
+  for (const key in eventLoggingData) { // iterate through log object
+    var value = eventLoggingData[key];
     var col = columnDescriptions[key];
     filledArray[0][col-1] = value;
   }
@@ -566,7 +565,6 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
   const events = getEvents(writeCalendarId, fullSync);
   Logger.log(`${readCalendarIds.length} read calendars`);
   const equipmentSheetNames = getEquipmentSheetNames();
-  eventLoggingSetup(); // setup event logging
   for (var i = 0; i < events.length; i++){
     const event = events[i];
     const eid = event.getId();
