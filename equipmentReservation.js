@@ -233,7 +233,7 @@ function deleteTriggers() {
 
 // create triggers
 // only 20 triggers can be made for single script
-// we will use 17 for write calendars, 1 for daily logging, 1 for spreadsheet
+// we will use 18 for write calendars, 1 for daily logging, 1 for spreadsheet
 function createTriggers() {
   const properties = PropertiesService.getUserProperties();
   const sheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('users');
@@ -469,8 +469,9 @@ function filterUsers(writeUser, event, readCalendarIds, users, enabledEquipments
 
 // write events to read calendar based on updated events in write calendar
 function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
-  const readCalendarIds = getReadCalendars(sheet).readCalendarIds;
-  const enabledEquipmentsList = getReadCalendars(sheet).enabledEquipmentsList;
+  const readCalendars = getReadCalendars(sheet);
+  const readCalendarIds = readCalendars.readCalendarIds;
+  const enabledEquipmentsList = readCalendars.enabledEquipmentsList;
   const users = getUsers(sheet);
   const writeUser = users[index];
   const events = getEvents(writeCalendarId, fullSync);
@@ -509,8 +510,9 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
 // update corresponding user's subscribed equipments 
 function changeSubscribedEquipments(sheet, index, users){
   const fullSync = true;
-  const readCalendarIds = getReadCalendars(sheet).readCalendarIds;
-  const enabledEquipmentsList = getReadCalendars(sheet).enabledEquipmentsList;
+  const readCalendars = getReadCalendars(sheet);
+  const readCalendarIds = readCalendars.readCalendarIds;
+  const enabledEquipmentsList = readCalendars.enabledEquipmentsList;
   const writeCalendarIds = getWriteCalendarIds(sheet);
   const readCalendarId = readCalendarIds[index];
   Logger.log(`${writeCalendarIds.length} write calendars`);
