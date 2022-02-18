@@ -337,6 +337,7 @@ function onEquipmentConditionEdit(sheet, cell, row, column) {
   // 4: equipment, 6: description, 7: isAllDayEvent, 8: isRecurringEvent, 9: action, 10: executionTime, 11: id, are protected from being edited
   const lastColumn = sheet.getLastColumn();
   const values = sheet.getRange(row, 1, 1, lastColumn);
+  const headers = sheet.getRange(1, 1, 1, lastColumn);
   // when experiment condition gets edited -> change event summary 
   const startTime = values[0][0];
   const endTime = values[0][1];
@@ -360,6 +361,12 @@ function onEquipmentConditionEdit(sheet, cell, row, column) {
       } else {
         event.setTime(startTime, endTime)// edit start and end time
         event.setTitle(`${user} ${equipment} ${state}`); // edit equipmentName, name ,state
+        var experimentCondition = {};
+        for (var i = 0; i < lastColumn-13; i++)
+          if (headers[0][13+i] !== '') { // if condition is not ''
+            experimentCondition[headers[13+i]] = values[0][13+i];
+          }
+        event.setDescription(JSON.stringify({experimentCondition})); // save experiment condition as stringified JSON
       }
     } else {
       Logger.log('the specified user does not exist')
