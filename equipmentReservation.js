@@ -642,7 +642,7 @@ function getWriteCalendarIds(sheet) {
   const lastRow = sheet.getLastRow();
   const values = sheet.getRange(2, 7, lastRow-1).getValues();
   var calendarIds = [];
-  for (var i = 0; i < lastRow-1; i++) {
+  for (var i = 0; i < lastRow-2; i++) { // writeCalendarId in the last row is blank
     calendarIds[i] = values[i][0];
   }
   return calendarIds;
