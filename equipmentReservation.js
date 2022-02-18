@@ -1,3 +1,7 @@
+// todo: change event summary when experiment condition gets edited
+// todo: add event when experiment without id gets added
+// todo: protect some areas from getting edited
+
 // setup
 function setup() {
   const groupUrl = '?????@googlegroups.com'; // replace this line
@@ -141,9 +145,9 @@ function createSpreadsheet(userCount) {
   activeSheet.getRange(1, 1, equipmentCount+1, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   activeSheet.getRange(1, 3, equipmentCount+1, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   var filledArray = [[]];
-  filledArray[0] = ['equipmentName', 'sheetName', 'sheetUrl', 'Properties ->'];
+  filledArray[0] = ['equipmentName', 'sheetId', 'sheetUrl', 'Properties ->'];
   for (var i = 0; i < equipmentCount; i++) {
-    filledArray[i+1] = ['', `equipment ${i+1}`, `https://docs.google.com/spreadsheets/d/${experimentConditionSpreadsheetId}/edit#gid=${sheetIds[i]}`, ''];
+    filledArray[i+1] = ['', sheetIds[i], `https://docs.google.com/spreadsheets/d/${experimentConditionSpreadsheetId}/edit#gid=${sheetIds[i]}`, ''];
   }
   activeSheet.getRange(1, 1, equipmentCount+1, 4).setValues(filledArray);
   activeSheet.getRange(1, 1, equipmentCount+1, 4).setHorizontalAlignment("left"); // show https://... not the center of url
@@ -170,13 +174,23 @@ function createSpreadsheet(userCount) {
 }
 
 // get sheet name for each equipment
-function getEquipmentSheetNames() {
-  const sheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('properties');
+function getEquipmentSheetId() {
+  const book = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId'));
+  const propertiesSheet = book.getSheetByName('properties');
+  const sheets = book.getSheets();
+  var sheetName = '';
   var equipmentSheetNames = {};
   const lastRow = sheet.getLastRow();
   const values = sheet.getRange(2, 1, lastRow-1, 2).getValues();
   for (var i = 0; i < lastRow-1; i++){
-    equipmentSheetNames[values[i][0]] = values[i][1];
+    // convert sheetId to sheetName
+    var sheetId = values[i][1];
+    for (var j = 0; j < sheets.length; j++) {
+      if (sheets[j].getSheetId() == sheetId){
+        sheetName = sheets[j].getName();
+        break;
+    }
+    equipmentSheetNames[values[i][0]] = sheetName;
   }
   return equipmentSheetNames;
 }
