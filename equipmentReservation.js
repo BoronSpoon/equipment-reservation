@@ -662,7 +662,7 @@ function getReadCalendars(sheet) {
   // get enabledEquipment and add to enabledEquipments
   var equipmentValues = sheet.getRange(1, 10, 1, lastColumn-9).getValues();
   var checkedValues = sheet.getRange(2, 10, lastRow-1, lastColumn-9).getValues();
-  for (var i = 0; i < lastRow-2; i++) {
+  for (var i = 0; i < lastRow-1; i++) {
     enabledEquipmentsList[i] = [];
     for (var j = 0; j < lastColumn-9; j++) {
       if (checkedValues[i][j] === true) {
