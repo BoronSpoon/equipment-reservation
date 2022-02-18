@@ -57,10 +57,10 @@ function defineConstants() {
 // creates spreadsheet for {userCount} users
 function createSpreadsheet(userCount) {
   const properties = PropertiesService.getUserProperties();
-  const equipmentCount = properties.getProperty('equipmentCount');
-  const experimentConditionCount = properties.getProperty('experimentConditionCount');
-  const experimentConditionRows = properties.getProperty('experimentConditionRows');
-  const finalLoggingRows = properties.getProperty('finalLoggingRows');
+  const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
+  const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
+  const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
+  const finalLoggingRows = parseInt(properties.getProperty('finalLoggingRows'));
 
   // create workbooks(spreadsheets) and sheets
   var experimentConditionSpreadsheet = SpreadsheetApp.create('experimentConditionSpreadsheet');
@@ -431,8 +431,8 @@ function eventLoggingStoreData(logObj) { // set data for logging
 
 function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
   const properties = PropertiesService.getUserProperties();
-  const experimentConditionCount = properties.getProperty('experimentConditionCount');
-  const experimentConditionRows = properties.getProperty('experimentConditionRows');
+  const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
+  const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
   // spreadsheet for experiment condition logging
   const equipmentSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName(equipmentSheetName);
   const eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData')); 
