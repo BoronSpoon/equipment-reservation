@@ -109,7 +109,7 @@ function createSpreadsheet(userCount) {
     var rule = SpreadsheetApp.newFilterCriteria()
       .whenTextEqualTo('TRUE')
       .build();
-    activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).sort({column: 2, ascending: true}); // sort by date
+    activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).sort({column: 1, ascending: true}); // sort by date
     activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).getFilter().setColumnFilterCriteria(12, rule); 
   }
 
@@ -438,8 +438,7 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
   const equipmentSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName(equipmentSheetName);
   const eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData')); 
   properties.deleteProperty('eventLoggingData');
-  const lastRow = equipmentSheet.getLastRow();
-  //const row = lastRow + 1; // write on new row
+  const row = equipmentSheet.getRange("A1:A").getValues().filter(String).length + 1; // get last row of first column
   const columnDescriptions = { // shows which description corresponds to which column
     startTime: 1,
     endTime: 2,
@@ -464,7 +463,7 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
   var rule = SpreadsheetApp.newFilterCriteria()
     .whenTextEqualTo('TRUE')
     .build();
-  equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).sort({column: 2, ascending: true}); // sort by date
+  equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).sort({column: 1, ascending: true}); // sort by date
   equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).getFilter().setColumnFilterCriteria(12, rule); 
 }
 
