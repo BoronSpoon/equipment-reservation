@@ -108,7 +108,7 @@ function createSpreadsheet(userCount) {
     var rule = SpreadsheetApp.newFilterCriteria()
       .whenTextEqualTo('TRUE')
       .build();
-    activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).createFilter().sort(2, true); // sort by date
+    activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).sort({column: 2, ascending: true}); // sort by date
     activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).getFilter().setColumnFilterCriteria(12, rule); 
   }
 
@@ -463,7 +463,7 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
   var rule = SpreadsheetApp.newFilterCriteria()
     .whenTextEqualTo('TRUE')
     .build();
-  equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).createFilter().sort(2, true); // sort by date
+  equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).sort({column: 2, ascending: true}); // sort by date
   equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).getFilter().setColumnFilterCriteria(12, rule); 
 }
 
