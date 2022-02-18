@@ -1,6 +1,8 @@
 // todo: change event summary when experiment condition gets edited
 // todo: add event when experiment without id gets added
 // todo: protect some areas from getting edited
+// todo: delete past events when events are overflowing in sheets
+// todo: when equipment gets changed, disable original event
 
 // setup
 function setup() {
@@ -174,7 +176,7 @@ function createSpreadsheet(userCount) {
 }
 
 // get sheet name for each equipment
-function getEquipmentSheetId() {
+function getEquipmentSheetNames() {
   const book = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId'));
   const propertiesSheet = book.getSheetByName('properties');
   const sheets = book.getSheets();
@@ -311,6 +313,7 @@ function onSheetsEdit(e) {
   const writeCalendarIds = getWriteCalendarIds(sheet);
   const calendarId = writeCalendarIds[index]
   const fullSync = true;
+  const equipmentSheetNames = getEquipmentSheetNames();
   
   // when the checkbox (H2~nm) is edited in sheets on sheet 'users'
   // update corresponding user's subscribed equipments
@@ -323,6 +326,45 @@ function onSheetsEdit(e) {
     updateCalendarUserName(sheet, cell, newValue);
     writeEventsToReadCalendar(sheet, calendarId, index, fullSync);
   }
+  // if equipment sheet is edited
+  else if (equipmentSheetNames.includes(sheet.getName) && row > 1){ 
+    onEquipmentConditionEdit(sheet, cell, row, column);
+  }
+}
+
+function onEquipmentConditionEdit(sheet, cell, row, column) {
+  const properties = PropertiesService.getUserProperties();
+  // 4: equipment, 6: description, 7: isAllDayEvent, 8: isRecurringEvent, 9: action, 10: executionTime, 11: id, are protected from being edited
+  const lastColumn = sheet.getLastColumn();
+  const values = sheet.getRange(row, 1, 1, lastColumn);
+  // when experiment condition gets edited -> change event summary 
+  const startTime = values[0][0];
+  const endTime = values[0][1];
+  const user = values[0][2];
+  const status = values[0][4];
+  const id = values[0][10];
+  const usersSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('users');
+  const users = getUsers(usersSheet);
+  const writeCalendarIds = getWriteCalendarIds(usersSheet);
+  if (id === '') { // 1. when experiment id doesn't exist -> add event 
+    // add startTime
+    // add endTime
+    // add name
+    // add status
+  } else { // 2. when experiment id exists -> modify event
+    if (users.includes(user)) { // if user exists
+      const writeCalendarId = writeCalendarIds(users.indexOf(user)); // get writeCalendarId for specified user
+      var event = CalendarApp.getCalendarById(writeCalendarId).getEventById(id);
+      if (event === null) {
+        Logger.log('the specified event id does not exist');
+      } else {
+        event.setTime(startTime, endTime)// edit start and end time
+        event.setTitle(`${user} ${equipment} ${state}`); // edit equipmentName, name ,status
+      }
+    } else {
+      Logger.log('the specified user does not exist')
+    }
+  }  
 }
 
 function eventLoggingSetup() { // prepares constants for eventLogging
