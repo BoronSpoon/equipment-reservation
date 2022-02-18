@@ -687,39 +687,41 @@ function setFirstLastNames(sheet, cell, newValue){
 //             = {Last Name up to 4 letters}.{First Name up to 1 letter}{unique identifier 1,2,3,...}
 function setUserNames(sheet){
   const lastRow = sheet.getLastRow();
+  const values = sheet.getRange(2, 4, lastRow-1).getValue();
+  const filledArray = [];
   // update User Name 2 for row0 = 2~lastRow
-  for (var row0 = 2; row0 < lastRow+1; row0++) {
-    const value0 = sheet.getRange(row0, 4).getValue();
-    var count = 0;
+  for (var i = 0; i < lastRow-1; i++){
     // check the duplicate count of value0 for row1 = 2~row0
-    for (var row1 = 2; row1 < row0+1; row1++) {
-      const value1 = sheet.getRange(row1, 4).getValue();
-      if (value0 === value1){
+    var count = 0; // duplicate count
+    for (var j = 0; j < i + 1; j++){
+      if (values[i][0] === values[j][0]){
         count += 1;
       }
     }
-    // use count as unique identifier (1,2,3,...)
-    sheet.getRange(row0, 5).setValue(value0+count); 
+    filledArray[i] = [value0+count];
   }
+  // use count as unique identifier (1,2,3,...)
+  sheet.getRange(2, 5, lastRow-1).setValues(filledArray); 
 }
 
 // create checkboxes for selecting which equipment to show in the calendar
 function setCheckboxes(sheet, cell) {
   const lastColumn = sheet.getLastColumn();
-  if (sheet.getRange(cell.getRow(), 10).isChecked() == null){ // if cell is not a checkbox
+  const row = cell.getRow();
+  if (sheet.getRange(row, 10).isChecked() == null){ // if cell is not a checkbox
     // create checkboxes
-    for (var column = 10; column < lastColumn+1; column++) { 
-      sheet.getRange(cell.getRow(), column).insertCheckboxes();  
-    }
+    sheet.getRange(row, column, 1, lastColumn-9).insertCheckboxes();
   }
   Logger.log('Created checkboxes');
 }
 
 // set read calendar and write calendar for created user
 function setCalendars(sheet, cell) {
-  const userName = sheet.getRange(cell.getRow(), 5).getValue();
-  const readCalendarId = sheet.getRange(cell.getRow(), 6).getValue();
-  const writeCalendarId = sheet.getRange(cell.getRow(), 7).getValue();
+  const row = cell.getRow();
+  const values = sheet.getRange(row, 5, 1, 2).getValues();
+  const userName = values[0][0];
+  const readCalendarId = values[0][1];
+  const writeCalendarId = values[0][2];
   changeCalendarName(readCalendarId, userName, 'Read');
   changeCalendarName(writeCalendarId, userName, 'Write');
 }
