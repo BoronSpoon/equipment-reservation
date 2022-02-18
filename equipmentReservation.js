@@ -189,6 +189,7 @@ function getEquipmentSheetNames() {
       if (sheets[j].getSheetId() == sheetId){
         sheetName = sheets[j].getName();
         break;
+      }
     }
     equipmentSheetNames[values[i][0]] = sheetName;
   }
