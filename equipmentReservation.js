@@ -170,6 +170,18 @@ function createSpreadsheet(userCount) {
   setIds(property);
 }
 
+// get sheet name for each equipment
+function getEquipmentSheetNames() {
+  const sheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('properties');
+  var equipmentSheetNames = {};
+  const lastRow = sheet.getLastRow();
+  const values = sheet.getRange(2, 1, lastRow-1, 2).getValues();
+  for (var i = 0; i < lastRow-1; i++){
+    equipmentSheetNames[values[i][0]] = values[i][1];
+  }
+  return equipmentSheetNames;
+}
+
 // creates calendars for {userCount} users
 function createCalendars(userCount, groupUrl) {
   const properties = PropertiesService.getUserProperties();
@@ -271,7 +283,6 @@ function onCalendarEdit(e) {
   const writeCalendarIds = getWriteCalendarIds(sheet);
   const index = writeCalendarIds.indexOf(calendarId);
   const fullSync = false;
-  eventLoggingSetup(); // setup admin logging
   writeEventsToReadCalendar(sheet, calendarId, index, fullSync);
 }
 
@@ -289,12 +300,6 @@ function onSheetsEdit(e) {
   const calendarId = writeCalendarIds[index]
   const fullSync = true;
   
-  eventLoggingSetup(); // event logging
-  eventLoggingStoreData({
-    executionTime: new Date(), // current time
-    name: readUser,
-    action: `sheets (row, col) = (${row}, ${column}): ${action}`,
-  });  
   // when the checkbox (H2~nm) is edited in sheets on sheet 'users'
   // update corresponding user's subscribed equipments
   if (sheet.getName() === 'users' && row > 1 && column > 7){ 
@@ -326,7 +331,7 @@ function eventLoggingStoreData(logObj) { // set data for logging
   properties.setProperty('eventLoggingData', JSON.stringify(eventLoggingData));
 }
 
-function eventLoggingExecute(logObj) { // execute logging to sheets
+function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
   const properties = PropertiesService.getUserProperties();
   const columnDescriptions = { // shows which description corresponds to which column
     startTime: 1,
@@ -342,7 +347,7 @@ function eventLoggingExecute(logObj) { // execute logging to sheets
     id: 11,
   };
   const row = parseInt(properties.getProperty('row'));
-  const eventLogSheet = SpreadsheetApp.openById(properties.getProperty('SpreadsheetId')).getSheetByName('eventLog'); // spreadsheet for logging
+  const equipmentSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName(equipmentSheetName); // spreadsheet for logging
   var filledArray = [[]];
   for (const key in logObj) { // iterate through log object
     var value = logObj[key];
@@ -463,6 +468,8 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
   const events = getEvents(writeCalendarId, fullSync);
   const eid = events.getId();
   Logger.log(`${readCalendarIds.length} read calendars`);
+  const equipmentSheetNames = getEquipmentSheetNames();
+  eventLoggingSetup(); // setup admin logging
   for (var i = 0; i < events.length; i++){
     const event = events[i];
     const filteredReadCalendarIds = filterUsers(writeUser, event, readCalendarIds, users, enabledEquipmentsList).filteredReadCalendarIds;
@@ -486,7 +493,7 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
       executionTime: new Date(), // current time
       id: eid, 
     });
-    eventLoggingExecute();
+    eventLoggingExecute(equipmentSheetNames[equipment]);
     Logger.log('event logging done');
   }
   updateSyncToken(writeCalendarId); // renew sync token after adding guest
