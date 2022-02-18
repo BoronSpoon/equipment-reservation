@@ -314,7 +314,7 @@ function onSheetsEdit(e) {
   
   // when the checkbox (H2~nm) is edited in sheets on sheet 'users'
   // update corresponding user's subscribed equipments
-  if (sheet.getName() === 'users' && row > 1 && column > 7){ 
+  if (sheet.getName() === 'users' && row > 1 && column > 9){ 
     changeSubscribedEquipments(sheet, index, users);
   }
   // when the full name (A2~An) is edited in sheets on sheet 'users'
