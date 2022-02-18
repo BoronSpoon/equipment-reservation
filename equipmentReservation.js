@@ -78,7 +78,7 @@ function createSpreadsheet(userCount) {
     changeSheetSize(activeSheet, experimentConditionRows, 12+experimentConditionCount);
     activeSheet.hideColumns(6, 7); // hide columns used for debug
     activeSheet.getRange(1, 1, 1, 12).setValues(
-      [['startTime', 'endTime', 'name', 'equipment', 'status', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists']]
+      [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists']]
     );
     activeSheet.getRange(1, 1, 1, 12+experimentConditionCount).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
     activeSheet.getRange(1, 5, experimentConditionRows, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
@@ -165,7 +165,7 @@ function createSpreadsheet(userCount) {
   // draw borders
   activeSheet.getRange(1, 1, 1, 8).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   activeSheet.getRange(1, 1, 1, 8).setValues(
-    [['startTime', 'endTime', 'name', 'equipment', 'status', 'description', 'isAllDayEvent', 'isRecurringEvent']]
+    [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent']]
   );
 
   var property = {
@@ -341,7 +341,7 @@ function onEquipmentConditionEdit(sheet, cell, row, column) {
   const startTime = values[0][0];
   const endTime = values[0][1];
   const user = values[0][2];
-  const status = values[0][4];
+  const state = values[0][4];
   const id = values[0][10];
   const usersSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('users');
   const users = getUsers(usersSheet);
@@ -350,7 +350,7 @@ function onEquipmentConditionEdit(sheet, cell, row, column) {
     // add startTime
     // add endTime
     // add name
-    // add status
+    // add state
   } else { // 2. when experiment id exists -> modify event
     if (users.includes(user)) { // if user exists
       const writeCalendarId = writeCalendarIds(users.indexOf(user)); // get writeCalendarId for specified user
@@ -359,7 +359,7 @@ function onEquipmentConditionEdit(sheet, cell, row, column) {
         Logger.log('the specified event id does not exist');
       } else {
         event.setTime(startTime, endTime)// edit start and end time
-        event.setTitle(`${user} ${equipment} ${state}`); // edit equipmentName, name ,status
+        event.setTitle(`${user} ${equipment} ${state}`); // edit equipmentName, name ,state
       }
     } else {
       Logger.log('the specified user does not exist')
@@ -392,7 +392,7 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
     endTime: 2,
     name: 3,
     equipment: 4,
-    status: 5,
+    state: 5,
     description: 6,
     isAllDayEvent: 7,
     isRecurringEvent: 8,
@@ -427,7 +427,7 @@ function finalLogging() { // logs just the necessary data
     endTime: 2,
     name: 3,
     equipment: 4,
-    status: 5,
+    state: 5,
     description: 6,
     isAllDayEvent: 7,
     isRecurringEvent: 8,
@@ -480,7 +480,7 @@ function finalLogging() { // logs just the necessary data
           endTime: event.getEndTime(),
           name: writeUser,
           equipment: equipment,
-          status: state,
+          state: state,
           description: event.getDescription(),
           isAllDayEvent: event.isAllDayEvent(),
           isRecurringEvent: event.isRecurringEvent(),
@@ -545,7 +545,7 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
       endTime: event.getEndTime(),
       name: writeUser,
       equipment: equipment,
-      status: state,
+      state: state,
       description: event.getDescription(),
       isAllDayEvent: event.isAllDayEvent(),
       isRecurringEvent: event.isRecurringEvent(),
@@ -695,13 +695,13 @@ function getEvents(calendarId, fullSync) {
 // get equipment and state from event summary
 function getEquipmentStateFromEvent(event){
   const summary = event.summary;
-  const status = summary.split(' '); // split to equipment and state
-  if (status.length === 1) { // just the equipment name (state is 'use')
-    var equipment = status[0];
+  const state = summary.split(' '); // split to equipment and state
+  if (state.length === 1) { // just the equipment name (state is 'use')
+    var equipment = state[0];
     var state = 'use';
-  } else if (status.length === 2 || status.length === 3) { // (User Name) + equipment + state
-    var equipment = status[status.length-2];
-    var state = status[status.length-1];
+  } else if (state.length === 2 || state.length === 3) { // (User Name) + equipment + state
+    var equipment = state[state.length-2];
+    var state = state[state.length-1];
   }
   return {equipment, state};
 }
