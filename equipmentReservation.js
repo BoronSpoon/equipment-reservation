@@ -121,11 +121,11 @@ function createSpreadsheet(userCount) {
     [['Full Name (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read CalendarId', 'Write CalendarId', 'Read Calendar URL', 'Write Calendar URL']]
   );
   // normal user row
-  activeSheet.getRange(2, 10, userCount, equipmentCount).insertCheckboxes('no'); // create unchecked checkbox for 100 columns (equipments)
+  activeSheet.getRange(2, 10, userCount, equipmentCount).insertCheckboxes(); // create unchecked checkbox for 100 columns (equipments)
   var filledArray = arrayFill2d(userCount, 1, 'First Last');
   activeSheet.getRange(2, 1, userCount).setValues(filledArray);
   // 'ALL EVENTS' user row
-  activeSheet.getRange(2+userCount, 10, 1, equipmentCount).insertCheckboxes('yes'); // create checked checkbox for 'ALL EVENTS'
+  activeSheet.getRange(2+userCount, 10, 1, equipmentCount).insertCheckboxes(); // create checked checkbox for 'ALL EVENTS'
   activeSheet.getRange(2+userCount, 1).setValue('ALL EVENTS');
   // copy equipments name from properties sheet
   var filledArray = [[]];
@@ -175,6 +175,7 @@ function createSpreadsheet(userCount) {
 
 // get sheet name for each equipment
 function getEquipmentSheetNames() {
+  const properties = PropertiesService.getUserProperties();
   const book = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId'));
   const propertiesSheet = book.getSheetByName('properties');
   const sheets = book.getSheets();
@@ -563,12 +564,12 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
   const users = getUsers(sheet);
   const writeUser = users[index];
   const events = getEvents(writeCalendarId, fullSync);
-  const eid = events.getId();
   Logger.log(`${readCalendarIds.length} read calendars`);
   const equipmentSheetNames = getEquipmentSheetNames();
   eventLoggingSetup(); // setup event logging
   for (var i = 0; i < events.length; i++){
     const event = events[i];
+    const eid = event.getId();
     const filteredReadCalendarIds = filterUsers(writeUser, event, readCalendarIds, users, enabledEquipmentsList).filteredReadCalendarIds;
     Logger.log(`writing event no.${i+1} to [ ${filteredReadCalendarIds} ]`);
     writeEvent(event, writeCalendarId, writeUser, filteredReadCalendarIds); // create event in write calendar and add read calendars as guests
@@ -662,8 +663,8 @@ function getReadCalendars(sheet) {
 
   // get enabledEquipment and add to enabledEquipments
   var equipmentValues = sheet.getRange(1, 10, 1, lastColumn-9).getValues();
-  var checkedValues = sheet.getRange(2, 10, lastRow-1, lastColumn-9).isChecked();
-  for (var i = 0; i < lastRow-1; i++) {
+  var checkedValues = sheet.getRange(2, 10, lastRow-1, lastColumn-9).getValues();
+  for (var i = 0; i < lastRow-2; i++) {
     enabledEquipmentsList[i] = [];
     for (var j = 0; j < lastColumn-9; j++) {
       if (checkedValues[i][j] === true) {
