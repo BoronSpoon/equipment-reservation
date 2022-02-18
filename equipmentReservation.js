@@ -804,7 +804,7 @@ function setFirstLastNames(sheet, cell, newValue){
   // set User Name 1 using last and first name
   // User Name 1 = {Last Name up to 4 letters}.{First Name up to 1 letter}
   const filledArray = [[lastName, firstName, lastName.slice(0,4)+'.'+firstName.slice(0,1)]];
-  sheet.getRange(row, 2, 1, 2).setValues(filledArray);
+  sheet.getRange(row, 2, 1, 3).setValues(filledArray);
 }
 
 // set User Name 2 using User Name 1
@@ -812,7 +812,7 @@ function setFirstLastNames(sheet, cell, newValue){
 //             = {Last Name up to 4 letters}.{First Name up to 1 letter}{unique identifier 1,2,3,...}
 function setUserNames(sheet){
   const lastRow = sheet.getLastRow();
-  const values = sheet.getRange(2, 4, lastRow-1).getValue();
+  const values = sheet.getRange(2, 4, lastRow-1).getValues();
   const filledArray = [];
   // update User Name 2 for row0 = 2~lastRow
   for (var i = 0; i < lastRow-1; i++){
@@ -823,7 +823,7 @@ function setUserNames(sheet){
         count += 1;
       }
     }
-    filledArray[i] = [value0+count];
+    filledArray[i] = [`${values[i][0]}${count}`]; // name + unique number
   }
   // use count as unique identifier (1,2,3,...)
   sheet.getRange(2, 5, lastRow-1).setValues(filledArray); 
@@ -843,7 +843,7 @@ function setCheckboxes(sheet, cell) {
 // set read calendar and write calendar for created user
 function setCalendars(sheet, cell) {
   const row = cell.getRow();
-  const values = sheet.getRange(row, 5, 1, 2).getValues();
+  const values = sheet.getRange(row, 5, 1, 3).getValues();
   const userName = values[0][0];
   const readCalendarId = values[0][1];
   const writeCalendarId = values[0][2];
