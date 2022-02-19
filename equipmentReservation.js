@@ -105,14 +105,19 @@ function createSpreadsheet(userCount) {
       // see if event exists (if it is 1[unmodified(is the last entry with the same id)] and 2[not canceled]) or cell is empty
       filledArray[j][11] = `=OR(AND(COUNTIF(INDIRECT("R[1]C[-1]", FALSE):INDIRECT("R[$${experimentConditionRows-j}]C[-1]", FALSE),B4)=0, INDIRECT("R[0]C[-3]", FALSE)="add"), INDIRECT("R[0]C[-3]", FALSE)="")`;
     }
-    activeSheet.getRange(2, 1, experimentConditionRows, 12).setFormulas(filledArray);
 
+    activeSheet.getRange(2, 1, experimentConditionRows-1, 12).setFormulas(filledArray);
+
+    const range = activeSheet.getRange(2, 1, experimentConditionRows-1, 12);
+    range.sort({column: 1, ascending: true}); // sort by date
+    if (range.getFilter() != null) { // remove previous filter
+      range.getFilter().remove();
+    }
     // when column 12 is not TRUE, hide row
     var rule = SpreadsheetApp.newFilterCriteria()
       .whenTextEqualTo('TRUE')
       .build();
-    activeSheet.getRange(2, 1, experimentConditionRows, 12+experimentConditionCount).sort({column: 1, ascending: true}); // sort by date
-    activeSheet.getRange(2, 1, experimentConditionRows, 12+experimentConditionCount).getFilter().setColumnFilterCriteria(12, rule); 
+    range.createFilter().setColumnFilterCriteria(12, rule); 
   }
 
   Utilities.sleep(1000);
@@ -468,13 +473,18 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
     filledArray[0][col-1] = value;
   }
   Logger.log(eventLoggingData);
-  equipmentSheet.getRange(row, 1, 1, 11).setValues(filledArray);
+  equipmentSheet.getRange(row, 1, 1, 11).setValues(filledArray);    
+
+  const range = equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount);
+  range.sort({column: 1, ascending: true}); // sort by date
+  if (range.getFilter() != null) { // remove previous filter
+    range.getFilter().remove();
+  }
   // when column 12 is not TRUE, hide row
   var rule = SpreadsheetApp.newFilterCriteria()
     .whenTextEqualTo('TRUE')
     .build();
-  equipmentSheet.getRange(2, 1, experimentConditionRows, 12+experimentConditionCount).sort({column: 1, ascending: true}); // sort by date
-  equipmentSheet.getRange(2, 1, experimentConditionRows, 12+experimentConditionCount).getFilter().setColumnFilterCriteria(12, rule); 
+  range.createFilter().setColumnFilterCriteria(12, rule); 
 }
 
 function finalLogging() { // logs just the necessary data
@@ -586,24 +596,26 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
   const enabledEquipmentsList = readCalendars.enabledEquipmentsList;
   const users = getUsers(sheet);
   const writeUser = users[index];
-  const events = getEvents(writeCalendarId, fullSync);
+  const allEvents = getEvents(writeCalendarId, fullSync);
+  const events = allEvents.events;
+  const canceledEvents = allEvents.canceledEvents;
   Logger.log(`${readCalendarIds.length} read calendars`);
   const equipmentSheetNames = getEquipmentSheetNames();
   for (var i = 0; i < events.length; i++){
     var event = events[i];
-    const eid = event.getId();
-    const equipmentState = getEquipmentStateFromEvent(event);
-    const equipment = equipmentState.equipment;
-    const state = equipmentState.state;
     const filteredReadCalendarIds = filterUsers(writeUser, event, readCalendarIds, users, enabledEquipmentsList).filteredReadCalendarIds;
     Logger.log(`writing event no.${i+1} to [ ${filteredReadCalendarIds} ]`);
     writeEvent(event, writeCalendarId, writeUser, filteredReadCalendarIds); // create event in write calendar and add read calendars as guests
-    if (Calendar.Events.get(writeCalendarId, eid).status === 'cancelled') {
-      var action = 'cancel';
-    } else {
-      var action = 'add';
-    }
-    event = CalendarApp.getCalendarById(writeCalendarId).getEventById(eid);
+  }
+  const writeCalendar = CalendarApp.getCalendarById(writeCalendarId);
+  for (var i = 0; i < events.length; i++) { // log canceled events
+    var event = events[i];
+    const equipmentState = getEquipmentStateFromEvent(event);
+    const equipment = equipmentState.equipment;
+    const state = equipmentState.state;
+    const action = 'add';
+    const eid = event.getId();
+    event = writeCalendar.getEventById(eid);
     eventLoggingStoreData({ // log event
       startTime: event.getStartTime(),
       endTime: event.getEndTime(),
@@ -618,8 +630,31 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
       id: eid, 
     });
     eventLoggingExecute(equipmentSheetNames[equipment]);
-    Logger.log('event logging done');
   }
+  for (var i = 0; i < canceledEvents.length; i++) { // log canceled events
+    var event = canceledEvents[i];
+    const equipmentState = getEquipmentStateFromEvent(event);
+    const equipment = equipmentState.equipment;
+    const state = equipmentState.state;
+    const action = 'cancel';
+    const eid = event.getId();
+    event = writeCalendar.getEventById(eid);
+    eventLoggingStoreData({ // log event
+      startTime: event.getStartTime(),
+      endTime: event.getEndTime(),
+      name: writeUser,
+      equipment: equipment,
+      state: state,
+      description: event.getDescription(),
+      isAllDayEvent: event.isAllDayEvent(),
+      isRecurringEvent: event.isRecurringEvent(),
+      action: action, 
+      executionTime: new Date(), // current time
+      id: eid, 
+    });
+    eventLoggingExecute(equipmentSheetNames[equipment]);
+  }
+  Logger.log('event logging done');
   updateSyncToken(writeCalendarId); // renew sync token after adding guest
   Logger.log(`Wrote updated events to read calendar. Fullsync = ${fullSync}`);
 }
@@ -636,7 +671,9 @@ function changeSubscribedEquipments(sheet, index, users){
   for (var i = 0; i < writeCalendarIds.length; i++){
     const writeUser = users[i];
     const writeCalendarId = writeCalendarIds[i];
-    const events = getEvents(writeCalendarId, fullSync);
+    const allEvents = getEvents(writeCalendarId, fullSync);
+    const events = allEvents.events;
+    const canceledEvents = allEvents.canceledEvents;
     for (var j = 0; j < events.length; j++){
       const event = events[j];
       const filteredReadCalendarIds = filterUsers(writeUser, event, [readCalendarId], users, enabledEquipmentsList).filteredReadCalendarIds;
@@ -724,6 +761,7 @@ function getEvents(calendarId, fullSync) {
   var eventsList;
   var pageToken = null;
   var events = [];
+  var canceledEvents = [];
   do {
     try {
       if (pageToken === null) { // first page
@@ -749,6 +787,7 @@ function getEvents(calendarId, fullSync) {
         const event = eventsList.items[i];
         if (event.status === 'cancelled') {
           Logger.log(`Event id ${event.id} was cancelled.`);
+          canceledEvents.push(event);
         } else{
           events.push(event);
         }
@@ -759,7 +798,7 @@ function getEvents(calendarId, fullSync) {
     pageToken = eventsList.nextPageToken;
   } while (pageToken);
   properties.setProperty(`syncToken ${calendarId}`, eventsList.nextSyncToken);
-  return events;
+  return {canceledEvents, events};
 }
 
 // get equipment and state from event summary
