@@ -107,9 +107,9 @@ function createSpreadsheet(userCount) {
     }
 
     activeSheet.getRange(2, 1, experimentConditionRows-1, 12).setFormulas(filledArray);
+    equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12).sort({column: 1, ascending: true}); // sort by date. sort doesn't include header row
 
-    const range = activeSheet.getRange(2, 1, experimentConditionRows-1, 12);
-    range.sort({column: 1, ascending: true}); // sort by date
+    const range = equipmentSheet.getRange(1, 1, experimentConditionRows, 12);
     if (range.getFilter() != null) { // remove previous filter
       range.getFilter().remove();
     }
@@ -117,7 +117,7 @@ function createSpreadsheet(userCount) {
     var rule = SpreadsheetApp.newFilterCriteria()
       .whenTextEqualTo('TRUE')
       .build();
-    range.createFilter().setColumnFilterCriteria(12, rule); 
+    range.createFilter().setColumnFilterCriteria(12, rule); // column filter includes header row
   }
 
   Utilities.sleep(1000);
@@ -474,9 +474,9 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
   }
   Logger.log(eventLoggingData);
   equipmentSheet.getRange(row, 1, 1, 11).setValues(filledArray);    
+  equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort({column: 1, ascending: true}); // sort by date. sort doesn't include header row
 
-  const range = equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount);
-  range.sort({column: 1, ascending: true}); // sort by date
+  const range = equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount);
   if (range.getFilter() != null) { // remove previous filter
     range.getFilter().remove();
   }
@@ -484,7 +484,7 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
   var rule = SpreadsheetApp.newFilterCriteria()
     .whenTextEqualTo('TRUE')
     .build();
-  range.createFilter().setColumnFilterCriteria(12, rule); 
+  range.createFilter().setColumnFilterCriteria(12, rule); // column filter includes header row
 }
 
 function finalLogging() { // logs just the necessary data
