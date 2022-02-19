@@ -5,6 +5,7 @@
 
 // setup
 function setup() {
+  Logger.log('Running setup');
   const groupUrl = '?????@googlegroups.com'; // replace this line
   if (groupUrl.includes('?')) { // detect default value
     throw new Error('ERROR: change "?????@googlegroups.com" to your google group name');
@@ -48,6 +49,7 @@ function arrayFill2d(rows, columns, value) { // create 2d array filled with valu
 
 // define constants used over several scripts
 function defineConstants() {
+  Logger.log('Defining constants');
   const properties = PropertiesService.getUserProperties();
   properties.setProperty('equipmentCount', 50); // number of equipments
   properties.setProperty('experimentConditionCount', 20); // number of experiment conditions for a single equipment
@@ -75,7 +77,7 @@ function createSpreadsheet(userCount) {
   const loggingSpreadsheetId = loggingSpreadsheet.getId();
 
   // create spreadsheet for experiment condition logging
-  Logger.log('Creating experimentConditionSpreadsheet');
+  Logger.log('Creating experiment condition spreadsheet');
   var sheetIds = [];
   var activeSheet = experimentConditionSpreadsheet.getSheetByName('eventLog');
   for (var i = 0; i < equipmentCount; i++) { // create sheet for each equipment
@@ -115,7 +117,7 @@ function createSpreadsheet(userCount) {
 
   Utilities.sleep(1000);
   // users sheet
-  Logger.log('Creating usersSheet');
+  Logger.log('Creating users sheet');
   var activeSheet = experimentConditionSpreadsheet.getSheetByName('users'); 
   changeSheetSize(activeSheet, userCount+2, equipmentCount+9);
   activeSheet.hideColumns(2, 6); // hide columns used for debug
@@ -147,7 +149,7 @@ function createSpreadsheet(userCount) {
   activeSheet.getRange(1, 10, 1, equipmentCount).setFormulas(filledArray);
 
   // properties sheet
-  Logger.log('Creating propertiesSheet');
+  Logger.log('Creating properties sheet');
   Utilities.sleep(1000);
   var activeSheet = experimentConditionSpreadsheet.getSheetByName('properties');
   changeSheetSize(activeSheet, equipmentCount+1, experimentConditionCount+1);
@@ -167,9 +169,9 @@ function createSpreadsheet(userCount) {
   activeSheet.hideColumns(2); // hide columns used for debug
   
   // create spreadsheet for finalized logging
-  Logger.log('Creating loggingSpreadsheet');
+  Logger.log('Creating logging spreadsheet');
   Utilities.sleep(1000);
-  Logger.log('Creating finalLogSheet');
+  Logger.log('Creating final log sheet');
   var activeSheet = loggingSpreadsheet.getSheetByName('finalLog');
   changeSheetSize(activeSheet, finalLoggingRows, 8);
   // draw borders
@@ -224,6 +226,7 @@ function getEquipmentSheetIds() {
 
 // creates calendars for {userCount} users
 function createCalendars(userCount, groupUrl) {
+  Logger.log('Creating calendars');
   const properties = PropertiesService.getUserProperties();
   const experimentConditionSpreadsheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId'));
   const resource = { // used to add google group as guest
@@ -265,6 +268,7 @@ function setIds(property) {
 }
 
 function setIdsManual() {
+  Logger.log('manually setting spreadsheet ids');
   const properties = PropertiesService.getUserProperties();
   //property = {
   //  experimentConditionSpreadsheetId : ;
@@ -276,6 +280,7 @@ function setIdsManual() {
 
 // delete all triggers for this script
 function deleteTriggers() {
+  Logger.log('deleting triggers');
   const triggers = ScriptApp.getProjectTriggers();
   for (var i = 0; i < triggers.length; i++){
     trigger = triggers[i];
@@ -293,7 +298,7 @@ function createTriggers() {
   
   // create trigger for each of the 17 write calendars
   // (calls function 'onCalendarEdit' on trigger)
-  Logger.log(writeCalendarIds.length + ' calendar triggers will be created');
+  Logger.log(`Creating triggers. ${writeCalendarIds.length} calendar(s) triggers will be created`);
   for (var i = 0; i < writeCalendarIds.length; i++){
     const writeCalendarId = writeCalendarIds[i];
     ScriptApp.newTrigger('onCalendarEdit')
@@ -317,6 +322,7 @@ function createTriggers() {
 
 // when calendar gets edited
 function onCalendarEdit(e) {
+  Logger.log('Calendar edit trigger');
   const properties = PropertiesService.getUserProperties();
   const sheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('users');
   const calendarId = e.calendarId;
@@ -328,6 +334,7 @@ function onCalendarEdit(e) {
 
 // when sheets gets edited
 function onSheetsEdit(e) {
+  Logger.log('Sheets edit trigger');
   const sheet = e.source.getActiveSheet();
   const cell = e.source.getActiveRange();
   const newValue = e.value;
@@ -358,6 +365,7 @@ function onSheetsEdit(e) {
 }
 
 function onEquipmentConditionEdit(sheet, cell, row, column) {
+  Logger.log('Equipment condition edit trigger');
   const properties = PropertiesService.getUserProperties();
   // 4: equipment, 6: description, 7: isAllDayEvent, 8: isRecurringEvent, 9: action, 10: executionTime, 11: id, are protected from being edited
   const lastColumn = sheet.getLastColumn();
@@ -431,6 +439,7 @@ function eventLoggingStoreData(logObj) { // set data for logging
 }
 
 function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
+  Logger.log('Logging event');
   const properties = PropertiesService.getUserProperties();
   const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
   const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
@@ -469,6 +478,7 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
 }
 
 function finalLogging() { // logs just the necessary data
+  Logger.log('Daily logging of event');
   const properties = PropertiesService.getUserProperties();
   const finalLogSheet = SpreadsheetApp.openById(properties.getProperty('loggingSpreadsheetId')).getSheetByName('finalLog')
   const lastRow = finalLogSheet.getLastRow();
