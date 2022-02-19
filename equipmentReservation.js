@@ -510,9 +510,11 @@ function finalLogging() { // logs just the necessary data
   const writeCalendarIds = getWriteCalendarIds(sheet);
   const users = getUsers(sheet);
   // get events from 2~3 days ago
-  options = {}
-  options.timeMin = getRelativeDate(-3, 0).toISOString(); // 3 days ago
-  options.timeMax = getRelativeDate(-2, 0).toISOString(); // 2 days ago
+  options = {
+    timeMin : getRelativeDate(-3, 0).toISOString(), // 3 days ago
+    timeMax : getRelativeDate(-2, 0).toISOString(), // 2 days ago
+    showDeleted : true,
+  }
   for (var i = 0; i < writeCalendarIds.length; i++){ // iterate through every write calendar id
     Utilities.sleep(100);
     const writeCalendarId = writeCalendarIds[i];
@@ -746,7 +748,8 @@ function getReadCalendars(sheet) {
 function getEvents(calendarId, fullSync) {
   const properties = PropertiesService.getUserProperties();
   const options = {
-    maxResults: 100
+    maxResults: 100,
+    showDeleted : true,
   };
   const syncToken = properties.getProperty(`syncToken ${calendarId}`);
   Logger.log(`Current sync token: ${syncToken}`);
@@ -803,20 +806,15 @@ function getEvents(calendarId, fullSync) {
 
 // get equipment and state from event summary
 function getEquipmentStateFromEvent(event){
-  if (!("key" in obj)) {
-    // summary doesnt exist in canceled events
-    // todo: find equipment name
-    const state = '';
-  } else {
-    const summary = event.summary;  
-    const status = summary.split(' '); // split to equipment and state
-    if (status.length === 1) { // just the equipment name (state is 'use')
-      var equipment = status[0];
-      var state = 'use';
-    } else if (status.length === 2 || status.length === 3) { // (User Name) + equipment + state
-      var equipment = status[status.length-2];
-      var state = status[status.length-1];
-    }
+  const summary = event.summary;  
+  Logger.log(`summary = ${summary}`);
+  const status = summary.split(' '); // split to equipment and state
+  if (status.length === 1) { // just the equipment name (state is 'use')
+    var equipment = status[0];
+    var state = 'use';
+  } else if (status.length === 2 || status.length === 3) { // (User Name) + equipment + state
+    var equipment = status[status.length-2];
+    var state = status[status.length-1];
   }
   return {equipment, state};
 }
@@ -933,7 +931,8 @@ function changeCalendarName(calendarId, userName, readOrWrite) {
 function updateSyncToken(calendarId) {
   const properties = PropertiesService.getUserProperties();
   const options = {
-    maxResults: 1000 // suppress nextPageToken which supresses nextSyncToken by fitting all events in one page
+    maxResults: 1000, // suppress nextPageToken which supresses nextSyncToken by fitting all events in one page
+    showDeleted: true,
   };
   var eventsList;
   eventsList = Calendar.Events.list(calendarId, options);
