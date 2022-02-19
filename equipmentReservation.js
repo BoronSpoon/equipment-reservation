@@ -699,14 +699,17 @@ function updateCalendarUserName(sheet, cell, newValue){
 function getUsers(sheet) {
   const lastRow = sheet.getLastRow();
   const values = sheet.getRange(2, 5, lastRow-1).getValues();
-  const users = values[0];
+  var users = [];
+  for (var i = 0; i < lastRow-1; i++) { // user in the last row is blank
+    users[i] = values[i][0];
+  }
   return users;
 }
 
 // get all the write calendar's calendarIds
 function getWriteCalendarIds(sheet) {
   const lastRow = sheet.getLastRow();
-  const values = sheet.getRange(2, 7, lastRow-1).getValues();
+  const values = sheet.getRange(2, 7, lastRow-2).getValues();
   var calendarIds = [];
   for (var i = 0; i < lastRow-2; i++) { // writeCalendarId in the last row is blank
     calendarIds[i] = values[i][0];
@@ -807,7 +810,6 @@ function getEvents(calendarId, fullSync) {
 // get equipment and state from event summary
 function getEquipmentStateFromEvent(event){
   const summary = event.summary;  
-  Logger.log(`summary = ${summary}`);
   const status = summary.split(' '); // split to equipment and state
   if (status.length === 1) { // just the equipment name (state is 'use')
     var equipment = status[0];
