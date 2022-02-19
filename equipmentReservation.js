@@ -109,8 +109,8 @@ function createSpreadsheet(userCount) {
     var rule = SpreadsheetApp.newFilterCriteria()
       .whenTextEqualTo('TRUE')
       .build();
-    activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).sort({column: 1, ascending: true}); // sort by date
-    activeSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).getFilter().setColumnFilterCriteria(12, rule); 
+    activeSheet.getRange(2, 1, experimentConditionRows, 12+experimentConditionCount).sort({column: 1, ascending: true}); // sort by date
+    activeSheet.getRange(2, 1, experimentConditionRows, 12+experimentConditionCount).getFilter().setColumnFilterCriteria(12, rule); 
   }
 
   Utilities.sleep(1000);
@@ -436,7 +436,7 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
   const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
   // spreadsheet for experiment condition logging
   const equipmentSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName(equipmentSheetName);
-  const eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData')); 
+  const eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData'));
   properties.deleteProperty('eventLoggingData');
   const row = equipmentSheet.getRange("A1:A").getValues().filter(String).length + 1; // get last row of first column
   const columnDescriptions = { // shows which description corresponds to which column
@@ -458,13 +458,14 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
     var col = columnDescriptions[key];
     filledArray[0][col-1] = value;
   }
-  equipmentSheet.getRange(row, 1, 1, 11).setValue(filledArray);
+  Logger.log(eventLoggingData);
+  equipmentSheet.getRange(row, 1, 1, 11).setValues(filledArray);
   // when column 12 is not TRUE, hide row
   var rule = SpreadsheetApp.newFilterCriteria()
     .whenTextEqualTo('TRUE')
     .build();
-  equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).sort({column: 1, ascending: true}); // sort by date
-  equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount).getFilter().setColumnFilterCriteria(12, rule); 
+  equipmentSheet.getRange(2, 1, experimentConditionRows, 12+experimentConditionCount).sort({column: 1, ascending: true}); // sort by date
+  equipmentSheet.getRange(2, 1, experimentConditionRows, 12+experimentConditionCount).getFilter().setColumnFilterCriteria(12, rule); 
 }
 
 function finalLogging() { // logs just the necessary data
@@ -544,7 +545,7 @@ function finalLogging() { // logs just the necessary data
         var col = columnDescriptions[key];
         filledArray[0][col-1] = value;
       }
-      finalLogSheet.getRange(row, 1, 1, 11).setValue(filledArray);
+      finalLogSheet.getRange(row, 1, 1, 11).setValues(filledArray);
     }
   }
 }
