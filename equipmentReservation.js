@@ -803,14 +803,20 @@ function getEvents(calendarId, fullSync) {
 
 // get equipment and state from event summary
 function getEquipmentStateFromEvent(event){
-  const summary = event.summary;
-  const status = summary.split(' '); // split to equipment and state
-  if (status.length === 1) { // just the equipment name (state is 'use')
-    var equipment = status[0];
-    var state = 'use';
-  } else if (status.length === 2 || status.length === 3) { // (User Name) + equipment + state
-    var equipment = status[status.length-2];
-    var state = status[status.length-1];
+  if (!("key" in obj)) {
+    // summary doesnt exist in canceled events
+    // todo: find equipment name
+    const state = '';
+  } else {
+    const summary = event.summary;  
+    const status = summary.split(' '); // split to equipment and state
+    if (status.length === 1) { // just the equipment name (state is 'use')
+      var equipment = status[0];
+      var state = 'use';
+    } else if (status.length === 2 || status.length === 3) { // (User Name) + equipment + state
+      var equipment = status[status.length-2];
+      var state = status[status.length-1];
+    }
   }
   return {equipment, state};
 }
