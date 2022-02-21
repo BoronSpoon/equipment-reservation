@@ -328,7 +328,6 @@ function getAndStoreObjects() {
   }
 
   // store objects in property
-  properties.setProperty('experimentConditionSpreadsheet', JSON.stringify(experimentConditionSpreadsheet));
   properties.setProperty('usersSheet', JSON.stringify(usersSheet));
   properties.setProperty('propertiesSheet', JSON.stringify(propertiesSheet));
   properties.setProperty('writeCalendarIds', JSON.stringify(writeCalendarIds));
