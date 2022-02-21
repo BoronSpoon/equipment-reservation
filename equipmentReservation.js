@@ -261,7 +261,7 @@ function deleteTriggers() {
 // we will use 18 for write calendars, 1 for daily logging, 1 for spreadsheet
 function createTriggers() {
   const properties = PropertiesService.getUserProperties();
-  const writeCalendarIds = properties.getProperty('writeCalendarIds');
+  const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
   
   // create trigger for each of the 17 write calendars
   // (calls function 'onCalendarEdit' on trigger)
@@ -331,9 +331,9 @@ function getAndStoreObjects() {
   properties.setProperty('experimentConditionSpreadsheet', JSON.stringify(experimentConditionSpreadsheet));
   properties.setProperty('usersSheet', JSON.stringify(usersSheet));
   properties.setProperty('propertiesSheet', JSON.stringify(propertiesSheet));
-  properties.setProperty('writeCalendarIds', writeCalendarIds);
-  properties.setProperty('equipmentSheetIdFromEquipmentName', equipmentSheetIdFromEquipmentName);
-  properties.setProperty('equipmentSheetNameFromEquipmentName', Object.keys(equipmentSheetIdFromEquipmentName));
+  properties.setProperty('writeCalendarIds', JSON.stringify(writeCalendarIds));
+  properties.setProperty('equipmentSheetIdFromEquipmentName', JSON.stringify(equipmentSheetIdFromEquipmentName));
+  properties.setProperty('equipmentSheetNameFromEquipmentName', JSON.stringify(equipmentSheetNameFromEquipmentName));
 }
 
 // when calendar gets edited
@@ -352,6 +352,7 @@ function onCalendarEdit(e) {
 function onSheetsEdit(e) {
   Logger.log('Sheets edit trigger');
   getAndStoreObjects(); // get sheets, calendars and store them in properties
+  const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
   const sheetName = e.source.getActiveSheet().getName();
   const cell = e.source.getActiveRange();
   const newValue = e.value;
@@ -361,7 +362,7 @@ function onSheetsEdit(e) {
   const index = row-2;
   const calendarId = writeCalendarIds[index]
   const fullSync = true;
-  const equipmentSheetNameFromEquipmentName = properties.getProperty('equipmentSheetNameFromEquipmentName');
+  const equipmentSheetNameFromEquipmentName = JSON.parse(properties.getProperty('equipmentSheetNameFromEquipmentName'));
   
   // when the checkbox (H2~nm) is edited in sheets on sheet 'users'
   // update corresponding user's subscribed equipments
@@ -395,8 +396,8 @@ function onEquipmentConditionEdit(sheet, row) {
   const id = values[0][10];
   const usersSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('users');
   const users = getUsers(usersSheet);
-  const writeCalendarIds = properties.getProperty('writeCalendarIds');
-  const equipmentSheetIdFromEquipmentName = properties.getProperty('equipmentSheetIdFromEquipmentName');
+  const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
+  const equipmentSheetIdFromEquipmentName = JSON.parse(properties.getProperty('equipmentSheetIdFromEquipmentName'));
   const equipment = Object.keys(equipmentSheetIdFromEquipmentName).filter( (key) => { 
     return equipmentSheetIdFromEquipmentName[key] === sheet.getSheetId();
   });
@@ -520,7 +521,7 @@ function finalLogging() { // logs just the necessary data
     id: 11,
   };
   const usersSheet = properties.getProperty('usersSheet');
-  const writeCalendarIds = properties.getProperty('writeCalendarIds');
+  const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
   const users = getUsers(usersSheet);
   // get events from 2~3 days ago
   options = {
@@ -615,7 +616,7 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
   const events = allEvents.events;
   const canceledEvents = allEvents.canceledEvents;
   Logger.log(`${readCalendarIds.length} read calendars`);
-  const equipmentSheetNameFromEquipmentName = properties.getProperty('equipmentSheetNameFromEquipmentName');
+  const equipmentSheetNameFromEquipmentName = JSON.parse(properties.getProperty('equipmentSheetNameFromEquipmentName'));
   for (var i = 0; i < events.length; i++){
     var event = events[i];
     const filteredReadCalendarIds = filterUsers(writeUser, event, readCalendarIds, users, enabledEquipmentsList).filteredReadCalendarIds;
@@ -681,7 +682,7 @@ function changeSubscribedEquipments(sheet, index, users){
   const readCalendars = getReadCalendars(sheet);
   const readCalendarIds = readCalendars.readCalendarIds;
   const enabledEquipmentsList = readCalendars.enabledEquipmentsList;
-  const writeCalendarIds = properties.getProperty('writeCalendarIds');
+  const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
   const readCalendarId = readCalendarIds[index];
   Logger.log(`${writeCalendarIds.length} write calendars`);
   for (var i = 0; i < writeCalendarIds.length; i++){
