@@ -1,4 +1,3 @@
-// todo: fix event not added to equipment sheet when canceled
 // todo: protect some areas from getting edited
 // todo: delete past events when events are overflowing in sheets
 // todo: when equipment gets changed, disable original event
