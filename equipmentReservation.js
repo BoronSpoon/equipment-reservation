@@ -299,13 +299,18 @@ function getAndStoreObjects() {
 
   // get all the write and read calendar's calendarIds
   const lastRow = usersSheet.getLastRow();
-  const values = usersSheet.getRange(2, 6, lastRow-2, 2).getValues();
+  const values = usersSheet.getRange(2, 5, lastRow-2, 3).getValues();
   var readCalendarIds = [];
   var writeCalendarIds = [];
-  for (var i = 0; i < lastRow-2; i++) { // writeCalendarId in the last row is blank
-    readCalendarIds[i] = values[i][0];
-    writeCalendarIds[i] = values[i][1];
+  var users = [];
+  for (var i = 0; i < lastRow-1; i++) {
+    users[i] = values[i][0];
+    readCalendarIds[i] = values[i][1];
+    if (i !== lastRow-2) {
+      writeCalendarIds[i] = values[i][2]; // writeCalendarId in the last row is blank
+    }
   }
+}
 
   // get equipment sheet id for each equipment name
   var equipmentSheetIdFromEquipmentName = {};
@@ -334,6 +339,7 @@ function getAndStoreObjects() {
   properties.setProperty('propertiesSheet', JSON.stringify(propertiesSheet));
   properties.setProperty('writeCalendarIds', JSON.stringify(writeCalendarIds));
   properties.setProperty('readCalendarIds', JSON.stringify(readCalendarIds));
+  properties.setProperty('users', JSON.stringify(users));
   properties.setProperty('equipmentSheetIdFromEquipmentName', JSON.stringify(equipmentSheetIdFromEquipmentName));
   properties.setProperty('equipmentSheetNameFromEquipmentName', JSON.stringify(equipmentSheetNameFromEquipmentName));
 }
@@ -360,7 +366,7 @@ function onSheetsEdit(e) {
   const newValue = e.value;
   const row = cell.getRow();
   const column = cell.getColumn();
-  const users = getUsers(sheet);
+  const users = JSON.parse(properties.getProperty('users'));
   const index = row-2;
   const calendarId = writeCalendarIds[index]
   const fullSync = true;
@@ -396,8 +402,8 @@ function onEquipmentConditionEdit(sheet, row) {
   const user = values[0][2];
   const state = values[0][4];
   const id = values[0][10];
-  const usersSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('users');
-  const users = getUsers(usersSheet);
+  const usersSheet = JSON.parse(properties.getProperty('usersSheet'));
+  const users = JSON.parse(properties.getProperty('users'));
   const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
   const equipmentSheetIdFromEquipmentName = JSON.parse(properties.getProperty('equipmentSheetIdFromEquipmentName'));
   const equipment = Object.keys(equipmentSheetIdFromEquipmentName).filter( (key) => { 
@@ -522,9 +528,8 @@ function finalLogging() { // logs just the necessary data
     executionTime: 10,
     id: 11,
   };
-  const usersSheet = JSON.parse(properties.getProperty('usersSheet'));
   const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
-  const users = getUsers(usersSheet);
+  const users = JSON.parse(properties.getProperty('users'));
   // get events from 2~3 days ago
   options = {
     timeMin : getRelativeDate(-3, 0).toISOString(), // 3 days ago
@@ -709,17 +714,6 @@ function updateCalendarUserName(sheet, cell, newValue){
   setCheckboxes(sheet, cell); // create checkboxes for selecting equipment
   setCalendars(sheet, cell); // set read calendar and write calendar for created user
   Logger.log('Updated user name');
-}
-
-// get all the User Names
-function getUsers(sheet) {
-  const lastRow = sheet.getLastRow();
-  const values = sheet.getRange(2, 5, lastRow-1).getValues();
-  var users = [];
-  for (var i = 0; i < lastRow-1; i++) { // user in the last row is blank
-    users[i] = values[i][0];
-  }
-  return users;
 }
   
 // get equipments that are enabled by user
