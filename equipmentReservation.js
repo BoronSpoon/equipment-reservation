@@ -363,11 +363,10 @@ function onCalendarEdit(e) {
   Logger.log('Calendar edit trigger');
   const properties = PropertiesService.getUserProperties();
   getAndStoreObjects(); // get sheets, calendars and store them in properties
-  const usersSheet = JSON.parse(properties.getProperty('usersSheet'));
   const calendarId = e.calendarId;
   const index = writeCalendarIds.indexOf(calendarId);
   const fullSync = false;
-  writeEventsToReadCalendar(usersSheet, calendarId, index, fullSync);
+  writeEventsToReadCalendar(calendarId, index, fullSync);
 }
 
 // when sheets gets edited
@@ -380,22 +379,21 @@ function onSheetsEdit(e) {
   const newValue = e.value;
   const row = cell.getRow();
   const column = cell.getColumn();
-  const users = JSON.parse(properties.getProperty('users'));
   const index = row-2;
-  const calendarId = writeCalendarIds[index]
+  const writeCalendarId = writeCalendarIds[index]
   const fullSync = true;
   const equipmentSheetNameFromEquipmentName = JSON.parse(properties.getProperty('equipmentSheetNameFromEquipmentName'));
   
   // when the checkbox (H2~nm) is edited in sheets on sheet 'users'
   // update corresponding user's subscribed equipments
   if (sheetName === 'users' && row > 1 && column > 9){ 
-    changeSubscribedEquipments(sheet, index);
+    changeSubscribedEquipments(index);
   }
   // when the full name (A2~An) is edited in sheets on sheet 'users'
   // update all of the corresponding user's event title
   else if (sheetName === 'users' && row > 1 && column === 1){
     updateCalendarUserName(sheet, cell, newValue);
-    writeEventsToReadCalendar(sheet, calendarId, index, fullSync);
+    writeEventsToReadCalendar(writeCalendarId, index, fullSync);
   }
   // if equipment sheet is edited
   else if (Object.values(equipmentSheetNameFromEquipmentName).includes(sheet.getName()) && row > 1){ 
@@ -416,7 +414,6 @@ function onEquipmentConditionEdit(sheet, row) {
   const user = values[0][2];
   const state = values[0][4];
   const id = values[0][10];
-  const usersSheet = JSON.parse(properties.getProperty('usersSheet'));
   const users = JSON.parse(properties.getProperty('users'));
   const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
   const equipmentSheetIdFromEquipmentName = JSON.parse(properties.getProperty('equipmentSheetIdFromEquipmentName'));
@@ -462,7 +459,7 @@ function onEquipmentConditionEdit(sheet, row) {
   // write event of calendar back to sheets  
   const index = writeCalendarIds.indexOf(writeCalendarId);
   const fullSync = false;
-  writeEventsToReadCalendar(usersSheet, writeCalendarId, index, fullSync);
+  writeEventsToReadCalendar(writeCalendarId, index, fullSync);
 }  
 
 function eventLoggingStoreData(logObj) { // set data for logging
@@ -629,7 +626,7 @@ function filterUsers(writeUser, event, readCalendarIds, enabledEquipmentsList) {
 }
 
 // write events to read calendar based on updated events in write calendar
-function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
+function writeEventsToReadCalendar(writeCalendarId, index, fullSync) {
   const properties = PropertiesService.getUserProperties();
   const readCalendarIds = JSON.parse(properties.getProperty('readCalendarIds'));
   const enabledEquipmentsList = JSON.parse(properties.getProperty('enabledEquipmentsList'));
@@ -699,7 +696,7 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
 }
 
 // update corresponding user's subscribed equipments 
-function changeSubscribedEquipments(sheet, index){
+function changeSubscribedEquipments(index){
   const properties = PropertiesService.getUserProperties();
   const readCalendarIds = JSON.parse(properties.getProperty('readCalendarIds'));
   const enabledEquipmentsList = JSON.parse(properties.getProperty('enabledEquipmentsList'));
@@ -713,7 +710,6 @@ function changeSubscribedEquipments(sheet, index){
     const writeCalendarId = writeCalendarIds[i];
     const allEvents = getEvents(writeCalendarId, fullSync);
     const events = allEvents.events;
-    const canceledEvents = allEvents.canceledEvents;
     for (var j = 0; j < events.length; j++){
       const event = events[j];
       const filteredReadCalendarIds = filterUsers(writeUser, event, [readCalendarId], enabledEquipmentsList).filteredReadCalendarIds;
