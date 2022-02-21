@@ -341,7 +341,7 @@ function onCalendarEdit(e) {
   Logger.log('Calendar edit trigger');
   const properties = PropertiesService.getUserProperties();
   getAndStoreObjects(); // get sheets, calendars and store them in properties
-  const usersSheet = properties.getProperty('usersSheet');
+  const usersSheet = JSON.parse(properties.getProperty('usersSheet'));
   const calendarId = e.calendarId;
   const index = writeCalendarIds.indexOf(calendarId);
   const fullSync = false;
@@ -520,7 +520,7 @@ function finalLogging() { // logs just the necessary data
     executionTime: 10,
     id: 11,
   };
-  const usersSheet = properties.getProperty('usersSheet');
+  const usersSheet = JSON.parse(properties.getProperty('usersSheet'));
   const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
   const users = getUsers(usersSheet);
   // get events from 2~3 days ago
@@ -607,9 +607,8 @@ function filterUsers(writeUser, event, readCalendarIds, users, enabledEquipments
 
 // write events to read calendar based on updated events in write calendar
 function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
-  const readCalendars = getReadCalendars(sheet);
-  const readCalendarIds = readCalendars.readCalendarIds;
-  const enabledEquipmentsList = readCalendars.enabledEquipmentsList;
+  const readCalendarIds = getReadCalendarIds(sheet);
+  const enabledEquipmentsList = getEnabledEquipmentsList(sheet);
   const users = getUsers(sheet);
   const writeUser = users[index];
   const allEvents = getEvents(writeCalendarId, fullSync);
@@ -679,9 +678,8 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
 function changeSubscribedEquipments(sheet, index, users){
   const properties = PropertiesService.getUserProperties();
   const fullSync = true;
-  const readCalendars = getReadCalendars(sheet);
-  const readCalendarIds = readCalendars.readCalendarIds;
-  const enabledEquipmentsList = readCalendars.enabledEquipmentsList;
+  const readCalendarIds = getReadCalendarIds(sheet);
+  const enabledEquipmentsList = getEnabledEquipmentsList(sheet);
   const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
   const readCalendarId = readCalendarIds[index];
   Logger.log(`${writeCalendarIds.length} write calendars`);
@@ -722,18 +720,23 @@ function getUsers(sheet) {
 }
 
 // get all the read calendar's calendarIds
-function getReadCalendars(sheet) {
+function getReadCalendarIds(sheet) {
+  const properties = PropertiesService.getUserProperties();
+  const lastRow = sheet.getLastRow();
+  // get calendarId and add to calendarIds
+  var values = sheet.getRange(2, 6, lastRow-1).getValues();
+  var readCalendarIds = [];
+  for (var i = 0; i < lastRow-1; i++) {
+    readCalendarIds[i] = values[i][0];
+  }
+  return readCalendarIds;
+}
+  
+// get equipments that are enabled by user
+function getEnabledEquipmentsList(sheet) {
   var enabledEquipmentsList = [];
   const lastRow = sheet.getLastRow();
   const lastColumn = sheet.getLastColumn();
-  // get calendarId and add to calendarIds
-  var values = sheet.getRange(2, 6, lastRow-1).getValues();
-  var calendarIds = [];
-  for (var i = 0; i < lastRow-1; i++) {
-    calendarIds[i] = values[i][0];
-  }
-
-  // get enabledEquipment and add to enabledEquipments
   var equipmentValues = sheet.getRange(1, 10, 1, lastColumn-9).getValues();
   var checkedValues = sheet.getRange(2, 10, lastRow-1, lastColumn-9).getValues();
   for (var i = 0; i < lastRow-1; i++) {
@@ -744,10 +747,7 @@ function getReadCalendars(sheet) {
       }
     }
   }
-  return {
-    readCalendarIds: calendarIds,
-    enabledEquipmentsList: enabledEquipmentsList,
-  };
+  return enabledEquipmentsList
 }
 
 // get events from the given calendar that have been modified since the last sync.
@@ -758,7 +758,7 @@ function getEvents(calendarId, fullSync) {
     maxResults: 100,
     showDeleted : true,
   };
-  const syncToken = properties.getProperty(`syncToken ${calendarId}`);
+  const syncToken = JSON.parse(properties.getProperty(`syncToken ${calendarId}`));
   Logger.log(`Current sync token: ${syncToken}`);
   if (syncToken && !fullSync) {
     options.syncToken = syncToken;
