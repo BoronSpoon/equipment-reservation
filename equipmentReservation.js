@@ -297,12 +297,14 @@ function getAndStoreObjects() {
   const usersSheet = experimentConditionSpreadsheet.getSheetByName('users');
   const propertiesSheet = experimentConditionSpreadsheet.getSheetByName('properties');
 
-  // get all the write calendar's calendarIds
+  // get all the write and read calendar's calendarIds
   const lastRow = usersSheet.getLastRow();
-  const values = usersSheet.getRange(2, 7, lastRow-2).getValues();
+  const values = usersSheet.getRange(2, 6, lastRow-2, 2).getValues();
+  var readCalendarIds = [];
   var writeCalendarIds = [];
   for (var i = 0; i < lastRow-2; i++) { // writeCalendarId in the last row is blank
-    writeCalendarIds[i] = values[i][0];
+    readCalendarIds[i] = values[i][0];
+    writeCalendarIds[i] = values[i][1];
   }
 
   // get equipment sheet id for each equipment name
@@ -331,6 +333,7 @@ function getAndStoreObjects() {
   properties.setProperty('usersSheet', JSON.stringify(usersSheet));
   properties.setProperty('propertiesSheet', JSON.stringify(propertiesSheet));
   properties.setProperty('writeCalendarIds', JSON.stringify(writeCalendarIds));
+  properties.setProperty('readCalendarIds', JSON.stringify(readCalendarIds));
   properties.setProperty('equipmentSheetIdFromEquipmentName', JSON.stringify(equipmentSheetIdFromEquipmentName));
   properties.setProperty('equipmentSheetNameFromEquipmentName', JSON.stringify(equipmentSheetNameFromEquipmentName));
 }
@@ -606,7 +609,8 @@ function filterUsers(writeUser, event, readCalendarIds, users, enabledEquipments
 
 // write events to read calendar based on updated events in write calendar
 function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
-  const readCalendarIds = getReadCalendarIds(sheet);
+  const properties = PropertiesService.getUserProperties();
+  const readCalendarIds = JSON.parse(properties.getProperty('readCalendarIds'));
   const enabledEquipmentsList = getEnabledEquipmentsList(sheet);
   const users = getUsers(sheet);
   const writeUser = users[index];
@@ -676,8 +680,8 @@ function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
 // update corresponding user's subscribed equipments 
 function changeSubscribedEquipments(sheet, index, users){
   const properties = PropertiesService.getUserProperties();
+  const readCalendarIds = JSON.parse(properties.getProperty('readCalendarIds'));
   const fullSync = true;
-  const readCalendarIds = getReadCalendarIds(sheet);
   const enabledEquipmentsList = getEnabledEquipmentsList(sheet);
   const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
   const readCalendarId = readCalendarIds[index];
@@ -716,19 +720,6 @@ function getUsers(sheet) {
     users[i] = values[i][0];
   }
   return users;
-}
-
-// get all the read calendar's calendarIds
-function getReadCalendarIds(sheet) {
-  const properties = PropertiesService.getUserProperties();
-  const lastRow = sheet.getLastRow();
-  // get calendarId and add to calendarIds
-  var values = sheet.getRange(2, 6, lastRow-1).getValues();
-  var readCalendarIds = [];
-  for (var i = 0; i < lastRow-1; i++) {
-    readCalendarIds[i] = values[i][0];
-  }
-  return readCalendarIds;
 }
   
 // get equipments that are enabled by user
