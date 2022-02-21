@@ -501,6 +501,7 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
 
 function finalLogging() { // logs just the necessary data
   Logger.log('Daily logging of event');
+  getAndStoreObjects(); // get sheets, calendars and store them in properties
   const properties = PropertiesService.getUserProperties();
   const finalLogSheet = SpreadsheetApp.openById(properties.getProperty('loggingSpreadsheetId')).getSheetByName('finalLog')
   const lastRow = finalLogSheet.getLastRow();
@@ -518,9 +519,9 @@ function finalLogging() { // logs just the necessary data
     executionTime: 10,
     id: 11,
   };
-  const sheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('users');
+  const usersSheet = properties.getProperty('usersSheet');
   const writeCalendarIds = properties.getProperty('writeCalendarIds');
-  const users = getUsers(sheet);
+  const users = getUsers(usersSheet);
   // get events from 2~3 days ago
   options = {
     timeMin : getRelativeDate(-3, 0).toISOString(), // 3 days ago
