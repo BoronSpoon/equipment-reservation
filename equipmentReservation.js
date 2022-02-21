@@ -218,6 +218,7 @@ function getEquipmentSheetNames() {
 
 // get sheet id for each equipment
 function getEquipmentSheetIds() {
+  const properties = PropertiesService.getUserProperties();
   const book = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId'));
   const propertiesSheet = book.getSheetByName('properties');
   var equipmentSheetIds = {};
@@ -364,7 +365,7 @@ function onSheetsEdit(e) {
     writeEventsToReadCalendar(sheet, calendarId, index, fullSync);
   }
   // if equipment sheet is edited
-  else if (equipmentSheetNames.includes(sheet.getName) && row > 1){ 
+  else if (Object.values(equipmentSheetNames).includes(sheet.getName()) && row > 1){ 
     onEquipmentConditionEdit(sheet, cell, row, column);
   }
 }
@@ -374,8 +375,8 @@ function onEquipmentConditionEdit(sheet, cell, row, column) {
   const properties = PropertiesService.getUserProperties();
   // 4: equipment, 6: description, 7: isAllDayEvent, 8: isRecurringEvent, 9: action, 10: executionTime, 11: id, are protected from being edited
   const lastColumn = sheet.getLastColumn();
-  const values = sheet.getRange(row, 1, 1, lastColumn);
-  const headers = sheet.getRange(1, 1, 1, lastColumn);
+  const values = sheet.getRange(row, 1, 1, lastColumn).getValues();
+  const headers = sheet.getRange(1, 1, 1, lastColumn).getValues();
   // when experiment condition gets edited -> change event summary 
   const startTime = values[0][0];
   const endTime = values[0][1];
@@ -390,10 +391,10 @@ function onEquipmentConditionEdit(sheet, cell, row, column) {
     return equipmentSheetIds[key] === sheet.getSheetId();
   });
   if (users.includes(user)) { // if user exists
-    var writeCalendarId = writeCalendarIds(users.indexOf(user)); // get writeCalendarId for specified user
+    var writeCalendarId = writeCalendarIds[users.indexOf(user)]; // get writeCalendarId for specified user
     var writeCalendar = CalendarApp.getCalendarById(writeCalendarId);
   } else {
-    Logger.log('the specified user does not exist')
+    Logger.log('the specified user does not exist');
     return;
   }
   if (startTime === '' || endTime === '' || user === '') {
@@ -406,6 +407,7 @@ function onEquipmentConditionEdit(sheet, cell, row, column) {
       experimentCondition[headers[13+i]] = values[0][13+i];
     }
   }
+  var event = writeCalendar.getEventById(id);
   event.setDescription(JSON.stringify({experimentCondition})); // save experiment condition as stringified JSON
   if (id === '') { // 1. when experiment id doesn't exist -> add event 
     if (state === ''){
@@ -419,7 +421,7 @@ function onEquipmentConditionEdit(sheet, cell, row, column) {
     if (event === null) {
       Logger.log('the specified event id does not exist');
     } else {
-      event.setTime(startTime, endTime)// edit start and end time
+      event.setTime(new Date(startTime), new Date(endTime))// edit start and end time
       event.setTitle(`${user} ${equipment} ${state}`); // edit equipmentName, name ,state
       event.setDescription(experimentCondition); // write experiment condition in details
     }
