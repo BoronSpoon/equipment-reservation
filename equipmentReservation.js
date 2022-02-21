@@ -103,7 +103,7 @@ function createSpreadsheet(userCount) {
     var filledArray = arrayFill2d(experimentConditionRows, 12, '');
     for (var j = 0; j < experimentConditionRows; j++) {
       // see if event exists (if it is 1[unmodified(is the last entry with the same id)] and 2[not canceled]) or cell is empty
-      filledArray[j][11] = `=OR(AND(COUNTIF(INDIRECT("R[1]C[-1]", FALSE):INDIRECT("R[$${experimentConditionRows-j}]C[-1]", FALSE),B4)=0, INDIRECT("R[0]C[-3]", FALSE)="add"), INDIRECT("R[0]C[-3]", FALSE)="")`;
+      filledArray[j][11] = `=OR(AND(COUNTIF(INDIRECT("R[1]C[-1]:R${experimentConditionRows}C[-1]", FALSE), INDIRECT("R[0]C[-1]", FALSE))=0, INDIRECT("R[0]C[-3]", FALSE)="add"), INDIRECT("R[0]C[-3]", FALSE)="")`;
     }
 
     activeSheet.getRange(2, 1, experimentConditionRows-1, 12).setFormulas(filledArray);
