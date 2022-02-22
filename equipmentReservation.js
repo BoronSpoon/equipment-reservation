@@ -9,7 +9,7 @@ function setup() {
     throw new Error('ERROR: change "?????@googlegroups.com" to your google group name');
   }
   defineConstants(); // define constants used over several scripts
-  createSpreadsheet(18); // create spreadsheet for 17 users
+  createSpreadsheets(18, groupUrl); // create spreadsheet for 17 users
   createCalendars(18, groupUrl); // create 18 read + 17 write calendars
   deleteTriggers();
   getAndStoreObjects();
@@ -58,7 +58,7 @@ function defineConstants() {
 }
 
 // creates spreadsheet for {userCount} users
-function createSpreadsheet(userCount) {
+function createSpreadsheets(userCount, groupUrl) {
   const properties = PropertiesService.getUserProperties();
   const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
   const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
@@ -76,6 +76,9 @@ function createSpreadsheet(userCount) {
   // get ids
   const experimentConditionSpreadsheetId = experimentConditionSpreadsheet.getId();
   const loggingSpreadsheetId = loggingSpreadsheet.getId();
+  // share to google groups
+  DriveApp.getFileById(experimentConditionSpreadsheetId).addEditor(groupUrl);
+  DriveApp.getFileById(loggingSpreadsheetId).addEditor(groupUrl);
 
   // create spreadsheet for experiment condition logging
   Logger.log('Creating experiment condition spreadsheet');
