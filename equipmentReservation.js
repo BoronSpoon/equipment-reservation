@@ -1,4 +1,3 @@
-// todo: protect some areas from getting edited
 // todo: delete past events when events are overflowing in sheets
 // todo: when equipment gets changed, disable original event
 
@@ -97,6 +96,10 @@ function createSpreadsheet(userCount) {
     activeSheet.getRange(1, 1, 1, 12+experimentConditionCount).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
     activeSheet.getRange(1, 5, experimentConditionRows, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
     activeSheet.getRange(1, 12, experimentConditionRows, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+    // protect range
+    activeSheet.getRange(1, 1, 1, 12+experimentConditionCount).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
+    activeSheet.getRange(2, 6, experimentConditionRows-1, 7).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
+    // set headers
     var filledArray = [[]];
     for (var j = 0; j < experimentConditionCount; j++) {
       filledArray[0][j] = `=INDIRECT("properties!R${2+i}C${4+j}", FALSE)`;
@@ -108,16 +111,6 @@ function createSpreadsheet(userCount) {
     }
 
     activeSheet.getRange(2, 1, experimentConditionRows, 12).setFormulas(filledArray);
-
-    const range = activeSheet.getRange(1, 1, experimentConditionRows, 12);
-    if (range.getFilter() != null) { // remove previous filter
-      range.getFilter().remove();
-    }
-    // when column 12 is not TRUE, hide row
-    var rule = SpreadsheetApp.newFilterCriteria()
-      .whenTextEqualTo('TRUE')
-      .build();
-    range.createFilter().setColumnFilterCriteria(12, rule); // column filter includes header row
   }
 
   Utilities.sleep(1000);
@@ -127,6 +120,9 @@ function createSpreadsheet(userCount) {
   changeSheetSize(activeSheet, experimentConditionRows*equipmentCount+1, 5);
   // draw borders
   activeSheet.getRange(1, 1, 1, 5).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  // protect range
+  activeSheet.getRange(1, 1, experimentConditionRows*equipmentCount+1, 5).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
+  // set headers
   activeSheet.getRange(1, 1, 1, 5).setValues(
     [['startTime','id','action','originalAddress','eventExistsInRow']]
   ); 
@@ -139,7 +135,7 @@ function createSpreadsheet(userCount) {
         `=INDIRECT("equipment${i+1}!R${2+row}C1", FALSE)`, // C1
         `=INDIRECT("equipment${i+1}!R${2+row}C11", FALSE)`, // C11
         `=INDIRECT("equipment${i+1}!R${2+row}C9", FALSE)`, // C9
-        `equipment${i+1}!R${2+j}`,
+        `"equipment${i+1}!R${2+j}"`,
         // see if event exists (if it is 1[unmodified(is the last entry with the same id)] and 2[not canceled]) or 3[cell is empty]
         `=OR(AND(COUNTIF(INDIRECT("R[1]C[-3]:R${experimentConditionRows*equipmentCount+1}C[-3]", FALSE), INDIRECT("R[0]C[-3]", FALSE))=0, INDIRECT("R[0]C[-2]", FALSE)="add"), INDIRECT("R[0]C[-4]", FALSE)="")`
       ]; // refer to sheet 'properties' for equipment name
@@ -163,6 +159,10 @@ function createSpreadsheet(userCount) {
   activeSheet.getRange(1, 5, userCount+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   activeSheet.getRange(1, 7, userCount+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   activeSheet.getRange(1, 9, userCount+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  // protect range
+  activeSheet.getRange(1, 1, 1, equipmentCount+9).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
+  activeSheet.getRange(2, 2, userCount+1, 8).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
+  // set headers
   activeSheet.getRange(1, 1, 1, 9).setValues(
     [['Full Name (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read CalendarId', 'Write CalendarId', 'Read Calendar URL', 'Write Calendar URL']]
   );
@@ -190,6 +190,10 @@ function createSpreadsheet(userCount) {
   activeSheet.getRange(1, 1, 1, experimentConditionCount+1).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   activeSheet.getRange(1, 1, equipmentCount+1, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   activeSheet.getRange(1, 3, equipmentCount+1, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  // protect range
+  activeSheet.getRange(1, 1, 1, experimentConditionCount+1).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
+  activeSheet.getRange(2, 2, equipmentCount, 1).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
+  // set headers
   var filledArray = [[]];
   filledArray[0] = ['equipmentName', 'sheetId', 'sheetUrl', 'Properties ->'];
   for (var i = 0; i < equipmentCount; i++) {
@@ -208,6 +212,9 @@ function createSpreadsheet(userCount) {
   changeSheetSize(activeSheet, finalLoggingRows, 8);
   // draw borders
   activeSheet.getRange(1, 1, 1, 8).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  // protect range
+  activeSheet.getRange(1, 1, finalLoggingRows, 8).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
+  // set headers
   activeSheet.getRange(1, 1, 1, 8).setValues(
     [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent']]
   );
