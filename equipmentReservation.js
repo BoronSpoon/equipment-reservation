@@ -12,6 +12,8 @@ function setup() {
   defineConstants(); // define constants used over several scripts
   createSpreadsheet(18); // create spreadsheet for 17 users
   createCalendars(18, groupUrl); // create 18 read + 17 write calendars
+  deleteTriggers();
+  getAndStoreObjects();
   createTriggers();
 }
 
@@ -105,9 +107,9 @@ function createSpreadsheet(userCount) {
       filledArray[j][11] = `=INDIRECT("allEquipments!R" & MATCH(INDIRECT("allEquipments!D2:D", FALSE), "equipment${i+1}!R${j+2}", 0) & "C5", FALSE)`; // ADDRESS(row, col)
     }
 
-    activeSheet.getRange(2, 1, experimentConditionRows-1, 12).setFormulas(filledArray);
+    activeSheet.getRange(2, 1, experimentConditionRows, 12).setFormulas(filledArray);
 
-    const range = equipmentSheet.getRange(1, 1, experimentConditionRows, 12);
+    const range = activeSheet.getRange(1, 1, experimentConditionRows, 12);
     if (range.getFilter() != null) { // remove previous filter
       range.getFilter().remove();
     }
@@ -315,6 +317,9 @@ function createTriggers() {
 // get sheets and store them in properties
 function getAndStoreObjects() {
   const properties = PropertiesService.getUserProperties();
+  var lastRow = '';
+  var lastColumn = '';
+  var values = '';
 
   // get sheets
   const experimentConditionSpreadsheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId'));
@@ -323,9 +328,9 @@ function getAndStoreObjects() {
   const propertiesSheet = experimentConditionSpreadsheet.getSheetByName('properties');
 
   // get all the write and read calendar's calendarIds
-  const lastRow = usersSheet.getLastRow();
-  const lastColumn = usersSheet.getLastColumn();
-  const values = usersSheet.getRange(2, 5, lastRow-2, 3).getValues();
+  lastRow = usersSheet.getLastRow();
+  lastColumn = usersSheet.getLastColumn();
+  values = usersSheet.getRange(2, 5, lastRow-1, 3).getValues();
   var readCalendarIds = []; // get read calendars' Ids
   var writeCalendarIds = []; // get write calendars' Ids
   var users = []; // get user names
@@ -339,8 +344,8 @@ function getAndStoreObjects() {
 
   // get equipments that are enabled by user
   var enabledEquipmentsList = []; 
-  var equipmentValues = sheet.getRange(1, 10, 1, lastColumn-9).getValues();
-  var checkedValues = sheet.getRange(2, 10, lastRow-1, lastColumn-9).getValues();
+  var equipmentValues = usersSheet.getRange(1, 10, 1, lastColumn-9).getValues();
+  var checkedValues = usersSheet.getRange(2, 10, lastRow-1, lastColumn-9).getValues();
   for (var i = 0; i < lastRow-1; i++) {
     enabledEquipmentsList[i] = [];
     for (var j = 0; j < lastColumn-9; j++) {
@@ -353,8 +358,8 @@ function getAndStoreObjects() {
   // get equipment sheet id for each equipment name
   var equipmentSheetIdFromEquipmentName = {};
   var equipmentSheetNameFromEquipmentName = {};
-  const lastRow = propertiesSheet.getLastRow();
-  const values = propertiesSheet.getRange(2, 1, lastRow-1, 2).getValues();
+  lastRow = propertiesSheet.getLastRow();
+  values = propertiesSheet.getRange(2, 1, lastRow-1, 2).getValues();
   var sheetId = '';
   var sheetName = '';
   var equipmentName = '';
@@ -362,8 +367,8 @@ function getAndStoreObjects() {
     equipmentName = values[i][0];
     sheetId = values[i][1];
     // convert sheetId to sheetName
-    for (var j = 0; j < sheets.length; j++) {
-      if (sheetNames[j].getSheetId() === sheetId){
+    for (var j = 0; j < sheetNames.length; j++) {
+      if (sheetNames[j] === sheetId){
         sheetName = sheetNames[j];
         break;
       }
