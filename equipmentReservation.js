@@ -138,7 +138,7 @@ function createSpreadsheet(userCount) {
       filledArray[row] = [
         `=INDIRECT("equipment${i+1}!R${2+row}C1", FALSE)`, // C1
         `=INDIRECT("equipment${i+1}!R${2+row}C11", FALSE)`, // C11
-        `=INDIRECT("equipment${i+1}!R${2+row}C1", FALSE)`, // C9
+        `=INDIRECT("equipment${i+1}!R${2+row}C9", FALSE)`, // C9
         `equipment${i+1}!R${2+j}`,
         // see if event exists (if it is 1[unmodified(is the last entry with the same id)] and 2[not canceled]) or 3[cell is empty]
         `=OR(AND(COUNTIF(INDIRECT("R[1]C[-3]:R${experimentConditionRows*equipmentCount+1}C[-3]", FALSE), INDIRECT("R[0]C[-3]", FALSE))=0, INDIRECT("R[0]C[-2]", FALSE)="add"), INDIRECT("R[0]C[-4]", FALSE)="")`
