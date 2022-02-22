@@ -52,7 +52,7 @@ function defineConstants() {
   const properties = PropertiesService.getUserProperties();
   properties.setProperty('equipmentCount', 50); // number of equipments
   properties.setProperty('experimentConditionCount', 20); // number of experiment conditions for a single equipment
-  properties.setProperty('experimentConditionRows', 6000); // number of rows in experiment condition
+  properties.setProperty('experimentConditionRows', 5000); // number of rows in experiment condition
   properties.setProperty('finalLoggingRows', 1000000); // number of rows in final logging
 }
 
@@ -68,6 +68,7 @@ function createSpreadsheet(userCount) {
   var experimentConditionSpreadsheet = SpreadsheetApp.create('experimentConditionSpreadsheet');
   experimentConditionSpreadsheet.insertSheet('users'); 
   experimentConditionSpreadsheet.insertSheet('properties');
+  experimentConditionSpreadsheet.insertSheet('allEquipments');
   var loggingSpreadsheet = SpreadsheetApp.create('loggingSpreadsheet');
   loggingSpreadsheet.insertSheet('finalLog');
   loggingSpreadsheet.deleteSheet(loggingSpreadsheet.getSheetByName('Sheet1'));
@@ -81,7 +82,7 @@ function createSpreadsheet(userCount) {
   var activeSheet = experimentConditionSpreadsheet.getSheetByName('eventLog');
   for (var i = 0; i < equipmentCount; i++) { // create sheet for each equipment
     Utilities.sleep(1000);
-    var activeSheet = experimentConditionSpreadsheet.insertSheet(`equipment ${i+1}`);
+    var activeSheet = experimentConditionSpreadsheet.insertSheet(`equipment${i+1}`);
     sheetIds[i] = activeSheet.getSheetId();
     if (i === 0) {        
       experimentConditionSpreadsheet.deleteSheet(experimentConditionSpreadsheet.getSheetByName('Sheet1'));
@@ -101,12 +102,10 @@ function createSpreadsheet(userCount) {
     activeSheet.getRange(1, 13, 1, experimentConditionCount).setValues(filledArray); // copy experiment condition 
     var filledArray = arrayFill2d(experimentConditionRows, 12, '');
     for (var j = 0; j < experimentConditionRows; j++) {
-      // see if event exists (if it is 1[unmodified(is the last entry with the same id)] and 2[not canceled]) or cell is empty
-      filledArray[j][11] = `=OR(AND(COUNTIF(INDIRECT("R[1]C[-1]:R${experimentConditionRows}C[-1]", FALSE), INDIRECT("R[0]C[-1]", FALSE))=0, INDIRECT("R[0]C[-3]", FALSE)="add"), INDIRECT("R[0]C[-3]", FALSE)="")`;
+      filledArray[j][11] = `=INDIRECT("allEquipments!R" & MATCH(INDIRECT("allEquipments!D2:D", FALSE), "equipment${i+1}!R${j+2}", 0) & "C5", FALSE)`; // ADDRESS(row, col)
     }
 
     activeSheet.getRange(2, 1, experimentConditionRows-1, 12).setFormulas(filledArray);
-    equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12).sort({column: 1, ascending: true}); // sort by date. sort doesn't include header row
 
     const range = equipmentSheet.getRange(1, 1, experimentConditionRows, 12);
     if (range.getFilter() != null) { // remove previous filter
@@ -118,6 +117,33 @@ function createSpreadsheet(userCount) {
       .build();
     range.createFilter().setColumnFilterCriteria(12, rule); // column filter includes header row
   }
+
+  Utilities.sleep(1000);
+  // allEquipment sheet
+  Logger.log('Creating allEquipment sheet');
+  var activeSheet = experimentConditionSpreadsheet.getSheetByName('allEquipments'); 
+  changeSheetSize(activeSheet, experimentConditionRows*equipmentCount+1, 5);
+  // draw borders
+  activeSheet.getRange(1, 1, 1, 5).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, 1, 5).setValues(
+    [['startTime','id','action','originalAddress','eventExistsInRow']]
+  ); 
+  var filledArray = [];
+  var row = 0;
+  for (var i = 0; i < equipmentCount; i++) {
+    for (var j = 0; j < experimentConditionRows; j++) {
+      row = i*experimentConditionRows + j;
+      filledArray[row] = [
+        `=INDIRECT("equipment${i+1}!R${2+row}C1", FALSE)`, // C1
+        `=INDIRECT("equipment${i+1}!R${2+row}C11", FALSE)`, // C11
+        `=INDIRECT("equipment${i+1}!R${2+row}C1", FALSE)`, // C9
+        `equipment${i+1}!R${1+experimentConditionRows}`,
+        // see if event exists (if it is 1[unmodified(is the last entry with the same id)] and 2[not canceled]) or 3[cell is empty]
+        `=OR(AND(COUNTIF(INDIRECT("R[1]C[-3]:R${experimentConditionRows*equipmentCount+1}C[-3]", FALSE), INDIRECT("R[0]C[-3]", FALSE))=0, INDIRECT("R[0]C[-2]", FALSE)="add"), INDIRECT("R[0]C[-4]", FALSE)="")`
+      ]; // refer to sheet 'properties' for equipment name
+    }
+  }
+  activeSheet.getRange(2, 1, experimentConditionRows*equipmentCount, 5).setFormulas(filledArray);
 
   Utilities.sleep(1000);
   // users sheet
@@ -481,6 +507,7 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
   const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
   // spreadsheet for experiment condition logging
   const equipmentSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName(equipmentSheetName);
+  const allEquipmentsSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('allEquipments');
   const eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData'));
   properties.deleteProperty('eventLoggingData');
   const row = equipmentSheet.getRange("A1:A").getValues().filter(String).length + 1; // get last row of first column
@@ -488,7 +515,7 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
     startTime: 1,
     endTime: 2,
     name: 3,
-    equipment: 4,
+    equipmentName: 4,
     state: 5,
     description: 6,
     isAllDayEvent: 7,
@@ -506,6 +533,7 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
   Logger.log(eventLoggingData);
   equipmentSheet.getRange(row, 1, 1, 11).setValues(filledArray);    
   equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort({column: 1, ascending: true}); // sort by date. sort doesn't include header row
+  allEquipmentsSheet.getRange(2, 1, experimentConditionRows*equipmentCount, 5).sort({column: 1, ascending: true}); // sort by date. sort doesn't include header row
 
   const range = equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount);
   if (range.getFilter() != null) { // remove previous filter
@@ -529,7 +557,7 @@ function finalLogging() { // logs just the necessary data
     startTime: 1,
     endTime: 2,
     name: 3,
-    equipment: 4,
+    equipmentName: 4,
     state: 5,
     description: 6,
     isAllDayEvent: 7,
@@ -583,7 +611,7 @@ function finalLogging() { // logs just the necessary data
         startTime: event.getStartTime(),
         endTime: event.getEndTime(),
           name: writeUser,
-          equipment: equipmentName,
+          equipmentName: equipmentName,
           state: state,
           description: event.getDescription(),
           isAllDayEvent: event.isAllDayEvent(),
@@ -655,7 +683,7 @@ function writeEventsToReadCalendar(writeCalendarId, index, fullSync) {
       startTime: event.getStartTime(),
       endTime: event.getEndTime(),
       name: writeUser,
-      equipment: equipmentName,
+      equipmentName: equipmentName,
       state: state,
       description: event.getDescription(),
       isAllDayEvent: event.isAllDayEvent(),
@@ -678,7 +706,7 @@ function writeEventsToReadCalendar(writeCalendarId, index, fullSync) {
       startTime: event.getStartTime(),
       endTime: event.getEndTime(),
       name: writeUser,
-      equipment: equipmentName,
+      equipmentName: equipmentName,
       state: state,
       description: event.getDescription(),
       isAllDayEvent: event.isAllDayEvent(),
