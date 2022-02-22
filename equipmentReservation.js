@@ -1,5 +1,4 @@
 // todo: delete past events when events are overflowing in sheets
-// todo: when equipment gets changed, disable original event
 
 // setup
 function setup() {
