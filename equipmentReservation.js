@@ -104,7 +104,7 @@ function createSpreadsheet(userCount) {
     activeSheet.getRange(1, 13, 1, experimentConditionCount).setValues(filledArray); // copy experiment condition 
     var filledArray = arrayFill2d(experimentConditionRows, 12, '');
     for (var j = 0; j < experimentConditionRows; j++) {
-      filledArray[j][11] = `=INDIRECT("allEquipments!R" & MATCH(INDIRECT("allEquipments!D2:D", FALSE), "equipment${i+1}!R${j+2}", 0) & "C5", FALSE)`; // ADDRESS(row, col)
+      filledArray[j][11] = `=INDIRECT("allEquipments!R" & 1+MATCH("equipment${i+1}!R${j+2}", INDIRECT("allEquipments!D2:D"), 0) & "C5", FALSE)`; // ADDRESS(row, col)
     }
 
     activeSheet.getRange(2, 1, experimentConditionRows, 12).setFormulas(filledArray);
@@ -139,7 +139,7 @@ function createSpreadsheet(userCount) {
         `=INDIRECT("equipment${i+1}!R${2+row}C1", FALSE)`, // C1
         `=INDIRECT("equipment${i+1}!R${2+row}C11", FALSE)`, // C11
         `=INDIRECT("equipment${i+1}!R${2+row}C1", FALSE)`, // C9
-        `equipment${i+1}!R${1+experimentConditionRows}`,
+        `equipment${i+1}!R${2+j}`,
         // see if event exists (if it is 1[unmodified(is the last entry with the same id)] and 2[not canceled]) or 3[cell is empty]
         `=OR(AND(COUNTIF(INDIRECT("R[1]C[-3]:R${experimentConditionRows*equipmentCount+1}C[-3]", FALSE), INDIRECT("R[0]C[-3]", FALSE))=0, INDIRECT("R[0]C[-2]", FALSE)="add"), INDIRECT("R[0]C[-4]", FALSE)="")`
       ]; // refer to sheet 'properties' for equipment name
