@@ -1,5 +1,3 @@
-// todo: delete past events when events are overflowing in sheets
-
 // setup
 function setup() {
   Logger.log('Running setup');
@@ -53,7 +51,9 @@ function defineConstants() {
   properties.setProperty('equipmentCount', 50); // number of equipments
   properties.setProperty('experimentConditionCount', 20); // number of experiment conditions for a single equipment
   properties.setProperty('experimentConditionRows', 5000); // number of rows in experiment condition
+  properties.setProperty('experimentConditionBackupRows', 4500); // number of rows to backup and delete in case of overflow of sheets
   properties.setProperty('finalLoggingRows', 1000000); // number of rows in final logging
+  properties.setProperty('finalLoggingBackupRows', 990000); // number of rows in final logging
 }
 
 // creates spreadsheet for {userCount} users
@@ -292,6 +292,48 @@ function deleteTriggers() {
   }
 }
 
+// prevent overflow of spreadsheet data by backing up and deleting it
+function backupAndDeleteOverflownEquipmentData(equipmentSheet) {
+  const properties = PropertiesService.getUserProperties();
+  // backup rows
+  const equipment = equipmentSheet.getRange(2, 4).getValue();
+  const startTime = new Date(equipmentSheet.getRange(2, 1).getValue());
+  const endTime = new Date(equipmentSheet.getRange(2+experimentConditionBackupRows-1, 1).getValue());
+  const experimentConditionBackupRows = parseInt(properties.getProperty('experimentConditionBackupRows'));
+  const backupColumns = equipmentSheet.getLastColumn();
+  equipmentSheet.getRange(1, 1, experimentConditionBackupRows+1, backupColumns).copyTo(
+    SpreadsheetApp.create(`BACKUP_${equipment}_${startTime}-${endTime}`),
+    SpreadsheetApp.CopyPasteType.PASTE_VALUES, 
+    false
+  )
+  // delete rows
+  var filledArray = [];
+  filledArray = arrayFill2d(experimentConditionBackupRows, 11, '');
+  equipmentSheet.getRange(2, 1, experimentConditionBackupRows, 11).setValues(filledArray);
+  filledArray = arrayFill2d(experimentConditionBackupRows, experimentConditionCount, '');
+  equipmentSheet.getRange(13, 1, experimentConditionBackupRows, experimentConditionCount).setValues(filledArray);
+  // no need to move remaing rows up because sort function is applied
+  equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort({column: 1, ascending: true}); // sort by date. sort doesn't include header row
+}
+
+// prevent overflow of spreadsheet data by backing up and deleting it
+function backupAndDeleteOverflownLoggingData(finalLogSheet) {
+  // backup rows
+  const backupRows = finalLogSheet.getLastRow()-1;
+  const backupColumns = finalLogSheet.getLastColumn();
+  const startTime = new Date(finalLogSheet.getRange(2, 1).getValue());
+  const endTime = new Date(finalLogSheet.getRange(2+backupRows-1, 1).getValue());
+  finalLogSheet.getRange(1, 1, backupRows+1, backupColumns).copyTo(
+    SpreadsheetApp.create(`BACKUP_LOG_${startTime}-${endTime}`),
+    SpreadsheetApp.CopyPasteType.PASTE_VALUES, 
+    false
+  )
+  // delete rows
+  var filledArray = [];
+  filledArray = arrayFill2d(backupRows, 8, '');
+  finalLogSheet.getRange(2, 1, backupRows, 8).setValues(filledArray);
+}
+
 // create triggers
 // only 20 triggers can be made for single script
 // we will use 18 for write calendars, 1 for daily logging, 1 for spreadsheet
@@ -299,7 +341,7 @@ function createTriggers() {
   const properties = PropertiesService.getUserProperties();
   const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
   
-  // create trigger for each of the 17 write calendars
+  // create trigger for each of the 18 write calendars
   // (calls function 'onCalendarEdit' on trigger)
   Logger.log(`Creating triggers. ${writeCalendarIds.length} calendar(s) triggers will be created`);
   for (var i = 0; i < writeCalendarIds.length; i++){
@@ -519,12 +561,17 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
   const properties = PropertiesService.getUserProperties();
   const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
   const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
+  const experimentConditionBackupRows = parseInt(properties.getProperty('experimentConditionBackupRows'));
   // spreadsheet for experiment condition logging
   const equipmentSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName(equipmentSheetName);
   const allEquipmentsSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('allEquipments');
   const eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData'));
   properties.deleteProperty('eventLoggingData');
-  const row = equipmentSheet.getRange("A1:A").getValues().filter(String).length + 1; // get last row of first column
+  var row = equipmentSheet.getRange("A1:A").getValues().filter(String).length + 1; // get last row of first column
+  if (row > experimentConditionBackupRows) { // prevent overflow of spreadsheet data by backing up and deleting it
+    backupAndDeleteOverflownLoggingData(equipmentSheet) 
+    row = equipmentSheet.getRange("A1:A").getValues().filter(String).length + 1; // get last row of first column
+  }
   const columnDescriptions = { // shows which description corresponds to which column
     startTime: 1,
     endTime: 2,
@@ -564,8 +611,12 @@ function finalLogging() { // logs just the necessary data
   Logger.log('Daily logging of event');
   getAndStoreObjects(); // get sheets, calendars and store them in properties
   const properties = PropertiesService.getUserProperties();
+  const finalLoggingBackupRows = parseInt(properties.getProperty('finalLoggingBackupRows'));
   const finalLogSheet = SpreadsheetApp.openById(properties.getProperty('loggingSpreadsheetId')).getSheetByName('finalLog')
   const lastRow = finalLogSheet.getLastRow();
+  if (lastRow > finalLoggingBackupRows) {
+    backupAndDeleteOverflownLoggingData(finalLogSheet) // prevent overflow of spreadsheet data by backing up and deleting it
+  }
   const row = lastRow + 1; // write on new row
   const columnDescriptions = { // shows which description corresponds to which column
     startTime: 1,
