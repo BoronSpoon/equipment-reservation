@@ -552,7 +552,7 @@ function onEquipmentConditionEdit(sheet, row) {
     }
   }
   var event = writeCalendar.getEventById(id);
-  event.setDescription(JSON.stringify({experimentCondition})); // save experiment condition as stringified JSON
+  event.setDescription(JSON.stringify(experimentCondition)); // save experiment condition as stringified JSON
   if (id === '') { // 1. when experiment id doesn't exist -> add event 
     if (state === ''){
       var title = `${user} ${equipment}`;
@@ -567,7 +567,7 @@ function onEquipmentConditionEdit(sheet, row) {
     } else {
       event.setTime(new Date(startTime), new Date(endTime))// edit start and end time
       event.setTitle(`${user} ${equipment} ${state}`); // edit equipmentName, name ,state
-      event.setDescription(experimentCondition); // write experiment condition in details
+      event.setDescription(JSON.stringify(experimentCondition)); // write experiment condition in details
     }
   }
   // write event of calendar back to sheets  
@@ -1037,7 +1037,7 @@ function changeCalendarName(calendarId, userName, readOrWrite) {
     };
     const calendar = CalendarApp.getCalendarById(calendarId);
     calendar.setName(summary);
-    calendar.setDescription(description);
+    calendar.setDescription(JSON.stringify(description));
     Logger.log('Updated calendar name');
   }
   Logger.log('Skipped update of calendar name because calendarId is empty');
