@@ -367,6 +367,11 @@ function createTriggers() {
 
 // get sheets and store them in properties
 function getAndStoreObjects() {
+  onUsersSheetEdit();
+  onPropertiesSheetEdit();
+}
+
+function onUsersSheetEdit() {
   const properties = PropertiesService.getUserProperties();
   var lastRow = '';
   var lastColumn = '';
@@ -374,9 +379,7 @@ function getAndStoreObjects() {
 
   // get sheets
   const experimentConditionSpreadsheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId'));
-  const sheetNames = experimentConditionSpreadsheet.getSheets().map((sheet) => {return sheet.getName()});
   const usersSheet = experimentConditionSpreadsheet.getSheetByName('users');
-  const propertiesSheet = experimentConditionSpreadsheet.getSheetByName('properties');
 
   // get all the write and read calendar's calendarIds
   lastRow = usersSheet.getLastRow();
@@ -406,22 +409,44 @@ function getAndStoreObjects() {
     }
   }
 
+  // store objects in property
+  properties.setProperty('writeCalendarIds', JSON.stringify(writeCalendarIds));
+  properties.setProperty('readCalendarIds', JSON.stringify(readCalendarIds));
+  properties.setProperty('usersSheet', JSON.stringify(usersSheet));
+  properties.setProperty('users', JSON.stringify(users));
+  properties.setProperty('enabledEquipmentsList', JSON.stringify(enabledEquipmentsList));
+}
+
+function onPropertiesSheetEdit() {  
+  const properties = PropertiesService.getUserProperties();
+  var lastRow = '';
+  var lastColumn = '';
+  var values = '';
+
+  // get sheets
+  const experimentConditionSpreadsheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId'));
+  const sheets = experimentConditionSpreadsheet.getSheets();
+  const sheetNames = sheets.map((sheet) => {return sheet.getName()});
+  const propertiesSheet = experimentConditionSpreadsheet.getSheetByName('properties');
+
   // get equipment sheet id for each equipment name
   var equipmentSheetIdFromEquipmentName = {};
   var equipmentSheetNameFromEquipmentName = {};
   lastRow = propertiesSheet.getLastRow();
   values = propertiesSheet.getRange(2, 1, lastRow-1, 2).getValues();
+
   var sheetId = '';
   var sheetName = '';
   var equipmentName = '';
-  for (var i = 0; i < lastRow-1; i++){
-    equipmentName = values[i][0];
-    sheetId = values[i][1];
-    // convert sheetId to sheetName
-    for (var j = 0; j < sheetNames.length; j++) {
-      if (sheetNames[j] === sheetId){
-        sheetName = sheetNames[j];
-        break;
+
+  // convert sheetId to sheetName
+  for (var i = 0; i < sheetNames.length; i++) {
+    sheetId = experimentConditionSpreadsheet.getSheetByName(sheetNames[i]).getSheetId();
+    for (var j = 0; j < lastRow-1; j++){
+      equipmentName = values[j][0];
+      if (sheetId === values[j][1]) {
+        sheetName = sheetNames[i];
+        break;  
       }
     }
     equipmentSheetIdFromEquipmentName[equipmentName] = sheetId; // get sheetId
@@ -429,12 +454,7 @@ function getAndStoreObjects() {
   }
 
   // store objects in property
-  properties.setProperty('usersSheet', JSON.stringify(usersSheet));
   properties.setProperty('propertiesSheet', JSON.stringify(propertiesSheet));
-  properties.setProperty('writeCalendarIds', JSON.stringify(writeCalendarIds));
-  properties.setProperty('readCalendarIds', JSON.stringify(readCalendarIds));
-  properties.setProperty('users', JSON.stringify(users));
-  properties.setProperty('enabledEquipmentsList', JSON.stringify(enabledEquipmentsList));
   properties.setProperty('equipmentSheetIdFromEquipmentName', JSON.stringify(equipmentSheetIdFromEquipmentName));
   properties.setProperty('equipmentSheetNameFromEquipmentName', JSON.stringify(equipmentSheetNameFromEquipmentName));
 }
@@ -442,8 +462,9 @@ function getAndStoreObjects() {
 // when calendar gets edited
 function onCalendarEdit(e) {
   Logger.log('Calendar edit trigger');
-  const properties = PropertiesService.getUserProperties();
   getAndStoreObjects(); // get sheets, calendars and store them in properties
+  const properties = PropertiesService.getUserProperties();
+  const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
   const calendarId = e.calendarId;
   const index = writeCalendarIds.indexOf(calendarId);
   const fullSync = false;
@@ -453,9 +474,11 @@ function onCalendarEdit(e) {
 // when sheets gets edited
 function onSheetsEdit(e) {
   Logger.log('Sheets edit trigger');
+  const properties = PropertiesService.getUserProperties();
   getAndStoreObjects(); // get sheets, calendars and store them in properties
   const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
-  const sheetName = e.source.getActiveSheet().getName();
+  const sheet = e.source.getActiveSheet();
+  const sheetName = sheet.getName();
   const cell = e.source.getActiveRange();
   const newValue = e.value;
   const row = cell.getRow();
@@ -465,16 +488,24 @@ function onSheetsEdit(e) {
   const fullSync = true;
   const equipmentSheetNameFromEquipmentName = JSON.parse(properties.getProperty('equipmentSheetNameFromEquipmentName'));
   
-  // when the checkbox (H2~nm) is edited in sheets on sheet 'users'
-  // update corresponding user's subscribed equipments
-  if (sheetName === 'users' && row > 1 && column > 9){ 
-    changeSubscribedEquipments(index);
+  // when the 'users' sheet is edited
+  if (sheetName === 'users') {
+    onUsersSheetEdit();
+    // when the checkbox (H2~nm) is edited in sheets on sheet 'users'
+    // update corresponding user's subscribed equipments
+    if (row > 1 && column > 9){ 
+      changeSubscribedEquipments(index);
+    }
+    // when the full name (A2~An) is edited in sheets on sheet 'users'
+    // update all of the corresponding user's event title
+    else if (row > 1 && column === 1){
+      updateCalendarUserName(sheet, cell, newValue);
+      writeEventsToReadCalendar(writeCalendarId, index, fullSync);
+    }
   }
-  // when the full name (A2~An) is edited in sheets on sheet 'users'
-  // update all of the corresponding user's event title
-  else if (sheetName === 'users' && row > 1 && column === 1){
-    updateCalendarUserName(sheet, cell, newValue);
-    writeEventsToReadCalendar(writeCalendarId, index, fullSync);
+  // when the 'properties' sheet is edited
+  else if (sheetName === 'properties') {
+    onPropertiesSheetEdit();
   }
   // if equipment sheet is edited
   else if (Object.values(equipmentSheetNameFromEquipmentName).includes(sheet.getName()) && row > 1){ 
@@ -561,6 +592,7 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
   const properties = PropertiesService.getUserProperties();
   const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
   const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
+  const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
   const experimentConditionBackupRows = parseInt(properties.getProperty('experimentConditionBackupRows'));
   // spreadsheet for experiment condition logging
   const equipmentSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName(equipmentSheetName);
@@ -736,11 +768,11 @@ function writeEventsToReadCalendar(writeCalendarId, index, fullSync) {
     writeEvent(event, writeCalendarId, writeUser, filteredReadCalendarIds); // create event in write calendar and add read calendars as guests
   }
   const writeCalendar = CalendarApp.getCalendarById(writeCalendarId);
-  for (var i = 0; i < events.length; i++) { // log canceled events
+  for (var i = 0; i < events.length; i++) { // log events
     var event = events[i];
-    const equipmentState = getEquipmentNameAndStateFromEvent(event);
-    const equipmentName = equipmentState.equipmentName;
-    const state = equipmentState.state;
+    const equipmentStatus = getEquipmentNameAndStateFromEvent(event);
+    const equipmentName = equipmentStatus.equipmentName;
+    const state = equipmentStatus.state;
     const action = 'add';
     const eid = event.getId();
     event = writeCalendar.getEventById(eid);
@@ -761,9 +793,9 @@ function writeEventsToReadCalendar(writeCalendarId, index, fullSync) {
   }
   for (var i = 0; i < canceledEvents.length; i++) { // log canceled events
     var event = canceledEvents[i];
-    const equipmentState = getEquipmentNameAndStateFromEvent(event);
-    const equipmentName = equipmentState.equipmentName;
-    const state = equipmentState.state;
+    const equipmentStatus = getEquipmentNameAndStateFromEvent(event);
+    const equipmentName = equipmentStatus.equipmentName;
+    const state = equipmentStatus.state;
     const action = 'cancel';
     const eid = event.getId();
     event = writeCalendar.getEventById(eid);
@@ -829,7 +861,7 @@ function getEvents(calendarId, fullSync) {
     maxResults: 100,
     showDeleted : true,
   };
-  const syncToken = JSON.parse(properties.getProperty(`syncToken ${calendarId}`));
+  const syncToken = properties.getProperty(`syncToken ${calendarId}`);
   Logger.log(`Current sync token: ${syncToken}`);
   if (syncToken && !fullSync) {
     options.syncToken = syncToken;
@@ -984,24 +1016,27 @@ function setCalendars(sheet, cell) {
 // update calendar name and description
 function changeCalendarName(calendarId, userName, readOrWrite) {
   // calendar name (summary) and description changes for read and write calendar
-  if (readOrWrite === 'Read') { 
-    var summary = `Read ${userName}`;
-    var description = '装置の予約状況\n' +
-      'schedule for selected equipments';  
-  } else if (readOrWrite === 'Write') { 
-    var summary = `Write ${userName}`;
-    var description = '装置を予約する\n' +
-      'Reserve equipments\n' +
-      'Formatting: [Equipment] [State]\n' +
-      'Equipments: rie, nrie(new RIE), cvd, ncvd(new CVD), pvd, fts\n' +
-      'States: evac(evacuation), use(or no entry), cool(cooldown), o2(RIE O2 ashing)\n';  
-  } else {
-    Logger.log('readOrWrite has to be \'Read\' or \'Write\'');
-  };
-  const calendar = CalendarApp.getCalendarById(calendarId);
-  calendar.setName(summary);
-  calendar.setDescription(description);
-  Logger.log('Updated calendar name');
+  if (calendarId !== '') { // write calendarId is empty for "all event" calendar
+    if (readOrWrite === 'Read') { 
+      var summary = `Read ${userName}`;
+      var description = '装置の予約状況\n' +
+        'schedule for selected equipments';  
+    } else if (readOrWrite === 'Write') { 
+      var summary = `Write ${userName}`;
+      var description = '装置を予約する\n' +
+        'Reserve equipments\n' +
+        'Formatting: [Equipment] [State]\n' +
+        'Equipments: rie, nrie(new RIE), cvd, ncvd(new CVD), pvd, fts\n' +
+        'States: evac(evacuation), use(or no entry), cool(cooldown), o2(RIE O2 ashing)\n';  
+    } else {
+      Logger.log('readOrWrite has to be \'Read\' or \'Write\'');
+    };
+    const calendar = CalendarApp.getCalendarById(calendarId);
+    calendar.setName(summary);
+    calendar.setDescription(description);
+    Logger.log('Updated calendar name');
+  }
+  Logger.log('Skipped update of calendar name because calendarId is empty');
 }
 
 // update the sync token after adding and deleting guests
