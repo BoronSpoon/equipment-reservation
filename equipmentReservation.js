@@ -1,3 +1,5 @@
+// todo: event logging is taking a long time (due to filter update)
+
 // setup
 function setup() {
   Logger.log('Running setup');
@@ -625,9 +627,11 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
   }
   Logger.log(eventLoggingData);
   equipmentSheet.getRange(row, 1, 1, 11).setValues(filledArray);    
+  Logger.log('Sorting events');
   equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort({column: 1, ascending: true}); // sort by date. sort doesn't include header row
   allEquipmentsSheet.getRange(2, 1, experimentConditionRows*equipmentCount, 5).sort({column: 1, ascending: true}); // sort by date. sort doesn't include header row
 
+  Logger.log('Updating filters for hiding canceled and modified events');
   const range = equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount);
   if (range.getFilter() != null) { // remove previous filter
     range.getFilter().remove();
