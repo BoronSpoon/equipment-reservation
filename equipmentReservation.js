@@ -1,4 +1,6 @@
 // todo: event logging is taking a long time (due to filter update)
+// todo: event description is not working
+// todo: eventExists is not working
 
 // setup
 function setup() {
