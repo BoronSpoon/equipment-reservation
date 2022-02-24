@@ -643,6 +643,23 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
   }
   Logger.log(eventLoggingData);
   equipmentSheet.getRange(row, 1, 1, 11).setValues(filledArray);    
+
+  // get experiment condition from description
+  const description = JSON.parse(logObj['description']);
+  const descriptionHeaders = equipmentSheet.getRange(row, 13, 1, experimentConditionRows).setValues(filledArray);
+  var descriptionHeader = '';
+  var filledArray = [[]];
+  for (var k = 0; k < experimentConditionRows; k++){
+    descriptionHeader = descriptionHeaders[k]; // experiment condition header
+    var value = description[descriptionHeader];
+    if (descriptionHeader !== null) { // if value exists for key 'descriptionHeader'
+      filledArray[0][k] = value;
+    } else {
+      filledArray[0][k] = '';
+    }
+  }
+  equipmentSheet.getRange(row, 13, 1, experimentConditionRows).setValues(filledArray); // experiment condition
+
   Logger.log('Sorting events');
   equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort({column: 1, ascending: true}); // sort by date. sort doesn't include header row
   allEquipmentsSheet.getRange(2, 1, experimentConditionRows*equipmentCount, 5).sort({column: 1, ascending: true}); // sort by date. sort doesn't include header row
