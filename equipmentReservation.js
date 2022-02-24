@@ -113,7 +113,7 @@ function createSpreadsheets(userCount, groupUrl) {
     activeSheet.getRange(1, 13, 1, experimentConditionCount).setValues(filledArray); // copy experiment condition 
     var filledArray = arrayFill2d(experimentConditionRows, 12, '');
     for (var j = 0; j < experimentConditionRows; j++) {
-      filledArray[j][11] = `=INDIRECT("allEquipments!R" & 1+MATCH("equipment${i+1}!R${j+2}", INDIRECT("allEquipments!D2:D"), 0) & "C5", FALSE)`; // ADDRESS(row, col)
+      filledArray[j][11] = `=INDIRECT("allEquipments!R" & 1+MATCH("equipment${i+1}!R${j+2}", INDIRECT("allEquipments!E2:E"), 0) & "C6", FALSE)`; // ADDRESS(row, col)
     }
 
     activeSheet.getRange(2, 1, experimentConditionRows, 12).setFormulas(filledArray);
@@ -123,14 +123,14 @@ function createSpreadsheets(userCount, groupUrl) {
   // allEquipment sheet
   Logger.log('Creating allEquipment sheet');
   var activeSheet = experimentConditionSpreadsheet.getSheetByName('allEquipments'); 
-  changeSheetSize(activeSheet, experimentConditionRows*equipmentCount+1, 5);
+  changeSheetSize(activeSheet, experimentConditionRows*equipmentCount+1, 6);
   // draw borders
-  activeSheet.getRange(1, 1, 1, 5).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, 1, 6).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   // protect range
-  activeSheet.getRange(1, 1, experimentConditionRows*equipmentCount+1, 5).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
+  activeSheet.getRange(1, 1, experimentConditionRows*equipmentCount+1, 6).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
   // set headers
-  activeSheet.getRange(1, 1, 1, 5).setValues(
-    [['startTime','id','action','originalAddress','eventExistsInRow']]
+  activeSheet.getRange(1, 1, 1, 6).setValues(
+    [['startTime','executionTime','id','action','originalAddress','eventExistsInRow']]
   ); 
   var filledArray = [];
   var row = 0;
@@ -139,6 +139,7 @@ function createSpreadsheets(userCount, groupUrl) {
       row = i*experimentConditionRows + j;
       filledArray[row] = [
         `=INDIRECT("equipment${i+1}!R${2+row}C1", FALSE)`, // C1
+        `=INDIRECT("equipment${i+1}!R${2+row}C10", FALSE)`, // C10
         `=INDIRECT("equipment${i+1}!R${2+row}C11", FALSE)`, // C11
         `=INDIRECT("equipment${i+1}!R${2+row}C9", FALSE)`, // C9
         `"equipment${i+1}!R${2+j}"`,
@@ -147,7 +148,7 @@ function createSpreadsheets(userCount, groupUrl) {
       ]; // refer to sheet 'properties' for equipment name
     }
   }
-  activeSheet.getRange(2, 1, experimentConditionRows*equipmentCount, 5).setFormulas(filledArray);
+  activeSheet.getRange(2, 1, experimentConditionRows*equipmentCount, 6).setFormulas(filledArray);
 
   Utilities.sleep(1000);
   // users sheet
@@ -317,7 +318,7 @@ function backupAndDeleteOverflownEquipmentData(equipmentSheet) {
   filledArray = arrayFill2d(experimentConditionBackupRows, experimentConditionCount, '');
   equipmentSheet.getRange(13, 1, experimentConditionBackupRows, experimentConditionCount).setValues(filledArray);
   // no need to move remaing rows up because sort function is applied
-  equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort({column: 1, ascending: true}); // sort by date. sort doesn't include header row
+  equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort([{column: 1, ascending: true}, {column: 10, ascending: true}]); // sort by startTime and executionTime. sort doesn't include header row
 }
 
 // prevent overflow of spreadsheet data by backing up and deleting it
@@ -578,8 +579,8 @@ function onEquipmentConditionEdit(equipmentSheet, row) {
   }
   Logger.log('Sorting events');
   const allEquipmentsSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('allEquipments');
-  equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort({column: 1, ascending: true}); // sort by date. sort doesn't include header row
-  allEquipmentsSheet.getRange(2, 1, experimentConditionRows*equipmentCount, 5).sort({column: 1, ascending: true}); // sort by date. sort doesn't include header row
+  equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort([{column: 1, ascending: true}, {column: 10, ascending: true}]); // sort by startTime and executionTime. sort doesn't include header row
+  allEquipmentsSheet.getRange(2, 1, experimentConditionRows*equipmentCount, 6).sort([{column: 1, ascending: true}, {column: 2, ascending: true}]); // sort by startTime and executionTime. sort doesn't include header row
 
   Logger.log('Updating filters for hiding canceled and modified events');
   const range = equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount);
@@ -645,24 +646,25 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
   equipmentSheet.getRange(row, 1, 1, 11).setValues(filledArray);    
 
   // get experiment condition from description
-  const description = JSON.parse(logObj['description']);
-  const descriptionHeaders = equipmentSheet.getRange(row, 13, 1, experimentConditionRows).setValues(filledArray);
-  var descriptionHeader = '';
-  var filledArray = [[]];
-  for (var k = 0; k < experimentConditionRows; k++){
-    descriptionHeader = descriptionHeaders[k]; // experiment condition header
-    var value = description[descriptionHeader];
-    if (descriptionHeader !== null) { // if value exists for key 'descriptionHeader'
-      filledArray[0][k] = value;
-    } else {
-      filledArray[0][k] = '';
+  try {
+    const description = JSON.parse(eventLoggingData['description']);
+    const descriptionHeaders = equipmentSheet.getRange(1, 13, 1, experimentConditionCount).getValues();
+    var descriptionHeader = '';
+    var filledArray = [[]];
+    for (var i = 0; i < experimentConditionCount; i++){
+      descriptionHeader = descriptionHeaders[0][i]; // experiment condition header
+      if (descriptionHeader in description) { // if value exists for key 'descriptionHeader'
+        filledArray[0][i] = description[descriptionHeader];;
+      } else {
+        filledArray[0][i] = '';
+      }
     }
-  }
-  equipmentSheet.getRange(row, 13, 1, experimentConditionRows).setValues(filledArray); // experiment condition
+    equipmentSheet.getRange(row, 13, 1, experimentConditionCount).setValues(filledArray); // experiment condition
+  } catch (e) {}
 
   Logger.log('Sorting events');
-  equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort({column: 1, ascending: true}); // sort by date. sort doesn't include header row
-  allEquipmentsSheet.getRange(2, 1, experimentConditionRows*equipmentCount, 5).sort({column: 1, ascending: true}); // sort by date. sort doesn't include header row
+  equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort([{column: 1, ascending: true}, {column: 10, ascending: true}]); // sort by startTime and executionTime. sort doesn't include header row
+  allEquipmentsSheet.getRange(2, 1, experimentConditionRows*equipmentCount, 6).sort([{column: 1, ascending: true}, {column: 2, ascending: true}]); // sort by startTime and executionTime. sort doesn't include header row
 
   Logger.log('Updating filters for hiding canceled and modified events');
   const range = equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount);
