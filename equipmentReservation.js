@@ -583,14 +583,13 @@ function onEquipmentConditionEdit(equipmentSheet, row) {
 
   Logger.log('Updating filters for hiding canceled and modified events');
   const range = equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount);
-  if (range.getFilter() != null) { // remove previous filter
-    range.getFilter().remove();
+  if (range.getFilter() === null) { // if filter is deleted, remake filter. Or, create filter for the first execution.
+    // when column 12 is not TRUE, hide row
+    var rule = SpreadsheetApp.newFilterCriteria()
+      .whenTextEqualTo('TRUE')
+      .build();
+    range.createFilter().setColumnFilterCriteria(12, rule); // column filter includes header row
   }
-  // when column 12 is not TRUE, hide row
-  var rule = SpreadsheetApp.newFilterCriteria()
-    .whenTextEqualTo('TRUE')
-    .build();
-  range.createFilter().setColumnFilterCriteria(12, rule); // column filter includes header row
 }  
 
 function eventLoggingStoreData(logObj) { // set data for logging
@@ -650,14 +649,13 @@ function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
 
   Logger.log('Updating filters for hiding canceled and modified events');
   const range = equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount);
-  if (range.getFilter() != null) { // remove previous filter
-    range.getFilter().remove();
+  if (range.getFilter() === null) { // if filter is deleted, remake filter. Or, create filter for the first execution.
+    // when column 12 is not TRUE, hide row
+    var rule = SpreadsheetApp.newFilterCriteria()
+      .whenTextEqualTo('TRUE')
+      .build();
+    range.createFilter().setColumnFilterCriteria(12, rule); // column filter includes header row
   }
-  // when column 12 is not TRUE, hide row
-  var rule = SpreadsheetApp.newFilterCriteria()
-    .whenTextEqualTo('TRUE')
-    .build();
-  range.createFilter().setColumnFilterCriteria(12, rule); // column filter includes header row
 }
 
 function finalLogging() { // logs just the necessary data
