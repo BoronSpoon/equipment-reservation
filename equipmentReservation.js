@@ -517,13 +517,13 @@ function onSheetsEdit(e) {
   }
 }
 
-function onEquipmentConditionEdit(sheet, row) {
+function onEquipmentConditionEdit(equipmentSheet, row) {
   Logger.log('Equipment condition edit trigger');
   const properties = PropertiesService.getUserProperties();
   // 4: equipment, 6: description, 7: isAllDayEvent, 8: isRecurringEvent, 9: action, 10: executionTime, 11: id, are protected from being edited
-  const lastColumn = sheet.getLastColumn();
-  const values = sheet.getRange(row, 1, 1, lastColumn).getValues();
-  const headers = sheet.getRange(1, 1, 1, lastColumn).getValues();
+  const lastColumn = equipmentSheet.getLastColumn();
+  const values = equipmentSheet.getRange(row, 1, 1, lastColumn).getValues();
+  const headers = equipmentSheet.getRange(1, 1, 1, lastColumn).getValues();
   // when experiment condition gets edited -> change event summary 
   const startTime = values[0][0];
   const endTime = values[0][1];
@@ -533,8 +533,11 @@ function onEquipmentConditionEdit(sheet, row) {
   const users = JSON.parse(properties.getProperty('users'));
   const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
   const equipmentSheetIdFromEquipmentName = JSON.parse(properties.getProperty('equipmentSheetIdFromEquipmentName'));
+  const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
+  const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
+  const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
   const equipment = Object.keys(equipmentSheetIdFromEquipmentName).filter( (key) => { 
-    return equipmentSheetIdFromEquipmentName[key] === sheet.getSheetId();
+    return equipmentSheetIdFromEquipmentName[key] === equipmentSheet.getSheetId();
   });
   if (users.includes(user)) { // if user exists
     var writeCalendarId = writeCalendarIds[users.indexOf(user)]; // get writeCalendarId for specified user
@@ -548,11 +551,12 @@ function onEquipmentConditionEdit(sheet, row) {
     return;
   }
   var experimentCondition = {};
-  for (var i = 0; i < lastColumn-13; i++) {
-    if (headers[0][13+i] !== '') { // if condition is not ''
-      experimentCondition[headers[13+i]] = values[0][13+i];
+  for (var i = 0; i < lastColumn-12; i++) {
+    if (headers[0][12+i] !== '') { // if condition is not ''
+      experimentCondition[headers[0][12+i]] = values[0][12+i];
     }
   }
+  equipmentSheet.getRange(row, 6).setValue(JSON.stringify(experimentCondition)); // set description in sheets
   var event = writeCalendar.getEventById(id);
   event.setDescription(JSON.stringify(experimentCondition)); // save experiment condition as stringified JSON
   if (id === '') { // 1. when experiment id doesn't exist -> add event 
@@ -572,10 +576,21 @@ function onEquipmentConditionEdit(sheet, row) {
       event.setDescription(JSON.stringify(experimentCondition)); // write experiment condition in details
     }
   }
-  // write event of calendar back to sheets  
-  const index = writeCalendarIds.indexOf(writeCalendarId);
-  const fullSync = false;
-  writeEventsToReadCalendar(writeCalendarId, index, fullSync);
+  Logger.log('Sorting events');
+  const allEquipmentsSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('allEquipments');
+  equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort({column: 1, ascending: true}); // sort by date. sort doesn't include header row
+  allEquipmentsSheet.getRange(2, 1, experimentConditionRows*equipmentCount, 5).sort({column: 1, ascending: true}); // sort by date. sort doesn't include header row
+
+  Logger.log('Updating filters for hiding canceled and modified events');
+  const range = equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount);
+  if (range.getFilter() != null) { // remove previous filter
+    range.getFilter().remove();
+  }
+  // when column 12 is not TRUE, hide row
+  var rule = SpreadsheetApp.newFilterCriteria()
+    .whenTextEqualTo('TRUE')
+    .build();
+  range.createFilter().setColumnFilterCriteria(12, rule); // column filter includes header row
 }  
 
 function eventLoggingStoreData(logObj) { // set data for logging
