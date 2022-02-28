@@ -263,10 +263,10 @@ https://google.github.io/styleguide/jsguide.html (以下jsguideと呼ぶ)の内�
 - 予定
    - [x] 作成
    - 変更
-      - [ ] 状態(use、vac等)
-      - [ ] 日時
-   - [ ] 削除
-   - [ ] 複製
+      - [x] 状態(use、vac等)
+      - [x] 日時
+   - [x] 削除
+   - [x] 複製
 - 全日予定(一日中にわたる予定)
    - [x] 作成
    - 変更
@@ -287,7 +287,7 @@ https://google.github.io/styleguide/jsguide.html (以下jsguideと呼ぶ)の内�
    - [x] 使用する装置の変更(使用する装置のチェックマークを入れたり外したりする)
    - ユーザー名(`User Name`)の変更
       - [x] カレンダー名`Read [User Name]`、`Write [User Name]`が変更される事の確認
-      - [ ] イベントの名前にユーザー名(`User Name`)が入っているため、イベント名が変更される事の確認
+      - [x] イベントの名前にユーザー名(`User Name`)が入っているため、イベント名が変更される事の確認
    - [x] カレンダーのリンクをクリックしてリンクの正常性の確認
 - properties sheet
    - [x] 装置名の変更
@@ -296,11 +296,11 @@ https://google.github.io/styleguide/jsguide.html (以下jsguideと呼ぶ)の内�
 - allEquipments sheet
    - [x] カレンダーのテストで作った予定が追加されていることを確認
 - equipment sheets
-   - [ ] 実験条件変更が反映されるか確認
-   - [ ] startTime, name, equipment, stateを変更できるか確認
+   - [x] 実験条件変更が反映されるか確認
+   - [x] startTime, name, equipment, stateを変更できるか確認
    - 新しい予定を作る
-      - [ ] オンライン状態で作る
-      - [ ] オフライン状態で作り、オンラインにする
+      - [x] オンライン状態で作る
+      - [x] オフライン状態で作り、オンラインにする
 - その他
    - Sheetsをシェア
       - [ ] Sheetsの所有者以外のユーザーによる操作でのtriggerの発火の確認。

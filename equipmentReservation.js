@@ -37,6 +37,7 @@ function setup() {
 function createSpreadsheets() {
   const properties = PropertiesService.getUserProperties();
   const userCount = parseInt(properties.getProperty('userCount'));
+  const timeZone = properties.getProperty('timeZone');
   const groupUrl = properties.getProperty('groupUrl');
   const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
   const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
@@ -45,12 +46,12 @@ function createSpreadsheets() {
 
   // create workbooks(spreadsheets) and sheets
   var experimentConditionSpreadsheet = SpreadsheetApp.create('experimentConditionSpreadsheet');
-  experimentConditionSpreadsheet.setSpreadsheetTimeZone('Asia/Tokyo');
+  experimentConditionSpreadsheet.setSpreadsheetTimeZone(timeZone);
   experimentConditionSpreadsheet.insertSheet('users'); 
   experimentConditionSpreadsheet.insertSheet('properties');
   experimentConditionSpreadsheet.insertSheet('allEquipments');
   var loggingSpreadsheet = SpreadsheetApp.create('loggingSpreadsheet');
-  loggingSpreadsheet.setSpreadsheetTimeZone('Asia/Tokyo');
+  loggingSpreadsheet.setSpreadsheetTimeZone(timeZone);
   loggingSpreadsheet.insertSheet('finalLog');
   loggingSpreadsheet.deleteSheet(loggingSpreadsheet.getSheetByName('Sheet1'));
   // get ids
