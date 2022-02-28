@@ -558,8 +558,8 @@ function writeEventsToReadCalendar(writeCalendarId, index, fullSync) {
     const eid = event.getId();
     event = writeCalendar.getEventById(eid);
     eventLoggingStoreData({ // log event
-      startTime: event.getStartTime(),
-      endTime: event.getEndTime(),
+      startTime: UTCToLocalTime(event.getStartTime()),
+      endTime: UTCToLocalTime(event.getEndTime()),
       name: writeUser,
       equipmentName: equipmentName,
       state: state,
@@ -581,8 +581,8 @@ function writeEventsToReadCalendar(writeCalendarId, index, fullSync) {
     const eid = event.getId();
     event = writeCalendar.getEventById(eid);
     eventLoggingStoreData({ // log event
-      startTime: event.getStartTime(),
-      endTime: event.getEndTime(),
+      startTime: UTCToLocalTime(event.getStartTime()),
+      endTime: UTCToLocalTime(event.getEndTime()),
       name: writeUser,
       equipmentName: equipmentName,
       state: state,
@@ -791,8 +791,8 @@ function finalLogging() {
       const eid = event.iCalUID;
       event = CalendarApp.getCalendarById(writeCalendarId).getEventById(eid);
       var logObj = {
-        startTime: event.getStartTime(),
-        endTime: event.getEndTime(),
+        startTime: UTCToLocalTime(event.getStartTime()),
+        endTime: UTCToLocalTime(event.getEndTime()),
           name: writeUser,
           equipmentName: equipmentName,
           state: state,
