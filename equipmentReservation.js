@@ -37,7 +37,7 @@ function setup() {
 // creates spreadsheet for {userCount} users
 function createSpreadsheets() {
   const properties = PropertiesService.getUserProperties();
-  const userCount = properties.getProperty('userCount');
+  const userCount = parseInt(properties.getProperty('userCount'));
   const groupUrl = properties.getProperty('groupUrl');
   const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
   const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
@@ -213,7 +213,7 @@ function createSpreadsheets() {
 function createCalendars() {
   Logger.log('Creating calendars');
   const properties = PropertiesService.getUserProperties();
-  const userCount = properties.getProperty('userCount');
+  const userCount = parseInt(properties.getProperty('userCount'));
   const groupUrl = properties.getProperty('groupUrl');
   const experimentConditionSpreadsheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId'));
   const resource = { // used to add google group as guest
