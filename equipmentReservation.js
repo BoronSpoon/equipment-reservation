@@ -2,6 +2,12 @@
 // todo: event description is not working
 // todo: eventExists is not working
 
+
+
+// ===============================================================================================
+// ======================================= SETUP FUNCTIONS ======================================= 
+// ===============================================================================================
+
 // setup
 function setup() {
   Logger.log('Running setup');
@@ -42,10 +48,6 @@ function changeSheetSize(sheet, rows, columns) {
   sheet.getRange(1, 1, rows, columns).setWrap(true); // wrap overflowing text
   sheet.getRange(1, 1, rows, columns).setHorizontalAlignment("center"); // center text
   sheet.getRange(1, 1, rows, columns).setVerticalAlignment("middle"); // center text
-}
-
-function arrayFill2d(rows, columns, value) { // create 2d array filled with value
-  return Array(rows).fill().map(() => Array(columns).fill(value));
 }
 
 // define constants used over several scripts
@@ -276,6 +278,7 @@ function setIds(property) {
   properties.setProperty('loggingSpreadsheetId', property.loggingSpreadsheetId);
 }
 
+// set ids manually
 function setIdsManual() {
   Logger.log('manually setting spreadsheet ids');
   const properties = PropertiesService.getUserProperties();
@@ -295,48 +298,6 @@ function deleteTriggers() {
     trigger = triggers[i];
     ScriptApp.deleteTrigger(trigger);
   }
-}
-
-// prevent overflow of spreadsheet data by backing up and deleting it
-function backupAndDeleteOverflownEquipmentData(equipmentSheet) {
-  const properties = PropertiesService.getUserProperties();
-  // backup rows
-  const equipment = equipmentSheet.getRange(2, 4).getValue();
-  const startTime = new Date(equipmentSheet.getRange(2, 1).getValue());
-  const endTime = new Date(equipmentSheet.getRange(2+experimentConditionBackupRows-1, 1).getValue());
-  const experimentConditionBackupRows = parseInt(properties.getProperty('experimentConditionBackupRows'));
-  const backupColumns = equipmentSheet.getLastColumn();
-  equipmentSheet.getRange(1, 1, experimentConditionBackupRows+1, backupColumns).copyTo(
-    SpreadsheetApp.create(`BACKUP_${equipment}_${startTime}-${endTime}`),
-    SpreadsheetApp.CopyPasteType.PASTE_VALUES, 
-    false
-  )
-  // delete rows
-  var filledArray = [];
-  filledArray = arrayFill2d(experimentConditionBackupRows, 11, '');
-  equipmentSheet.getRange(2, 1, experimentConditionBackupRows, 11).setValues(filledArray);
-  filledArray = arrayFill2d(experimentConditionBackupRows, experimentConditionCount, '');
-  equipmentSheet.getRange(13, 1, experimentConditionBackupRows, experimentConditionCount).setValues(filledArray);
-  // no need to move remaing rows up because sort function is applied
-  equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort([{column: 1, ascending: true}, {column: 10, ascending: true}]); // sort by startTime and executionTime. sort doesn't include header row
-}
-
-// prevent overflow of spreadsheet data by backing up and deleting it
-function backupAndDeleteOverflownLoggingData(finalLogSheet) {
-  // backup rows
-  const backupRows = finalLogSheet.getLastRow()-1;
-  const backupColumns = finalLogSheet.getLastColumn();
-  const startTime = new Date(finalLogSheet.getRange(2, 1).getValue());
-  const endTime = new Date(finalLogSheet.getRange(2+backupRows-1, 1).getValue());
-  finalLogSheet.getRange(1, 1, backupRows+1, backupColumns).copyTo(
-    SpreadsheetApp.create(`BACKUP_LOG_${startTime}-${endTime}`),
-    SpreadsheetApp.CopyPasteType.PASTE_VALUES, 
-    false
-  )
-  // delete rows
-  var filledArray = [];
-  filledArray = arrayFill2d(backupRows, 8, '');
-  finalLogSheet.getRange(2, 1, backupRows, 8).setValues(filledArray);
 }
 
 // create triggers
@@ -370,10 +331,62 @@ function createTriggers() {
     .create();
 }
 
-// get sheets and store them in properties
-function getAndStoreObjects() {
-  onUsersSheetEdit();
-  onPropertiesSheetEdit();
+// ==============================================================================================
+// ======================================= MAIN FUNCTIONS =======================================
+// ==============================================================================================
+
+// when calendar gets edited
+function onCalendarEdit(e) {
+  Logger.log('Calendar edit trigger');
+  getAndStoreObjects(); // get sheets, calendars and store them in properties
+  const properties = PropertiesService.getUserProperties();
+  const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
+  const calendarId = e.calendarId;
+  const index = writeCalendarIds.indexOf(calendarId);
+  const fullSync = false;
+  writeEventsToReadCalendar(calendarId, index, fullSync);
+}
+
+// when sheets gets edited
+function onSheetsEdit(e) {
+  Logger.log('Sheets edit trigger');
+  const properties = PropertiesService.getUserProperties();
+  getAndStoreObjects(); // get sheets, calendars and store them in properties
+  const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
+  const sheet = e.source.getActiveSheet();
+  const sheetName = sheet.getName();
+  const cell = e.source.getActiveRange();
+  const newValue = e.value;
+  const row = cell.getRow();
+  const column = cell.getColumn();
+  const index = row-2;
+  const writeCalendarId = writeCalendarIds[index]
+  const fullSync = true;
+  const equipmentSheetNameFromEquipmentName = JSON.parse(properties.getProperty('equipmentSheetNameFromEquipmentName'));
+  
+  // when the 'users' sheet is edited
+  if (sheetName === 'users') {
+    onUsersSheetEdit();
+    // when the checkbox (H2~nm) is edited in sheets on sheet 'users'
+    // update corresponding user's subscribed equipments
+    if (row > 1 && column > 9){ 
+      changeSubscribedEquipments(index);
+    }
+    // when the full name (A2~An) is edited in sheets on sheet 'users'
+    // update all of the corresponding user's event title
+    else if (row > 1 && column === 1){
+      updateCalendarUserName(sheet, cell, newValue);
+      writeEventsToReadCalendar(writeCalendarId, index, fullSync);
+    }
+  }
+  // when the 'properties' sheet is edited
+  else if (sheetName === 'properties') {
+    onPropertiesSheetEdit();
+  }
+  // if equipment sheet is edited
+  else if (Object.values(equipmentSheetNameFromEquipmentName).includes(sheet.getName()) && row > 1){ 
+    onEquipmentConditionEdit(sheet, row);
+  }
 }
 
 function onUsersSheetEdit() {
@@ -464,60 +477,6 @@ function onPropertiesSheetEdit() {
   properties.setProperty('equipmentSheetNameFromEquipmentName', JSON.stringify(equipmentSheetNameFromEquipmentName));
 }
 
-// when calendar gets edited
-function onCalendarEdit(e) {
-  Logger.log('Calendar edit trigger');
-  getAndStoreObjects(); // get sheets, calendars and store them in properties
-  const properties = PropertiesService.getUserProperties();
-  const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
-  const calendarId = e.calendarId;
-  const index = writeCalendarIds.indexOf(calendarId);
-  const fullSync = false;
-  writeEventsToReadCalendar(calendarId, index, fullSync);
-}
-
-// when sheets gets edited
-function onSheetsEdit(e) {
-  Logger.log('Sheets edit trigger');
-  const properties = PropertiesService.getUserProperties();
-  getAndStoreObjects(); // get sheets, calendars and store them in properties
-  const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
-  const sheet = e.source.getActiveSheet();
-  const sheetName = sheet.getName();
-  const cell = e.source.getActiveRange();
-  const newValue = e.value;
-  const row = cell.getRow();
-  const column = cell.getColumn();
-  const index = row-2;
-  const writeCalendarId = writeCalendarIds[index]
-  const fullSync = true;
-  const equipmentSheetNameFromEquipmentName = JSON.parse(properties.getProperty('equipmentSheetNameFromEquipmentName'));
-  
-  // when the 'users' sheet is edited
-  if (sheetName === 'users') {
-    onUsersSheetEdit();
-    // when the checkbox (H2~nm) is edited in sheets on sheet 'users'
-    // update corresponding user's subscribed equipments
-    if (row > 1 && column > 9){ 
-      changeSubscribedEquipments(index);
-    }
-    // when the full name (A2~An) is edited in sheets on sheet 'users'
-    // update all of the corresponding user's event title
-    else if (row > 1 && column === 1){
-      updateCalendarUserName(sheet, cell, newValue);
-      writeEventsToReadCalendar(writeCalendarId, index, fullSync);
-    }
-  }
-  // when the 'properties' sheet is edited
-  else if (sheetName === 'properties') {
-    onPropertiesSheetEdit();
-  }
-  // if equipment sheet is edited
-  else if (Object.values(equipmentSheetNameFromEquipmentName).includes(sheet.getName()) && row > 1){ 
-    onEquipmentConditionEdit(sheet, row);
-  }
-}
-
 function onEquipmentConditionEdit(equipmentSheet, row) {
   Logger.log('Equipment condition edit trigger');
   const properties = PropertiesService.getUserProperties();
@@ -592,200 +551,6 @@ function onEquipmentConditionEdit(equipmentSheet, row) {
     range.createFilter().setColumnFilterCriteria(12, rule); // column filter includes header row
   }
 }  
-
-function eventLoggingStoreData(logObj) { // set data for logging
-  const properties = PropertiesService.getUserProperties();
-  if (properties.getProperty('eventLoggingData') === null) { // if key value pair not defined
-    var eventLoggingData = {}; // initialize
-  } else {
-    var eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData'));    
-  }
-  for (const key in logObj) { // iterate through log object
-    eventLoggingData[key] = logObj[key];
-  }
-  properties.setProperty('eventLoggingData', JSON.stringify(eventLoggingData));
-}
-
-function eventLoggingExecute(equipmentSheetName) { // execute logging to sheets
-  Logger.log('Logging event');
-  const properties = PropertiesService.getUserProperties();
-  const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
-  const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
-  const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
-  const experimentConditionBackupRows = parseInt(properties.getProperty('experimentConditionBackupRows'));
-  // spreadsheet for experiment condition logging
-  const equipmentSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName(equipmentSheetName);
-  const allEquipmentsSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('allEquipments');
-  const eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData'));
-  properties.deleteProperty('eventLoggingData');
-  var row = equipmentSheet.getRange("A1:A").getValues().filter(String).length + 1; // get last row of first column
-  if (row > experimentConditionBackupRows) { // prevent overflow of spreadsheet data by backing up and deleting it
-    backupAndDeleteOverflownLoggingData(equipmentSheet) 
-    row = equipmentSheet.getRange("A1:A").getValues().filter(String).length + 1; // get last row of first column
-  }
-  const columnDescriptions = { // shows which description corresponds to which column
-    startTime: 1,
-    endTime: 2,
-    name: 3,
-    equipmentName: 4,
-    state: 5,
-    description: 6,
-    isAllDayEvent: 7,
-    isRecurringEvent: 8,
-    action: 9,
-    executionTime: 10,
-    id: 11,
-  };
-  var filledArray = [[]];
-  for (const key in eventLoggingData) { // iterate through log object
-    var value = eventLoggingData[key];
-    var col = columnDescriptions[key];
-    filledArray[0][col-1] = value;
-  }
-  Logger.log(eventLoggingData);
-  equipmentSheet.getRange(row, 1, 1, 11).setValues(filledArray);    
-
-  // get experiment condition from description
-  try {
-    const description = JSON.parse(eventLoggingData['description']);
-    const descriptionHeaders = equipmentSheet.getRange(1, 13, 1, experimentConditionCount).getValues();
-    var descriptionHeader = '';
-    var filledArray = [[]];
-    for (var i = 0; i < experimentConditionCount; i++){
-      descriptionHeader = descriptionHeaders[0][i]; // experiment condition header
-      if (descriptionHeader in description) { // if value exists for key 'descriptionHeader'
-        filledArray[0][i] = description[descriptionHeader];;
-      } else {
-        filledArray[0][i] = '';
-      }
-    }
-    equipmentSheet.getRange(row, 13, 1, experimentConditionCount).setValues(filledArray); // experiment condition
-  } catch (e) {}
-
-  Logger.log('Sorting events');
-  equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort([{column: 1, ascending: true}, {column: 10, ascending: true}]); // sort by startTime and executionTime. sort doesn't include header row
-  allEquipmentsSheet.getRange(2, 1, experimentConditionRows*equipmentCount, 6).sort([{column: 1, ascending: true}, {column: 2, ascending: true}]); // sort by startTime and executionTime. sort doesn't include header row
-
-  Logger.log('Updating filters for hiding canceled and modified events');
-  const range = equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount);
-  if (range.getFilter() === null) { // if filter is deleted, remake filter. Or, create filter for the first execution.
-    // when column 12 is not TRUE, hide row
-    var rule = SpreadsheetApp.newFilterCriteria()
-      .whenTextEqualTo('TRUE')
-      .build();
-    range.createFilter().setColumnFilterCriteria(12, rule); // column filter includes header row
-  }
-}
-
-function finalLogging() { // logs just the necessary data
-  Logger.log('Daily logging of event');
-  getAndStoreObjects(); // get sheets, calendars and store them in properties
-  const properties = PropertiesService.getUserProperties();
-  const finalLoggingBackupRows = parseInt(properties.getProperty('finalLoggingBackupRows'));
-  const finalLogSheet = SpreadsheetApp.openById(properties.getProperty('loggingSpreadsheetId')).getSheetByName('finalLog')
-  const lastRow = finalLogSheet.getLastRow();
-  if (lastRow > finalLoggingBackupRows) {
-    backupAndDeleteOverflownLoggingData(finalLogSheet) // prevent overflow of spreadsheet data by backing up and deleting it
-  }
-  const row = lastRow + 1; // write on new row
-  const columnDescriptions = { // shows which description corresponds to which column
-    startTime: 1,
-    endTime: 2,
-    name: 3,
-    equipmentName: 4,
-    state: 5,
-    description: 6,
-    isAllDayEvent: 7,
-    isRecurringEvent: 8,
-    action: 9,
-    executionTime: 10,
-    id: 11,
-  };
-  const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
-  const users = JSON.parse(properties.getProperty('users'));
-  // get events from 2~3 days ago
-  options = {
-    timeMin : getRelativeDate(-3, 0).toISOString(), // 3 days ago
-    timeMax : getRelativeDate(-2, 0).toISOString(), // 2 days ago
-    showDeleted : true,
-  }
-  for (var i = 0; i < writeCalendarIds.length; i++){ // iterate through every write calendar id
-    Utilities.sleep(100);
-    const writeCalendarId = writeCalendarIds[i];
-    const writeUser = users[i];
-    const eventsList = Calendar.Events.list(writeCalendarId, options);
-    var events = []; 
-    // get events from eventsList format
-    if (eventsList.items && eventsList.items.length > 0) {
-      for (var j = 0; j < eventsList.items.length; j++) {
-        const event = eventsList.items[j];
-        if (event.status === 'cancelled') {
-          Logger.log(`Event id ${event.id} was cancelled.`);
-        } else{
-          events.push(event);
-        }
-      }
-    } 
-
-    if (events.length === 0) {
-      Logger.log(`No events found for: ${writeCalendarId}`);
-    } else {
-      Logger.log(`${events.length} events found for: ${writeCalendarId}`);
-    }
-    
-    // log each event
-    for (var j = 0; j < events.length; j++){
-      Utilities.sleep(100);
-      var event = events[j];
-      const equipmentStateFromEvent = getEquipmentNameAndStateFromEvent(event); // this must be called first before getCalendarById
-      const equipmentName = equipmentStateFromEvent.equipmentName;
-      const state = equipmentStateFromEvent.state;
-      const eid = event.iCalUID;
-      event = CalendarApp.getCalendarById(writeCalendarId).getEventById(eid);
-      var logObj = {
-        startTime: event.getStartTime(),
-        endTime: event.getEndTime(),
-          name: writeUser,
-          equipmentName: equipmentName,
-          state: state,
-          description: event.getDescription(),
-          isAllDayEvent: event.isAllDayEvent(),
-          isRecurringEvent: event.isRecurringEvent(),
-          action: '',
-          executionTime: '',
-          id: eid,
-      }
-      var filledArray = [[]];
-      for (const key in logObj) { // iterate through log object
-        var value = logObj[key];
-        var col = columnDescriptions[key];
-        filledArray[0][col-1] = value;
-      }
-      finalLogSheet.getRange(row, 1, 1, 11).setValues(filledArray);
-    }
-  }
-}
-
-// filter readUsers who are not writeUser and have the equipment
-function filterUsers(writeUser, event, readCalendarIds, enabledEquipmentsList) {
-  const properties = PropertiesService.getUserProperties();
-  const users = JSON.parse(properties.getProperty('users'));
-  var filteredReadCalendarIds = []; // readCalendarIds excluding the same user as writeCalendarId
-  var filteredReadUsers = []; // readUsers excluding the same user as writeCalendarId
-  const equipmentName = getEquipmentNameAndStateFromEvent(event).equipmentName; // equipment used in the event
-  for (var i = 0; i < readCalendarIds.length; i++){
-    const readCalendarId = readCalendarIds[i];
-    const readUser = users[i];
-    const enabledEquipments = enabledEquipmentsList[i];
-    if (enabledEquipments.includes(equipmentName) === true){ // if equipment is enabled for readUser
-      if (readUser != writeUser) { // avoid duplicating event for same user's read and write calendars      
-        filteredReadCalendarIds.push(readCalendarId);
-        filteredReadUsers.push(readUser);
-      }
-    }
-  }
-  return {filteredReadCalendarIds, filteredReadUsers}
-}
 
 // write events to read calendar based on updated events in write calendar
 function writeEventsToReadCalendar(writeCalendarId, index, fullSync) {
@@ -889,6 +654,281 @@ function updateCalendarUserName(sheet, cell, newValue){
   setCheckboxes(sheet, cell); // create checkboxes for selecting equipment
   setCalendars(sheet, cell); // set read calendar and write calendar for created user
   Logger.log('Updated user name');
+}
+
+// =================================================================================================
+// ======================================= LOGGING FUNCTIONS ======================================= 
+// =================================================================================================
+
+// set data for logging
+function eventLoggingStoreData(logObj) { 
+  const properties = PropertiesService.getUserProperties();
+  if (properties.getProperty('eventLoggingData') === null) { // if key value pair not defined
+    var eventLoggingData = {}; // initialize
+  } else {
+    var eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData'));    
+  }
+  for (const key in logObj) { // iterate through log object
+    eventLoggingData[key] = logObj[key];
+  }
+  properties.setProperty('eventLoggingData', JSON.stringify(eventLoggingData));
+}
+
+// execute logging to sheets
+function eventLoggingExecute(equipmentSheetName) { 
+  Logger.log('Logging event');
+  const properties = PropertiesService.getUserProperties();
+  const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
+  const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
+  const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
+  const experimentConditionBackupRows = parseInt(properties.getProperty('experimentConditionBackupRows'));
+  // spreadsheet for experiment condition logging
+  const equipmentSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName(equipmentSheetName);
+  const allEquipmentsSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('allEquipments');
+  const eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData'));
+  properties.deleteProperty('eventLoggingData');
+  var row = equipmentSheet.getRange("A1:A").getValues().filter(String).length + 1; // get last row of first column
+  if (row > experimentConditionBackupRows) { // prevent overflow of spreadsheet data by backing up and deleting it
+    backupAndDeleteOverflownLoggingData(equipmentSheet) 
+    row = equipmentSheet.getRange("A1:A").getValues().filter(String).length + 1; // get last row of first column
+  }
+  const columnDescriptions = { // shows which description corresponds to which column
+    startTime: 1,
+    endTime: 2,
+    name: 3,
+    equipmentName: 4,
+    state: 5,
+    description: 6,
+    isAllDayEvent: 7,
+    isRecurringEvent: 8,
+    action: 9,
+    executionTime: 10,
+    id: 11,
+  };
+  var filledArray = [[]];
+  for (const key in eventLoggingData) { // iterate through log object
+    var value = eventLoggingData[key];
+    var col = columnDescriptions[key];
+    filledArray[0][col-1] = value;
+  }
+  Logger.log(eventLoggingData);
+  equipmentSheet.getRange(row, 1, 1, 11).setValues(filledArray);    
+
+  // get experiment condition from description
+  try {
+    const description = JSON.parse(eventLoggingData['description']);
+    const descriptionHeaders = equipmentSheet.getRange(1, 13, 1, experimentConditionCount).getValues();
+    var descriptionHeader = '';
+    var filledArray = [[]];
+    for (var i = 0; i < experimentConditionCount; i++){
+      descriptionHeader = descriptionHeaders[0][i]; // experiment condition header
+      if (descriptionHeader in description) { // if value exists for key 'descriptionHeader'
+        filledArray[0][i] = description[descriptionHeader];;
+      } else {
+        filledArray[0][i] = '';
+      }
+    }
+    equipmentSheet.getRange(row, 13, 1, experimentConditionCount).setValues(filledArray); // experiment condition
+  } catch (e) {}
+
+  Logger.log('Sorting events');
+  equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort([{column: 1, ascending: true}, {column: 10, ascending: true}]); // sort by startTime and executionTime. sort doesn't include header row
+  allEquipmentsSheet.getRange(2, 1, experimentConditionRows*equipmentCount, 6).sort([{column: 1, ascending: true}, {column: 2, ascending: true}]); // sort by startTime and executionTime. sort doesn't include header row
+
+  Logger.log('Updating filters for hiding canceled and modified events');
+  const range = equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount);
+  if (range.getFilter() === null) { // if filter is deleted, remake filter. Or, create filter for the first execution.
+    // when column 12 is not TRUE, hide row
+    var rule = SpreadsheetApp.newFilterCriteria()
+      .whenTextEqualTo('TRUE')
+      .build();
+    range.createFilter().setColumnFilterCriteria(12, rule); // column filter includes header row
+  }
+}
+
+// logs just the necessary data
+function finalLogging() { 
+  Logger.log('Daily logging of event');
+  getAndStoreObjects(); // get sheets, calendars and store them in properties
+  const properties = PropertiesService.getUserProperties();
+  const finalLoggingBackupRows = parseInt(properties.getProperty('finalLoggingBackupRows'));
+  const finalLogSheet = SpreadsheetApp.openById(properties.getProperty('loggingSpreadsheetId')).getSheetByName('finalLog')
+  const lastRow = finalLogSheet.getLastRow();
+  if (lastRow > finalLoggingBackupRows) {
+    backupAndDeleteOverflownLoggingData(finalLogSheet) // prevent overflow of spreadsheet data by backing up and deleting it
+  }
+  const row = lastRow + 1; // write on new row
+  const columnDescriptions = { // shows which description corresponds to which column
+    startTime: 1,
+    endTime: 2,
+    name: 3,
+    equipmentName: 4,
+    state: 5,
+    description: 6,
+    isAllDayEvent: 7,
+    isRecurringEvent: 8,
+    action: 9,
+    executionTime: 10,
+    id: 11,
+  };
+  const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
+  const users = JSON.parse(properties.getProperty('users'));
+  // get events from 2~3 days ago
+  options = {
+    timeMin : getRelativeDate(-3, 0).toISOString(), // 3 days ago
+    timeMax : getRelativeDate(-2, 0).toISOString(), // 2 days ago
+    showDeleted : true,
+  }
+  for (var i = 0; i < writeCalendarIds.length; i++){ // iterate through every write calendar id
+    Utilities.sleep(100);
+    const writeCalendarId = writeCalendarIds[i];
+    const writeUser = users[i];
+    const eventsList = Calendar.Events.list(writeCalendarId, options);
+    var events = []; 
+    // get events from eventsList format
+    if (eventsList.items && eventsList.items.length > 0) {
+      for (var j = 0; j < eventsList.items.length; j++) {
+        const event = eventsList.items[j];
+        if (event.status === 'cancelled') {
+          Logger.log(`Event id ${event.id} was cancelled.`);
+        } else{
+          events.push(event);
+        }
+      }
+    } 
+
+    if (events.length === 0) {
+      Logger.log(`No events found for: ${writeCalendarId}`);
+    } else {
+      Logger.log(`${events.length} events found for: ${writeCalendarId}`);
+    }
+    
+    // log each event
+    for (var j = 0; j < events.length; j++){
+      Utilities.sleep(100);
+      var event = events[j];
+      const equipmentStateFromEvent = getEquipmentNameAndStateFromEvent(event); // this must be called first before getCalendarById
+      const equipmentName = equipmentStateFromEvent.equipmentName;
+      const state = equipmentStateFromEvent.state;
+      const eid = event.iCalUID;
+      event = CalendarApp.getCalendarById(writeCalendarId).getEventById(eid);
+      var logObj = {
+        startTime: event.getStartTime(),
+        endTime: event.getEndTime(),
+          name: writeUser,
+          equipmentName: equipmentName,
+          state: state,
+          description: event.getDescription(),
+          isAllDayEvent: event.isAllDayEvent(),
+          isRecurringEvent: event.isRecurringEvent(),
+          action: '',
+          executionTime: '',
+          id: eid,
+      }
+      var filledArray = [[]];
+      for (const key in logObj) { // iterate through log object
+        var value = logObj[key];
+        var col = columnDescriptions[key];
+        filledArray[0][col-1] = value;
+      }
+      finalLogSheet.getRange(row, 1, 1, 11).setValues(filledArray);
+    }
+  }
+}
+
+// ===============================================================================================
+// ======================================= OTHER FUNCTIONS ======================================= 
+// ===============================================================================================
+
+// prevent overflow of spreadsheet data by backing up and deleting it
+function backupAndDeleteOverflownEquipmentData(equipmentSheet) {
+  const properties = PropertiesService.getUserProperties();
+  // backup rows
+  const equipment = equipmentSheet.getRange(2, 4).getValue();
+  const startTime = new Date(equipmentSheet.getRange(2, 1).getValue());
+  const endTime = new Date(equipmentSheet.getRange(2+experimentConditionBackupRows-1, 1).getValue());
+  const experimentConditionBackupRows = parseInt(properties.getProperty('experimentConditionBackupRows'));
+  const backupColumns = equipmentSheet.getLastColumn();
+  equipmentSheet.getRange(1, 1, experimentConditionBackupRows+1, backupColumns).copyTo(
+    SpreadsheetApp.create(`BACKUP_${equipment}_${startTime}-${endTime}`),
+    SpreadsheetApp.CopyPasteType.PASTE_VALUES, 
+    false
+  )
+  // delete rows
+  var filledArray = [];
+  filledArray = arrayFill2d(experimentConditionBackupRows, 11, '');
+  equipmentSheet.getRange(2, 1, experimentConditionBackupRows, 11).setValues(filledArray);
+  filledArray = arrayFill2d(experimentConditionBackupRows, experimentConditionCount, '');
+  equipmentSheet.getRange(13, 1, experimentConditionBackupRows, experimentConditionCount).setValues(filledArray);
+  // no need to move remaing rows up because sort function is applied
+  equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort([{column: 1, ascending: true}, {column: 10, ascending: true}]); // sort by startTime and executionTime. sort doesn't include header row
+}
+
+// prevent overflow of spreadsheet data by backing up and deleting it
+function backupAndDeleteOverflownLoggingData(finalLogSheet) {
+  // backup rows
+  const backupRows = finalLogSheet.getLastRow()-1;
+  const backupColumns = finalLogSheet.getLastColumn();
+  const startTime = new Date(finalLogSheet.getRange(2, 1).getValue());
+  const endTime = new Date(finalLogSheet.getRange(2+backupRows-1, 1).getValue());
+  finalLogSheet.getRange(1, 1, backupRows+1, backupColumns).copyTo(
+    SpreadsheetApp.create(`BACKUP_LOG_${startTime}-${endTime}`),
+    SpreadsheetApp.CopyPasteType.PASTE_VALUES, 
+    false
+  )
+  // delete rows
+  var filledArray = [];
+  filledArray = arrayFill2d(backupRows, 8, '');
+  finalLogSheet.getRange(2, 1, backupRows, 8).setValues(filledArray);
+}
+
+// ================================================================================================
+// ======================================= HELPER FUNCTIONS ======================================= 
+// ================================================================================================
+
+// create 2d array filled with value
+function arrayFill2d(rows, columns, value) { 
+  return Array(rows).fill().map(() => Array(columns).fill(value));
+}
+
+// update the sync token after adding and deleting guests
+function updateSyncToken(calendarId) {
+  const properties = PropertiesService.getUserProperties();
+  const options = {
+    maxResults: 1000, // suppress nextPageToken which supresses nextSyncToken by fitting all events in one page
+    showDeleted: true,
+  };
+  var eventsList;
+  eventsList = Calendar.Events.list(calendarId, options);
+  properties.setProperty(`syncToken ${calendarId}`, eventsList.nextSyncToken);
+  Logger.log('Updated sync token. New sync token: ' + eventsList.nextSyncToken);
+}
+
+// get sheets and store them in properties
+function getAndStoreObjects() {
+  onUsersSheetEdit();
+  onPropertiesSheetEdit();
+}
+
+// filter readUsers who are not writeUser and have the equipment
+function filterUsers(writeUser, event, readCalendarIds, enabledEquipmentsList) {
+  const properties = PropertiesService.getUserProperties();
+  const users = JSON.parse(properties.getProperty('users'));
+  var filteredReadCalendarIds = []; // readCalendarIds excluding the same user as writeCalendarId
+  var filteredReadUsers = []; // readUsers excluding the same user as writeCalendarId
+  const equipmentName = getEquipmentNameAndStateFromEvent(event).equipmentName; // equipment used in the event
+  for (var i = 0; i < readCalendarIds.length; i++){
+    const readCalendarId = readCalendarIds[i];
+    const readUser = users[i];
+    const enabledEquipments = enabledEquipmentsList[i];
+    if (enabledEquipments.includes(equipmentName) === true){ // if equipment is enabled for readUser
+      if (readUser != writeUser) { // avoid duplicating event for same user's read and write calendars      
+        filteredReadCalendarIds.push(readCalendarId);
+        filteredReadUsers.push(readUser);
+      }
+    }
+  }
+  return {filteredReadCalendarIds, filteredReadUsers}
 }
 
 // get events from the given calendar that have been modified since the last sync.
@@ -1075,17 +1115,4 @@ function changeCalendarName(calendarId, userName, readOrWrite) {
     Logger.log('Updated calendar name');
   }
   Logger.log('Skipped update of calendar name because calendarId is empty');
-}
-
-// update the sync token after adding and deleting guests
-function updateSyncToken(calendarId) {
-  const properties = PropertiesService.getUserProperties();
-  const options = {
-    maxResults: 1000, // suppress nextPageToken which supresses nextSyncToken by fitting all events in one page
-    showDeleted: true,
-  };
-  var eventsList;
-  eventsList = Calendar.Events.list(calendarId, options);
-  properties.setProperty(`syncToken ${calendarId}`, eventsList.nextSyncToken);
-  Logger.log('Updated sync token. New sync token: ' + eventsList.nextSyncToken);
 }
