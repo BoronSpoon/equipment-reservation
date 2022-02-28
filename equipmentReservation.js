@@ -182,9 +182,9 @@ function createSpreadsheets() {
   for (var i = 0; i < equipmentCount; i++) {
     filledArray[i+1] = ['', sheetIds[i], `https://docs.google.com/spreadsheets/d/${experimentConditionSpreadsheetId}/edit#gid=${sheetIds[i]}`, ''];
   }
-  activeSheet.getRange(1, 1, equipmentCount+1, 4).setValues(filledArray);
-  activeSheet.getRange(1, 1, equipmentCount+1, 4).setHorizontalAlignment("left"); // show https://... not the center of url
-  activeSheet.getRange(1, 1, equipmentCount+1, 4).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
+  activeSheet.getRange(1, 2, equipmentCount+1, 2).setValues(filledArray);
+  activeSheet.getRange(1, 2, equipmentCount+1, 2).setHorizontalAlignment("left"); // show https://... not the center of url
+  activeSheet.getRange(1, 2, equipmentCount+1, 2).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
   activeSheet.hideColumns(2); // hide columns used for debug
   
   // create spreadsheet for finalized logging
