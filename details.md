@@ -263,10 +263,10 @@ https://google.github.io/styleguide/jsguide.html (以下jsguideと呼ぶ)の内�
 - 予定
    - [x] 作成
    - 変更
-      - [x] 状態(use、vac等)
-      - [x] 日時
-   - [x] 削除
-   - [x] 複製
+      - [ ] 状態(use、vac等)
+      - [ ] 日時
+   - [ ] 削除
+   - [ ] 複製
 - 全日予定(一日中にわたる予定)
    - [x] 作成
    - 変更
@@ -294,7 +294,7 @@ https://google.github.io/styleguide/jsguide.html (以下jsguideと呼ぶ)の内�
    - [x] 実験条件の変更
    - [x] sheetのリンクをクリックしてリンクの正常性の確認
 - allEquipments sheet
-   - [ ] カレンダーのテストで作った予定が追加されていることを確認
+   - [x] カレンダーのテストで作った予定が追加されていることを確認
 - equipment sheets
    - [ ] 実験条件変更が反映されるか確認
    - [ ] startTime, name, equipment, stateを変更できるか確認

@@ -95,44 +95,33 @@ function createSpreadsheets() {
 
     Logger.log('Creating filters for hiding canceled and modified events');
 
-    if (i === 0) { // create filter view for the first sheet
-      // addFilterView -> adds filter view -> updates automatically -> apply manually after select
-      // setBasicFilter -> adds filter (same as spreadsheetApp filter) -> doesn't update automatically
-      addFilterViewRequest = {
-        'addFilterView': {
-          'filter': {
-            "filterViewId": 1, 
-            'title': 'hide canceled or modified events',
-            'sortSpecs': [ // sort doesn't include header row
-              {'dimensionIndex': 0, 'sortOrder': 'ASCENDING'}, // sort by startTime
-              {'dimensionIndex': 9, 'sortOrder': 'ASCENDING'}, // sort by executionTime if startTime is same
-            ], 
-            "range": {
-              "sheetId": sheetIds[i],
-              "startRowIndex": 0,
-              "endRowIndex": experimentConditionRows,
-              "startColumnIndex": 0,
-              "endColumnIndex": 12+experimentConditionCount,
-            },
-            'criteria': { // when column 12 is FALSE, hide row
-              11: { 'hiddenValues': ['FALSE'] },
-            },
-          }
+    // addFilterView -> adds filter view -> updates automatically -> apply manually after select
+    // setBasicFilter -> adds filter (same as spreadsheetApp filter) -> doesn't update automatically
+    addFilterViewRequest = {
+      'addFilterView': {
+        'filter': {
+          "filterViewId": i+1, // 1~equipmentCount
+          'title': 'hide canceled or modified events',
+          'sortSpecs': [ // sort doesn't include header row
+            {'dimensionIndex': 0, 'sortOrder': 'ASCENDING'}, // sort by startTime
+            {'dimensionIndex': 9, 'sortOrder': 'ASCENDING'}, // sort by executionTime if startTime is same
+          ], 
+          "range": {
+            "sheetId": sheetIds[i],
+            "startRowIndex": 0,
+            "endRowIndex": experimentConditionRows,
+            "startColumnIndex": 0,
+            "endColumnIndex": 12+experimentConditionCount,
+          },
+          'criteria': { // when column 12 is FALSE, hide row
+            11: { 'hiddenValues': ['FALSE'] },
+          },
         }
       }
-      Sheets.Spreadsheets.batchUpdate(
-        {'requests': [addFilterViewRequest]}, experimentConditionSpreadsheetId
-      );
-    } else { // copy filter view of the first sheet
-      duplicateFilterViewRequest = {
-        'duplicateFilterView': {
-          'filterId': 1,
-        }
-      }
-      Sheets.Spreadsheets.batchUpdate(
-        {'requests': [duplicateFilterViewRequest]}, experimentConditionSpreadsheetId
-      );
     }
+    Sheets.Spreadsheets.batchUpdate(
+      {'requests': [addFilterViewRequest]}, experimentConditionSpreadsheetId
+    );
   }
 
   Utilities.sleep(1000);
@@ -168,7 +157,7 @@ function createSpreadsheets() {
   addFilterViewRequest = {
     'addFilterView': {
       'filter': {
-        "filterViewId": 2, 
+        "filterViewId": 0, 
         'title': 'sort events by date and time',
         'sortSpecs': [ // sort doesn't include header row
           {'dimensionIndex': 0, 'sortOrder': 'ASCENDING'}, // sort by startTime
@@ -242,7 +231,7 @@ function createSpreadsheets() {
   var filledArray = [[]];
   filledArray[0] = ['equipmentName', 'sheetId', 'sheetUrl', 'Properties ->'];
   for (var i = 0; i < equipmentCount; i++) {
-    filledArray[i+1] = ['', sheetIds[i], `https://docs.google.com/spreadsheets/d/${experimentConditionSpreadsheetId}/edit#gid=${sheetIds[i]}&fvid=1`, ''];
+    filledArray[i+1] = ['', sheetIds[i], `https://docs.google.com/spreadsheets/d/${experimentConditionSpreadsheetId}/edit#gid=${sheetIds[i]}&fvid=${1+i}`, ''];
   }
   activeSheet.getRange(1, 1, equipmentCount+1, 4).setValues(filledArray);
   activeSheet.getRange(1, 2, equipmentCount+1, 2).setHorizontalAlignment("left"); // show https://... not the center of url
