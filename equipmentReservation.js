@@ -1,6 +1,5 @@
 // todo: event logging is taking a long time (due to filter update)
 // todo: eventExists is not working in allEquipment sheets
-// todo: startTime is UTC?
 
 // ===============================================================================================
 // ======================================= SETUP FUNCTIONS ======================================= 
@@ -508,7 +507,7 @@ function onEquipmentConditionEdit(equipmentSheet, row) {
     if (event === null) {
       Logger.log('the specified event id does not exist');
     } else {
-      event.setTime(new Date(startTime), new Date(endTime))// edit start and end time
+      event.setTime(localTimeToUTC(startTime), localTimeToUTC(endTime))// edit start and end time
       event.setTitle(`${user} ${equipment} ${state}`); // edit equipmentName, name ,state
       event.setDescription(JSON.stringify(experimentCondition)); // write experiment condition in details
     }
@@ -566,7 +565,7 @@ function writeEventsToReadCalendar(writeCalendarId, index, fullSync) {
       isAllDayEvent: event.isAllDayEvent(),
       isRecurringEvent: event.isRecurringEvent(),
       action: action, 
-      executionTime: new Date(), // current time
+      executionTime: UTCToLocalTime(new Date()), // current time
       id: eid, 
     });
     eventLoggingExecute(equipmentSheetNameFromEquipmentName[equipmentName]);
@@ -589,7 +588,7 @@ function writeEventsToReadCalendar(writeCalendarId, index, fullSync) {
       isAllDayEvent: event.isAllDayEvent(),
       isRecurringEvent: event.isRecurringEvent(),
       action: action, 
-      executionTime: new Date(), // current time
+      executionTime: UTCToLocalTime(new Date()), // current time
       id: eid, 
     });
     eventLoggingExecute(equipmentSheetNameFromEquipmentName[equipmentName]);
@@ -822,8 +821,8 @@ function backupAndDeleteOverflownEquipmentData(equipmentSheet) {
   const properties = PropertiesService.getUserProperties();
   // backup rows
   const equipment = equipmentSheet.getRange(2, 4).getValue();
-  const startTime = new Date(equipmentSheet.getRange(2, 1).getValue());
-  const endTime = new Date(equipmentSheet.getRange(2+experimentConditionBackupRows-1, 1).getValue());
+  const startTime = localTimeToUTC(equipmentSheet.getRange(2, 1).getValue());
+  const endTime = localTimeToUTC(equipmentSheet.getRange(2+experimentConditionBackupRows-1, 1).getValue());
   const experimentConditionBackupRows = parseInt(properties.getProperty('experimentConditionBackupRows'));
   const backupColumns = equipmentSheet.getLastColumn();
   equipmentSheet.getRange(1, 1, experimentConditionBackupRows+1, backupColumns).copyTo(
@@ -846,8 +845,8 @@ function backupAndDeleteOverflownLoggingData(finalLogSheet) {
   // backup rows
   const backupRows = finalLogSheet.getLastRow()-1;
   const backupColumns = finalLogSheet.getLastColumn();
-  const startTime = new Date(finalLogSheet.getRange(2, 1).getValue());
-  const endTime = new Date(finalLogSheet.getRange(2+backupRows-1, 1).getValue());
+  const startTime = localTimeToUTC(finalLogSheet.getRange(2, 1).getValue());
+  const endTime = localTimeToUTC(finalLogSheet.getRange(2+backupRows-1, 1).getValue());
   finalLogSheet.getRange(1, 1, backupRows+1, backupColumns).copyTo(
     SpreadsheetApp.create(`BACKUP_LOG_${startTime}-${endTime}`),
     SpreadsheetApp.CopyPasteType.PASTE_VALUES, 
