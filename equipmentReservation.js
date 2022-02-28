@@ -45,10 +45,12 @@ function createSpreadsheets() {
 
   // create workbooks(spreadsheets) and sheets
   var experimentConditionSpreadsheet = SpreadsheetApp.create('experimentConditionSpreadsheet');
+  experimentConditionSpreadsheet.setSpreadsheetTimeZone('Asia/Tokyo');
   experimentConditionSpreadsheet.insertSheet('users'); 
   experimentConditionSpreadsheet.insertSheet('properties');
   experimentConditionSpreadsheet.insertSheet('allEquipments');
   var loggingSpreadsheet = SpreadsheetApp.create('loggingSpreadsheet');
+  loggingSpreadsheet.setSpreadsheetTimeZone('Asia/Tokyo');
   loggingSpreadsheet.insertSheet('finalLog');
   loggingSpreadsheet.deleteSheet(loggingSpreadsheet.getSheetByName('Sheet1'));
   // get ids
@@ -554,7 +556,7 @@ function onEquipmentConditionEdit(equipmentSheet, row) {
     } else {
       var title = `${user} ${equipment} ${state}`;
     }
-    var event = writeCalendar.createEvent(title, startTime, endTime, {description: experimentCondition});
+    var event = writeCalendar.createEvent(title, localTimeToUTC(startTime), localTimeToUTC(endTime), {description: experimentCondition});
   } else { // 2. when experiment id exists -> modify event
     var event = writeCalendar.getEventById(id);
     if (event === null) {
