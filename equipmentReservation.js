@@ -6,63 +6,40 @@
 // ======================================= SETUP FUNCTIONS ======================================= 
 // ===============================================================================================
 
-// setup
-function setup() {
-  Logger.log('Running setup');
-  const groupUrl = '?????@googlegroups.com'; // replace this line
-  if (groupUrl.includes('?')) { // detect default value
-    throw new Error('ERROR: change "?????@googlegroups.com" to your google group name');
-  }
-  defineConstants(); // define constants used over several scripts
-  createSpreadsheets(18, groupUrl); // create spreadsheet for 17 users
-  createCalendars(18, groupUrl); // create 18 read + 17 write calendars
-  deleteTriggers();
-  getAndStoreObjects();
-  createTriggers();
-}
-
-// set row and column count of sheet
-function changeSheetSize(sheet, rows, columns) {
-  // column count will most likely be decreased
-  // we will change columns first to prevent cell count to exceed 10000000 cell limit
-  if (columns !== 0) { 
-    var sheetColumns = sheet.getMaxColumns();
-    if (columns < sheetColumns) {
-      sheet.deleteColumns(columns+1, sheetColumns-columns);
-    }
-    else if (columns > sheetColumns) {
-      sheet.insertColumnsAfter(sheetColumns,columns-sheetColumns);
-    }
-  }
-  if (rows !== 0) {
-    var sheetRows = sheet.getMaxRows();
-    if (rows < sheetRows) {
-      sheet.deleteRows(rows+1, sheetRows-rows);
-    }
-    else if (rows > sheetRows) {
-      sheet.insertRowsAfter(sheetRows, rows-sheetRows);
-    }
-  }
-  sheet.getRange(1, 1, rows, columns).setWrap(true); // wrap overflowing text
-  sheet.getRange(1, 1, rows, columns).setHorizontalAlignment("center"); // center text
-  sheet.getRange(1, 1, rows, columns).setVerticalAlignment("middle"); // center text
-}
-
 // define constants used over several scripts
 function defineConstants() {
   Logger.log('Defining constants');
   const properties = PropertiesService.getUserProperties();
+  properties.setProperty('groupUrl', '?????@googlegroups.com'); // groupURL
+  properties.setProperty('timeZone', 'Asia/Tokyo'); // set timezone
+  properties.setProperty('userCount', 18); // number of users
   properties.setProperty('equipmentCount', 50); // number of equipments
   properties.setProperty('experimentConditionCount', 20); // number of experiment conditions for a single equipment
   properties.setProperty('experimentConditionRows', 5000); // number of rows in experiment condition
   properties.setProperty('experimentConditionBackupRows', 4500); // number of rows to backup and delete in case of overflow of sheets
   properties.setProperty('finalLoggingRows', 1000000); // number of rows in final logging
   properties.setProperty('finalLoggingBackupRows', 990000); // number of rows in final logging
+  if (properties.getProperty('groupUrl').includes('?')) { // detect default value and throw error
+    throw new Error('ERROR: change "?????@googlegroups.com" to your google group name');
+  }
+}
+
+// setup
+function setup() {
+  Logger.log('Running setup');
+  defineConstants(); // define constants used over several scripts
+  createSpreadsheets(); // create spreadsheet for 17 users
+  createCalendars(); // create 18 read + 17 write calendars
+  deleteTriggers();
+  getAndStoreObjects();
+  createTriggers();
 }
 
 // creates spreadsheet for {userCount} users
-function createSpreadsheets(userCount, groupUrl) {
+function createSpreadsheets() {
   const properties = PropertiesService.getUserProperties();
+  const userCount = properties.getProperty('userCount');
+  const groupUrl = properties.getProperty('groupUrl');
   const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
   const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
   const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
@@ -234,9 +211,11 @@ function createSpreadsheets(userCount, groupUrl) {
 }
 
 // creates calendars for {userCount} users
-function createCalendars(userCount, groupUrl) {
+function createCalendars() {
   Logger.log('Creating calendars');
   const properties = PropertiesService.getUserProperties();
+  const userCount = properties.getProperty('userCount');
+  const groupUrl = properties.getProperty('groupUrl');
   const experimentConditionSpreadsheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId'));
   const resource = { // used to add google group as guest
     'scope': {
@@ -884,6 +863,33 @@ function backupAndDeleteOverflownLoggingData(finalLogSheet) {
 // ======================================= HELPER FUNCTIONS ======================================= 
 // ================================================================================================
 
+// set row and column count of sheet
+function changeSheetSize(sheet, rows, columns) {
+  // column count will most likely be decreased
+  // we will change columns first to prevent cell count to exceed 10000000 cell limit
+  if (columns !== 0) { 
+    var sheetColumns = sheet.getMaxColumns();
+    if (columns < sheetColumns) {
+      sheet.deleteColumns(columns+1, sheetColumns-columns);
+    }
+    else if (columns > sheetColumns) {
+      sheet.insertColumnsAfter(sheetColumns,columns-sheetColumns);
+    }
+  }
+  if (rows !== 0) {
+    var sheetRows = sheet.getMaxRows();
+    if (rows < sheetRows) {
+      sheet.deleteRows(rows+1, sheetRows-rows);
+    }
+    else if (rows > sheetRows) {
+      sheet.insertRowsAfter(sheetRows, rows-sheetRows);
+    }
+  }
+  sheet.getRange(1, 1, rows, columns).setWrap(true); // wrap overflowing text
+  sheet.getRange(1, 1, rows, columns).setHorizontalAlignment("center"); // center text
+  sheet.getRange(1, 1, rows, columns).setVerticalAlignment("middle"); // center text
+}
+
 // create 2d array filled with value
 function arrayFill2d(rows, columns, value) { 
   return Array(rows).fill().map(() => Array(columns).fill(value));
@@ -1113,4 +1119,22 @@ function changeCalendarName(calendarId, userName, readOrWrite) {
     Logger.log('Updated calendar name');
   }
   Logger.log('Skipped update of calendar name because calendarId is empty');
+}
+
+// parse HH:mm MM/DD/YYYY (local time) to 0000-00-00T00:00:00.000Z (ISO-8601) UTC
+// string -> Date object
+function localTimeToUTC(inputDate) {
+  const properties = PropertiesService.getUserProperties();
+  const timeZone = properties.getProperty('timeZone');
+  const outputDate = moment.tz(inputDate, "HH:mm MM/DD/YYYY", timeZone).toDate(); // toDate outputs utc time
+  return outputDate
+}
+
+// parse 0000-00-00T00:00:00.000Z (ISO-8601) UTC to HH:mm MM/DD/YYYY (local time)
+// Date object -> string
+function UTCtoLocalTime(inputDate) {
+  const properties = PropertiesService.getUserProperties();
+  const timeZone = properties.getProperty('timeZone');
+  const outputDate = moment(inputDate).tz(timeZone).format("HH:mm MM/DD/YYYY");
+  return outputDate
 }
