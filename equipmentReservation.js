@@ -1131,7 +1131,7 @@ function localTimeToUTC(inputDate) {
 
 // parse 0000-00-00T00:00:00.000Z (ISO-8601) UTC to HH:mm MM/DD/YYYY (local time)
 // Date object -> string
-function UTCtoLocalTime(inputDate) {
+function UTCToLocalTime(inputDate) {
   const properties = PropertiesService.getUserProperties();
   const timeZone = properties.getProperty('timeZone');
   const outputDate = moment(inputDate).tz(timeZone).format("HH:mm MM/DD/YYYY");
