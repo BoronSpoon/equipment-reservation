@@ -315,6 +315,7 @@ function createTriggers() {
 function onCalendarEdit(e) {
   Logger.log('Calendar edit trigger');
   getAndStoreObjects(); // get sheets, calendars and store them in properties
+  importMomentJS();
   const properties = PropertiesService.getUserProperties();
   const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
   const calendarId = e.calendarId;
@@ -328,6 +329,7 @@ function onSheetsEdit(e) {
   Logger.log('Sheets edit trigger');
   const properties = PropertiesService.getUserProperties();
   getAndStoreObjects(); // get sheets, calendars and store them in properties
+  importMomentJS();
   const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
   const sheet = e.source.getActiveSheet();
   const sheetName = sheet.getName();
@@ -1118,6 +1120,12 @@ function changeCalendarName(calendarId, userName, readOrWrite) {
     Logger.log('Updated calendar name');
   }
   Logger.log('Skipped update of calendar name because calendarId is empty');
+}
+
+function importMomentJS() {
+  Logger.log('Start importing Moment-timezone');
+  eval(UrlFetchApp.fetch('https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.34/moment-timezone.min.js').getContentText());
+  Logger.log('Done importing Moment-timezone');
 }
 
 // parse HH:mm MM/DD/YYYY (local time) to 0000-00-00T00:00:00.000Z (ISO-8601) UTC

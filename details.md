@@ -284,9 +284,9 @@ https://google.github.io/styleguide/jsguide.html (以下jsguideと呼ぶ)の内�
 
 ##### Google Sheets上
 - users sheet
-   - [ ] 使用する装置の変更(使用する装置のチェックマークを入れたり外したりする)
+   - [x] 使用する装置の変更(使用する装置のチェックマークを入れたり外したりする)
    - ユーザー名(`User Name`)の変更
-      - [ ] カレンダー名`Read [User Name]`、`Write [User Name]`が変更される事の確認
+      - [x] カレンダー名`Read [User Name]`、`Write [User Name]`が変更される事の確認
       - [ ] イベントの名前にユーザー名(`User Name`)が入っているため、イベント名が変更される事の確認
    - [ ] カレンダーのリンクをクリックしてリンクの正常性の確認
 - properties sheet
