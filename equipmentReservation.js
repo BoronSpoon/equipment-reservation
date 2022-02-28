@@ -1,5 +1,4 @@
 // todo: event logging is taking a long time (due to filter update)
-// todo: eventExists is not working in allEquipment sheets
 
 // ===============================================================================================
 // ======================================= SETUP FUNCTIONS ======================================= 
@@ -169,7 +168,7 @@ function createSpreadsheets() {
   addFilterViewRequest = {
     'addFilterView': {
       'filter': {
-        "filterViewId": 1, 
+        "filterViewId": 2, 
         'title': 'sort events by date and time',
         'sortSpecs': [ // sort doesn't include header row
           {'dimensionIndex': 0, 'sortOrder': 'ASCENDING'}, // sort by startTime
