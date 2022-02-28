@@ -1,8 +1,6 @@
 // todo: event logging is taking a long time (due to filter update)
-// todo: event description is not working
-// todo: eventExists is not working
-
-
+// todo: eventExists is not working in allEquipment sheets
+// todo: startTime is UTC?
 
 // ===============================================================================================
 // ======================================= SETUP FUNCTIONS ======================================= 
@@ -132,7 +130,7 @@ function createSpreadsheets(userCount, groupUrl) {
   activeSheet.getRange(1, 1, experimentConditionRows*equipmentCount+1, 6).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
   // set headers
   activeSheet.getRange(1, 1, 1, 6).setValues(
-    [['startTime','executionTime','id','action','originalAddress','eventExistsInRow']]
+    [['startTime','executionTime','id','action','originalAddress','eventExists']]
   ); 
   var filledArray = [];
   var row = 0;
