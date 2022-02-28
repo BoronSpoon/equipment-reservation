@@ -93,6 +93,47 @@ function createSpreadsheets() {
     }
 
     activeSheet.getRange(2, 1, experimentConditionRows, 12).setFormulas(filledArray);
+
+    Logger.log('Creating filters for hiding canceled and modified events');
+
+    if (i === 0) { // create filter view for the first sheet
+      // addFilterView -> adds filter view -> updates automatically -> apply manually after select
+      // setBasicFilter -> adds filter (same as spreadsheetApp filter) -> doesn't update automatically
+      addFilterViewRequest = {
+        'addFilterView': {
+          'filter': {
+            "filterViewId": 1, 
+            'title': 'hide canceled or modified events',
+            'sortSpecs': [ // sort doesn't include header row
+              {'dimensionIndex': 0, 'sortOrder': 'ASCENDING'}, // sort by startTime
+              {'dimensionIndex': 9, 'sortOrder': 'ASCENDING'}, // sort by executionTime if startTime is same
+            ], 
+            "range": {
+              "sheetId": sheetIds[i],
+              "startRowIndex": 0,
+              "endRowIndex": experimentConditionRows,
+              "startColumnIndex": 0,
+              "endColumnIndex": 12+experimentConditionCount,
+            },
+            'criteria': { // when column 12 is FALSE, hide row
+              11: { 'hiddenValues': ['FALSE'] },
+            },
+          }
+        }
+      }
+      Sheets.Spreadsheets.batchUpdate(
+        {'requests': [addFilterViewRequest]}, experimentConditionSpreadsheetId
+      );
+    } else { // copy filter view of the first sheet
+      duplicateFilterViewRequest = {
+        'duplicateFilterView': {
+          'filterId': 1,
+        }
+      }
+      Sheets.Spreadsheets.batchUpdate(
+        {'requests': [duplicateFilterViewRequest]}, experimentConditionSpreadsheetId
+      );
+    }
   }
 
   Utilities.sleep(1000);
@@ -107,7 +148,7 @@ function createSpreadsheets() {
   // set headers
   activeSheet.getRange(1, 1, 1, 6).setValues(
     [['startTime','executionTime','id','action','originalAddress','eventExists']]
-  ); 
+  );
   var filledArray = [];
   var row = 0;
   for (var i = 0; i < equipmentCount; i++) {
@@ -125,6 +166,28 @@ function createSpreadsheets() {
     }
   }
   activeSheet.getRange(2, 1, experimentConditionRows*equipmentCount, 6).setFormulas(filledArray);
+  addFilterViewRequest = {
+    'addFilterView': {
+      'filter': {
+        "filterViewId": 1, 
+        'title': 'sort events by date and time',
+        'sortSpecs': [ // sort doesn't include header row
+          {'dimensionIndex': 0, 'sortOrder': 'ASCENDING'}, // sort by startTime
+          {'dimensionIndex': 1, 'sortOrder': 'ASCENDING'}, // sort by executionTime if startTime is same
+        ], 
+        "range": {
+          "sheetId": activeSheet.getSheetId(),
+          "startRowIndex": 0,
+          "endRowIndex": experimentConditionRows*equipmentCount+1,
+          "startColumnIndex": 0,
+          "endColumnIndex": 6,
+        },
+      }
+    }
+  }
+  Sheets.Spreadsheets.batchUpdate(
+    {'requests': [addFilterViewRequest]}, experimentConditionSpreadsheetId
+  );
 
   Utilities.sleep(1000);
   // users sheet
@@ -180,7 +243,7 @@ function createSpreadsheets() {
   var filledArray = [[]];
   filledArray[0] = ['equipmentName', 'sheetId', 'sheetUrl', 'Properties ->'];
   for (var i = 0; i < equipmentCount; i++) {
-    filledArray[i+1] = ['', sheetIds[i], `https://docs.google.com/spreadsheets/d/${experimentConditionSpreadsheetId}/edit#gid=${sheetIds[i]}`, ''];
+    filledArray[i+1] = ['', sheetIds[i], `https://docs.google.com/spreadsheets/d/${experimentConditionSpreadsheetId}/edit#gid=${sheetIds[i]}&fvid=1`, ''];
   }
   activeSheet.getRange(1, 2, equipmentCount+1, 2).setValues(filledArray);
   activeSheet.getRange(1, 2, equipmentCount+1, 2).setHorizontalAlignment("left"); // show https://... not the center of url
@@ -516,18 +579,6 @@ function onEquipmentConditionEdit(equipmentSheet, row) {
   }
   Logger.log('Sorting events');
   const allEquipmentsSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('allEquipments');
-  equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort([{column: 1, ascending: true}, {column: 10, ascending: true}]); // sort by startTime and executionTime. sort doesn't include header row
-  allEquipmentsSheet.getRange(2, 1, experimentConditionRows*equipmentCount, 6).sort([{column: 1, ascending: true}, {column: 2, ascending: true}]); // sort by startTime and executionTime. sort doesn't include header row
-
-  Logger.log('Updating filters for hiding canceled and modified events');
-  const range = equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount);
-  if (range.getFilter() === null) { // if filter is deleted, remake filter. Or, create filter for the first execution.
-    // when column 12 is not TRUE, hide row
-    var rule = SpreadsheetApp.newFilterCriteria()
-      .whenTextEqualTo('TRUE')
-      .build();
-    range.createFilter().setColumnFilterCriteria(12, rule); // column filter includes header row
-  }
 }  
 
 // write events to read calendar based on updated events in write calendar
@@ -710,18 +761,6 @@ function eventLoggingExecute(equipmentSheetName) {
   } catch (e) {}
 
   Logger.log('Sorting events');
-  equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort([{column: 1, ascending: true}, {column: 10, ascending: true}]); // sort by startTime and executionTime. sort doesn't include header row
-  allEquipmentsSheet.getRange(2, 1, experimentConditionRows*equipmentCount, 6).sort([{column: 1, ascending: true}, {column: 2, ascending: true}]); // sort by startTime and executionTime. sort doesn't include header row
-
-  Logger.log('Updating filters for hiding canceled and modified events');
-  const range = equipmentSheet.getRange(1, 1, experimentConditionRows, 12+experimentConditionCount);
-  if (range.getFilter() === null) { // if filter is deleted, remake filter. Or, create filter for the first execution.
-    // when column 12 is not TRUE, hide row
-    var rule = SpreadsheetApp.newFilterCriteria()
-      .whenTextEqualTo('TRUE')
-      .build();
-    range.createFilter().setColumnFilterCriteria(12, rule); // column filter includes header row
-  }
 }
 
 // logs just the necessary data
@@ -838,8 +877,6 @@ function backupAndDeleteOverflownEquipmentData(equipmentSheet) {
   equipmentSheet.getRange(2, 1, experimentConditionBackupRows, 11).setValues(filledArray);
   filledArray = arrayFill2d(experimentConditionBackupRows, experimentConditionCount, '');
   equipmentSheet.getRange(13, 1, experimentConditionBackupRows, experimentConditionCount).setValues(filledArray);
-  // no need to move remaing rows up because sort function is applied
-  equipmentSheet.getRange(2, 1, experimentConditionRows-1, 12+experimentConditionCount).sort([{column: 1, ascending: true}, {column: 10, ascending: true}]); // sort by startTime and executionTime. sort doesn't include header row
 }
 
 // prevent overflow of spreadsheet data by backing up and deleting it
@@ -1130,20 +1167,20 @@ function importMomentJS() {
   Logger.log('Done importing');
 }
 
-// parse HH:mm MM/DD/YYYY (local time) to 0000-00-00T00:00:00.000Z (ISO-8601) UTC
+// parse MM/DD/YY HH:mm (local time) to 0000-00-00T00:00:00.000Z (ISO-8601) UTC
 // string -> Date object
 function localTimeToUTC(inputDate) {
   const properties = PropertiesService.getUserProperties();
   const timeZone = properties.getProperty('timeZone');
-  const outputDate = moment.tz(inputDate, "HH:mm MM/DD/YYYY", timeZone).toDate(); // toDate outputs utc time
+  const outputDate = moment.tz(inputDate, "MM/DD/YY HH:mm", timeZone).toDate(); // toDate outputs utc time
   return outputDate
 }
 
-// parse 0000-00-00T00:00:00.000Z (ISO-8601) UTC to HH:mm MM/DD/YYYY (local time)
+// parse 0000-00-00T00:00:00.000Z (ISO-8601) UTC to MM/DD/YY HH:mm (local time)
 // Date object -> string
 function UTCToLocalTime(inputDate) {
   const properties = PropertiesService.getUserProperties();
   const timeZone = properties.getProperty('timeZone');
-  const outputDate = moment(inputDate).tz(timeZone).format("HH:mm MM/DD/YYYY");
+  const outputDate = moment(inputDate).tz(timeZone).format("MM/DD/YY HH:mm");
   return outputDate
 }
