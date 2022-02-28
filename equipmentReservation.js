@@ -549,8 +549,6 @@ function onEquipmentConditionEdit(equipmentSheet, row) {
     }
   }
   equipmentSheet.getRange(row, 6).setValue(JSON.stringify(experimentCondition)); // set description in sheets
-  var event = writeCalendar.getEventById(id);
-  event.setDescription(JSON.stringify(experimentCondition)); // save experiment condition as stringified JSON
   if (id === '') { // 1. when experiment id doesn't exist -> add event 
     if (state === ''){
       var title = `${user} ${equipment}`;
@@ -560,6 +558,7 @@ function onEquipmentConditionEdit(equipmentSheet, row) {
     var event = writeCalendar.createEvent(title, localTimeToUTC(startTime), localTimeToUTC(endTime), {description: experimentCondition});
   } else { // 2. when experiment id exists -> modify event
     var event = writeCalendar.getEventById(id);
+    event.setDescription(JSON.stringify(experimentCondition)); // save experiment condition as stringified JSON
     if (event === null) {
       Logger.log('the specified event id does not exist');
     } else {
