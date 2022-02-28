@@ -1123,10 +1123,11 @@ function changeCalendarName(calendarId, userName, readOrWrite) {
 }
 
 function importMomentJS() {
-  Logger.log('Start importing Moment, Moment-timezone');
+  Logger.log('Start importing Moment, Moment-timezone, Moment-timezone-with-data');
   eval(UrlFetchApp.fetch('https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js').getContentText());
   eval(UrlFetchApp.fetch('https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.34/moment-timezone.min.js').getContentText());
-  Logger.log('Done importing Moment, Moment-timezone');
+  eval(UrlFetchApp.fetch('https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.34/moment-timezone-with-data.js').getContentText());
+  Logger.log('Done importing');
 }
 
 // parse HH:mm MM/DD/YYYY (local time) to 0000-00-00T00:00:00.000Z (ISO-8601) UTC
