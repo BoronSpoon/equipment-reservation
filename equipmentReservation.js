@@ -1,5 +1,3 @@
-// todo: setformulas in setup2 taking too long
-
 // ===============================================================================================
 // ======================================= SETUP FUNCTIONS ======================================= 
 // ===============================================================================================
@@ -174,9 +172,11 @@ function createSpreadsheets2() {
   const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
   const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
   const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
+  const experimentConditionSpreadsheetId = properties.getProperty('experimentConditionSpreadsheetId');
+  const loggingSpreadsheetId = properties.getProperty('loggingSpreadsheetId');
   const finalLoggingRows = parseInt(properties.getProperty('finalLoggingRows'));
-  const experimentConditionSpreadsheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId'));
-  const loggingSpreadsheet = SpreadsheetApp.openById(properties.getProperty('loggingSpreadsheetId'));
+  const experimentConditionSpreadsheet = SpreadsheetApp.openById(experimentConditionSpreadsheetId);
+  const loggingSpreadsheet = SpreadsheetApp.openById(loggingSpreadsheetId);
   const sheetIds = JSON.parse(properties.getProperty('sheetIds'));
   
   // allEquipment sheet
@@ -190,23 +190,45 @@ function createSpreadsheets2() {
   activeSheet.getRange(1, 1, 1, 6).setValues(
     [['startTime','executionTime','id','action','originalAddress','eventExists']]
   );
-  var filledArray = [];
+  var filledArray1 = [];
+  var filledArray2 = [];
   var row = 0;
   for (var i = 0; i < equipmentCount; i++) {
     for (var j = 0; j < experimentConditionRows; j++) {
       row = i*experimentConditionRows + j;
-      filledArray[row] = [
-        `=INDIRECT("equipment${i+1}!R${2+row}C1", FALSE)`, // C1
-        `=INDIRECT("equipment${i+1}!R${2+row}C10", FALSE)`, // C10
-        `=INDIRECT("equipment${i+1}!R${2+row}C11", FALSE)`, // C11
-        `=INDIRECT("equipment${i+1}!R${2+row}C9", FALSE)`, // C9
-        `"equipment${i+1}!R${2+j}"`,
-        // see if event exists (if it is 1[unmodified(is the last entry with the same id)] and 2[not canceled]) or 3[cell is empty]
-        `=OR(AND(COUNTIF(INDIRECT("R[1]C[-3]:R${experimentConditionRows*equipmentCount+1}C[-3]", FALSE), INDIRECT("R[0]C[-3]", FALSE))=0, INDIRECT("R[0]C[-2]", FALSE)="add"), INDIRECT("R[0]C[-4]", FALSE)="")`
+      filledArray1[row] = [ // column A~C
+        `=INDIRECT(\"equipment${i+1}!R${2+row}C1\", FALSE)`, // C1
+        `=INDIRECT(\"equipment${i+1}!R${2+row}C10\", FALSE)`, // C10
+        `=INDIRECT(\"equipment${i+1}!R${2+row}C11\", FALSE)`, // C11
+      ]; // refer to sheet 'properties' for equipment name
+      filledArray2[row] = [ // column D~E
+        `=INDIRECT(\"equipment${i+1}!R${2+row}C9\", FALSE)`, // C9
+        `'equipment${i+1}!R${2+j}`,
       ]; // refer to sheet 'properties' for equipment name
     }
   }
-  activeSheet.getRange(2, 1, experimentConditionRows*equipmentCount, 6).setFormulas(filledArray);
+  // column A~C
+  Sheets.Spreadsheets.Values.update(
+    {"majorDimension": "ROWS", "values": filledArray1},
+    experimentConditionSpreadsheetId, 
+    `allEquipments!A2:C${experimentConditionRows*equipmentCount+1}`,
+    {"valueInputOption": "USER_ENTERED"}
+  );
+  // column D~E
+  Sheets.Spreadsheets.Values.update(
+    {"majorDimension": "ROWS", "values": filledArray2},
+    experimentConditionSpreadsheetId, 
+    `allEquipments!D2:E${experimentConditionRows*equipmentCount+1}`,
+    {"valueInputOption": "USER_ENTERED"}
+  );
+  
+  // column F (could not be set with sheetsAPI for some reason...)
+  //see if event exists (if it is 1[unmodified(is the last entry with the same id)] and 2[not canceled]) or 3[cell is empty]
+  experimentConditionSpreadsheet
+    .getSheetByName('allEquipments')
+    .getRange(2, 6, experimentConditionRows*equipmentCount, 1)
+    .setFormula(`=OR(AND(COUNTIF(INDIRECT("R[1]C[-3]:R${experimentConditionRows*equipmentCount+1}C[-3]", FALSE), INDIRECT("R[0]C[-3]", FALSE))=0, INDIRECT("R[0]C[-2]", FALSE)="add"), INDIRECT("R[0]C[-4]", FALSE)="")`);
+
   addFilterViewRequest = {
     'addFilterView': {
       'filter': {
