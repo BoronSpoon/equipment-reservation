@@ -35,7 +35,11 @@
    Change `?????@googlegroups.com` to the google group name created in the previous step.   
    Change `Asia/Tokyo` to your time zone. Refer to [wikipedia link](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) for the syntax.
 
-4. In the GAS project, run the function `setup1()`.
+4. Add advanced calendar services and advanced sheets services as shown in following picture.
+<img align="right" width="100%" src="pics/advanced_calendar_and_sheets.png">
+<img width="100%" src="pics/horizontal_line_invisible.png">
+
+5. In the GAS project, run the function `setup1()`.
 
 <img align="right" width="55%" src="pics/apps_script_run_1.png">
 <img width="100%" src="pics/horizontal_line_invisible.png">
@@ -60,7 +64,7 @@ Click `Allow`. Don't touch any files and wait for **5** minutes after the setup 
 <img align="right" width="55%" src="pics/apps_script_run_5.png">
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-5. Deploy the project. Click `New Deployment`
+6. Deploy the project. Click `New Deployment`
 
 <img align="right" width="25%" src="pics/apps_script_deploy_1.png">
 <img width="100%" src="pics/horizontal_line_invisible.png">
