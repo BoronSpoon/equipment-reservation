@@ -70,6 +70,12 @@ Click `Deploy`
 <img align="right" width="55%" src="pics/apps_script_deploy_2.png">
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
+5. Add admin user
+
+6. Add equipments
+
+7. Add equipment conditions
+
 </details>
 
 <!-- USAGE EXAMPLES -->
