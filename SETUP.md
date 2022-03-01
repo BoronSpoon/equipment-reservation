@@ -37,28 +37,37 @@
 
 4. In the GAS project, run the function `setup()`.
 
-<img align="right" width="55%" src="pics/apps_script_run.png">
+<img align="right" width="55%" src="pics/apps_script_run_1.png">
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-   Click `Review Permissions`.
+Click `Review Permissions`.
 
-<img align="right" width="55%" src="pics/execute_setup2.png">
+<img align="right" width="55%" src="pics/apps_script_run_2.png">
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-   Click `Advanced`.
+Click `Advanced`.
 
-<img align="right" width="55%" src="pics/execute_setup3.png">
+<img align="right" width="55%" src="pics/apps_script_run_3.png">
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-   Click `Go to {project name} (unsafe)`.
+Click `Go to {project name} (unsafe)`.
    
-<img align="right" width="55%" src="pics/execute_setup4.png">
+<img align="right" width="55%" src="pics/apps_script_run_4.png">
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-   Click `Allow`.
+Click `Allow`.
 
-5. Deploy the project
+<img align="right" width="55%" src="pics/apps_script_run_5.png">
+<img width="100%" src="pics/horizontal_line_invisible.png">
 
+5. Deploy the project. Click `New Deployment`
+
+<img align="right" width="25%" src="pics/apps_script_deploy_1.png">
+<img width="100%" src="pics/horizontal_line_invisible.png">
+
+Click `Deploy`
+
+<img align="right" width="55%" src="pics/apps_script_deploy_2.png">
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
 </details>
