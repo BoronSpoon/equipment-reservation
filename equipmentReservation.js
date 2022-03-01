@@ -228,7 +228,7 @@ function createSpreadsheets() {
   activeSheet.getRange(1, 3, equipmentCount+1, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   // protect range
   protectRange(activeSheet.getRange(1, 1, 1, experimentConditionCount+1));
-  protectRange(activeSheet.getRange(2, 2, equipmentCount, 1));
+  protectRange(activeSheet.getRange(2, 2, equipmentCount, 2));
   // set headers
   var filledArray = [[]];
   filledArray[0] = ['equipmentName', 'sheetId', 'sheetUrl', 'Properties ->'];
