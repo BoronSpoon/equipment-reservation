@@ -25,8 +25,8 @@ function defineConstants() {
 function setup() {
   Logger.log('Running setup');
   defineConstants(); // define constants used over several scripts
-  createSpreadsheets(); // create spreadsheet for 17 users
-  createCalendars(); // create 18 read + 17 write calendars
+  createSpreadsheets(); // create spreadsheet for 18 users
+  createCalendars(); // create 19 read + 18 write calendars
   deleteTriggers();
   getAndStoreObjects();
   createTriggers();

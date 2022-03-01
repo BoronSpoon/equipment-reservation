@@ -1,8 +1,10 @@
 ## Setting Up (administrator side) 
-<details>
-<summary>
-(click to expand)
+```
+<details> 
+<summary> 
+(click to expand) 
 </summary>
+```
 
 ### 1. Create a Google account
 ### 2. Create a Google Group
@@ -18,36 +20,44 @@
 
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-### 3. Create a Spreadsheet
-<img align="right" display="block" width="40%" hspace="2%" src="pics/sheets_import.gif">
-
-1. Open https://docs.google.com/spreadsheets/ and create a empty spreadsheet
-2. import `equipmentSettings.xlsx` into spreadsheet
-<img width="100%" src="pics/horizontal_line_invisible.png">
-
-### 4. Create Calendars
-<img align="right" display="block" width="40%" hspace="2%" src="pics/add_calendar.gif">
-
-1. Create **36** calendars in Google Calendar with an arbitary name
-<img width="100%" src="pics/horizontal_line_invisible.png">
-
-<img align="left" display="block" width="40%" hspace="4%" src="pics/add_group_share.gif">
-
-2. For every calendar, set modification priveledge to Google Group users
-<img width="100%" src="pics/horizontal_line_invisible.png">
-
-<img align="right" display="block" width="45%" hspace="2%" src="pics/add_calendars_to_sheets.png">   
-
-3. write the calendar ids into `Write Calendar id` and `Read Calendar id` rows in sheets
-4. write the calendar urls into sheet named `URL of Calendar`
-<img width="100%" src="pics/horizontal_line_invisible.png">
-
-### 5. Create a Google Apps Script Project 
+### 3. Create a Google Apps Script Project 
 1. Go to https://script.google.com/home and click New project
-2. Copy the contents of `equipmentReservation.js` to the new project's source code
-3. In the script, change {spreadsheetId} to your spreadsheet id, and {logSpreadsheetId} to your log spreadsheet id
-4. In the GAS project, run the function CreateTriggers()
-5. Publish the project
+2. Copy the contents of [GitHub page](https://raw.githubusercontent.com/BoronSpoon/equipment-reservation/master/equipmentReservation.js) to the new project's source code
+
+<img align="right" width="70%" src="pics/apps_script.png">
+<img width="100%" src="pics/horizontal_line_invisible.png">
+
+3. In the following lines, 
+   ```javascript
+   properties.setProperty('groupUrl', '?????@googlegroups.com'); // groupURL
+   properties.setProperty('timeZone', 'Asia/Tokyo'); // set timezone
+   ```
+   Change `?????@googlegroups.com` to the google group name created in the previous step.   
+   Change `Asia/Tokyo` to your time zone. Refer to [wikipedia link](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) for the syntax.
+
+4. In the GAS project, run the function `setup()`.
+
+<img align="right" width="55%" src="pics/apps_script_run.png">
+<img width="100%" src="pics/horizontal_line_invisible.png">
+
+   Click `Review Permissions`.
+
+<img align="right" width="55%" src="pics/execute_setup2.png">
+<img width="100%" src="pics/horizontal_line_invisible.png">
+
+   Click `Advanced`.
+
+<img align="right" width="55%" src="pics/execute_setup3.png">
+<img width="100%" src="pics/horizontal_line_invisible.png">
+
+   Click `Go to {project name} (unsafe)`.
+   
+<img align="right" width="55%" src="pics/execute_setup4.png">
+<img width="100%" src="pics/horizontal_line_invisible.png">
+
+   Click `Allow`.
+
+5. Deploy the project
 
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
