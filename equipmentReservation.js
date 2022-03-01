@@ -18,6 +18,7 @@ function defineConstants() {
   properties.setProperty('experimentConditionBackupRows', 4500); // number of rows to backup and delete in case of overflow of sheets
   properties.setProperty('finalLoggingRows', 1000000); // number of rows in final logging
   properties.setProperty('finalLoggingBackupRows', 990000); // number of rows in final logging
+  properties.setProperty('backgroundColor', '#bbbbbb'); // background color of the uneditable cells (gray)
   if (properties.getProperty('groupUrl').includes('?')) { // detect default value and throw error
     throw new Error('ERROR: change "?????@googlegroups.com" to your google group name');
   }
@@ -82,8 +83,8 @@ function createSpreadsheets() {
     activeSheet.getRange(1, 5, experimentConditionRows, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
     activeSheet.getRange(1, 12, experimentConditionRows, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
     // protect range
-    activeSheet.getRange(1, 1, 1, 12+experimentConditionCount).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
-    activeSheet.getRange(2, 6, experimentConditionRows-1, 7).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
+    protectRange(activeSheet.getRange(1, 1, 1, 12+experimentConditionCount));
+    protectRange(activeSheet.getRange(2, 6, experimentConditionRows-1, 7));
     // set headers
     var filledArray = [[]];
     for (var j = 0; j < experimentConditionCount; j++) {
@@ -136,7 +137,7 @@ function createSpreadsheets() {
   // draw borders
   activeSheet.getRange(1, 1, 1, 6).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   // protect range
-  activeSheet.getRange(1, 1, experimentConditionRows*equipmentCount+1, 6).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
+  protectRange(activeSheet.getRange(1, 1, experimentConditionRows*equipmentCount+1, 6));
   // set headers
   activeSheet.getRange(1, 1, 1, 6).setValues(
     [['startTime','executionTime','id','action','originalAddress','eventExists']]
@@ -198,8 +199,8 @@ function createSpreadsheets() {
   activeSheet.getRange(1, 7, userCount+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   activeSheet.getRange(1, 9, userCount+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   // protect range
-  activeSheet.getRange(1, 1, 1, equipmentCount+9).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
-  activeSheet.getRange(2, 2, userCount+1, 8).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
+  protectRange(activeSheet.getRange(1, 1, 1, equipmentCount+9));
+  protectRange(activeSheet.getRange(2, 2, userCount+1, 8));
   // set headers
   activeSheet.getRange(1, 1, 1, 9).setValues(
     [['Full Name (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read CalendarId', 'Write CalendarId', 'Read Calendar URL', 'Write Calendar URL']]
@@ -229,8 +230,8 @@ function createSpreadsheets() {
   activeSheet.getRange(1, 1, equipmentCount+1, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   activeSheet.getRange(1, 3, equipmentCount+1, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   // protect range
-  activeSheet.getRange(1, 1, 1, experimentConditionCount+1).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
-  activeSheet.getRange(2, 2, equipmentCount, 1).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
+  protectRange(activeSheet.getRange(1, 1, 1, experimentConditionCount+1));
+  protectRange(activeSheet.getRange(2, 2, equipmentCount, 1));
   // set headers
   var filledArray = [[]];
   filledArray[0] = ['equipmentName', 'sheetId', 'sheetUrl', 'Properties ->'];
@@ -251,7 +252,7 @@ function createSpreadsheets() {
   // draw borders
   activeSheet.getRange(1, 1, 1, 8).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   // protect range
-  activeSheet.getRange(1, 1, finalLoggingRows, 8).protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
+  protectRange(activeSheet.getRange(1, 1, finalLoggingRows, 8));
   // set headers
   activeSheet.getRange(1, 1, 1, 8).setValues(
     [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent']]
@@ -917,6 +918,13 @@ function changeSheetSize(sheet, rows, columns) {
   sheet.getRange(1, 1, rows, columns).setWrap(true); // wrap overflowing text
   sheet.getRange(1, 1, rows, columns).setHorizontalAlignment("center"); // center text
   sheet.getRange(1, 1, rows, columns).setVerticalAlignment("middle"); // center text
+}
+
+// protect and color the specified range
+function protectRange(range) {
+  const properties = PropertiesService.getUserProperties();
+  range.protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
+  range.setBackground(properties.getProperty('backgroundColor'));
 }
 
 // create 2d array filled with value
