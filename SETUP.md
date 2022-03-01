@@ -35,7 +35,7 @@
    Change `?????@googlegroups.com` to the google group name created in the previous step.   
    Change `Asia/Tokyo` to your time zone. Refer to [wikipedia link](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) for the syntax.
 
-4. In the GAS project, run the function `setup()`.
+4. In the GAS project, run the function `setup1()`.
 
 <img align="right" width="55%" src="pics/apps_script_run_1.png">
 <img width="100%" src="pics/horizontal_line_invisible.png">
@@ -55,7 +55,7 @@ Click `Go to {project name} (unsafe)`.
 <img align="right" width="55%" src="pics/apps_script_run_4.png">
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-Click `Allow`.
+Click `Allow`. Don't touch any files and wait for **5** minutes after the setup is done.
 
 <img align="right" width="55%" src="pics/apps_script_run_5.png">
 <img width="100%" src="pics/horizontal_line_invisible.png">

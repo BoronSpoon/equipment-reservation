@@ -22,12 +22,19 @@ function defineConstants() {
 }
 
 // setup
-function setup1(i) {
+function setup1() {
   Logger.log('Running setup 1');
   defineConstants(); // define constants used over several scripts
   createSpreadsheets1(); // create spreadsheet for 18 users
+  ScriptApp
+    .newTrigger("setup2")
+    .timeBased()
+    .at(new Date((new Date()).getTime()+30000))
+    .create();
+  Logger.log('trigger set for setup2. Dont touch any files and wait for **5** minutes');
 }
-function setup2(i) {
+
+function setup2() {
   Logger.log('Running setup 2');
   createSpreadsheets2(); // continue to create spreadsheet for 18 users
   createCalendars(); // create 19 read + 18 write calendars
@@ -48,7 +55,6 @@ function createSpreadsheets1() {
   const finalLoggingRows = parseInt(properties.getProperty('finalLoggingRows'));
 
   // create workbooks(spreadsheets) and sheets
-  const properties = PropertiesService.getUserProperties();
   var experimentConditionSpreadsheet = SpreadsheetApp.create('experimentConditionSpreadsheet');
   experimentConditionSpreadsheet.setSpreadsheetTimeZone(timeZone);
   experimentConditionSpreadsheet.insertSheet('users'); 
@@ -160,7 +166,6 @@ function createSpreadsheets2() {
   Utilities.sleep(1000);
   Logger.log('Creating allEquipment sheet');
   const properties = PropertiesService.getUserProperties();
-  const properties = PropertiesService.getUserProperties();
   const userCount = parseInt(properties.getProperty('userCount'));
   const timeZone = properties.getProperty('timeZone');
   const groupUrl = properties.getProperty('groupUrl');
@@ -170,7 +175,7 @@ function createSpreadsheets2() {
   const finalLoggingRows = parseInt(properties.getProperty('finalLoggingRows'));
   const experimentConditionSpreadsheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId'));
   const loggingSpreadsheet = SpreadsheetApp.openById(properties.getProperty('loggingSpreadsheetId'));
-  const sheetIds = JSON.parse(properties.setProperty('sheetIds'));
+  const sheetIds = JSON.parse(properties.getProperty('sheetIds'));
   
   // allEquipment sheet
   var activeSheet = experimentConditionSpreadsheet.getSheetByName('allEquipments'); 
