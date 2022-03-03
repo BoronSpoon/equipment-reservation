@@ -92,7 +92,7 @@ function createSpreadsheets1() {
       experimentConditionSpreadsheet.deleteSheet(experimentConditionSpreadsheet.getSheetByName('Sheet1'));
       changeSheetSize(activeSheet, experimentConditionRows, 12+experimentConditionCount);
       activeSheet.hideColumns(6, 7); // hide columns used for debug
-      const filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists']];
+      var filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists']];
       setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(1, 1, 1, 12)}`, experimentConditionSpreadsheetId);
       activeSheet.getRange(1, 1, 1, 12+experimentConditionCount).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
       activeSheet.getRange(1, 5, experimentConditionRows, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
@@ -334,7 +334,7 @@ function createSpreadsheets3() {
   // protect range
   protectRange(activeSheet.getRange(1, 1, finalLoggingRows, 8));
   // set headers
-  const filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent']];
+  var filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent']];
   setValues(filledArray, `finalLog!${R1C1RangeToA1Range(1, 1, 1, 8)}`, loggingSpreadsheetId);
 }
 
@@ -1179,7 +1179,7 @@ function setFirstLastNames(sheet, cell, newValue){
   const row = cell.getRow();
   // set User Name 1 using last and first name
   // User Name 1 = {Last Name up to 4 letters}.{First Name up to 1 letter}
-  const filledArray = [[lastName, firstName, lastName.slice(0,4)+'.'+firstName.slice(0,1)]];
+  var filledArray = [[lastName, firstName, lastName.slice(0,4)+'.'+firstName.slice(0,1)]];
   setValues(filledArray, `users!${R1C1RangeToA1Range(row, 2, 1, 3)}`, experimentConditionSpreadsheetId);
 }
 
@@ -1191,7 +1191,7 @@ function setUserNames(sheet){
   const experimentConditionSpreadsheetId = properties.getProperty('experimentConditionSpreadsheetId');
   const lastRow = sheet.getLastRow();
   const values = sheet.getRange(2, 4, lastRow-1).getValues();
-  const filledArray = [];
+  var filledArray = [];
   // update User Name 2 for row0 = 2~lastRow
   for (var i = 0; i < lastRow-1; i++){
     // check the duplicate count of value0 for row1 = 2~row0
