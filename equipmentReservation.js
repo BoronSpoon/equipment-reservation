@@ -21,24 +21,24 @@ function defineConstants() {
   }
 }
 
-// setup
-function setup1() {
-  Logger.log('Running setup 1');
+// setup: split into 4 parts to avoid execution time limit
+function setup() {
+  Logger.log('Running setup. Dont touch any files and wait for **15** minutes`');
   defineConstants(); // define constants used over several scripts
   createSpreadsheets1(); // create spreadsheet for 18 users
-  ScriptApp
-    .newTrigger("setup2")
-    .timeBased()
-    .at(new Date((new Date()).getTime()+30000))
-    .create();
-  Logger.log('trigger set for setup2. Dont touch any files and wait for **5** minutes');
+  timedTrigger('setup2'); // create spreadsheet for 18 users
 }
-
 function setup2() {
-  Logger.log('Running setup 2');
-  createSpreadsheets2(); // continue to create spreadsheet for 18 users
-  createCalendars(); // create 19 read + 18 write calendars
-  deleteTriggers();
+  createSpreadsheets2();
+  timedTrigger('setup3'); 
+}
+function setup3() {
+  createSpreadsheets3();
+  timedTrigger('setup4'); // create 19 read + 18 write calendars
+}
+function setup4() {
+  createCalendars();
+  deleteTriggers(); // delete timed triggers and previous triggers
   getAndStoreObjects();
   createTriggers();
 }
@@ -150,12 +150,12 @@ function createSpreadsheets1() {
       for (var j = 0; j < experimentConditionCount; j++) {
         filledArray[0][j] = `=INDIRECT("properties!R${2+i}C${4+j}", FALSE)`;
       }
-      activeSheet.getRange(1, 13, 1, experimentConditionCount).setValues(filledArray); // copy experiment condition 
+      setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(1, 13, 1, experimentConditionCount)}`, experimentConditionSpreadsheetId);
       var filledArray = arrayFill2d(experimentConditionRows, 1, '');
       for (var j = 0; j < experimentConditionRows; j++) {
         filledArray[j][0] = `=INDIRECT("allEquipments!R" & 1+MATCH("equipment${i+1}!R" & ROW(), INDIRECT("allEquipments!E2:E"), 0) & "C6", FALSE)`; // ADDRESS(row, col)
       }
-      activeSheet.getRange(2, 12, experimentConditionRows, 1).setFormulas(filledArray);
+      setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(2, 12, experimentConditionRows, 1)}`, experimentConditionSpreadsheetId);
     }
   }
   properties.setProperty('sheetIds', JSON.stringify(sheetIds));
@@ -163,8 +163,6 @@ function createSpreadsheets1() {
 
 // creates spreadsheet for {userCount} users
 function createSpreadsheets2() {
-  Utilities.sleep(1000);
-  Logger.log('Creating allEquipment sheet');
   const properties = PropertiesService.getUserProperties();
   const userCount = parseInt(properties.getProperty('userCount'));
   const timeZone = properties.getProperty('timeZone');
@@ -180,11 +178,14 @@ function createSpreadsheets2() {
   const sheetIds = JSON.parse(properties.getProperty('sheetIds'));
   
   // allEquipment sheet
+  Logger.log('Creating allEquipment sheet');
   var activeSheet = experimentConditionSpreadsheet.getSheetByName('allEquipments'); 
   changeSheetSize(activeSheet, experimentConditionRows*equipmentCount+1, 6);
   // draw borders
+  Logger.log('Drawing borders');
   activeSheet.getRange(1, 1, 1, 6).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   // protect range
+  Logger.log('Protecting range');
   protectRange(activeSheet.getRange(1, 1, experimentConditionRows*equipmentCount+1, 6));
   // set headers
   activeSheet.getRange(1, 1, 1, 6).setValues(
@@ -208,22 +209,15 @@ function createSpreadsheets2() {
     }
   }
   // column A~C
-  Sheets.Spreadsheets.Values.update(
-    {"majorDimension": "ROWS", "values": filledArray1},
-    experimentConditionSpreadsheetId, 
-    `allEquipments!A2:C${experimentConditionRows*equipmentCount+1}`,
-    {"valueInputOption": "USER_ENTERED"}
-  );
+  Logger.log('Settings formulas for columns A~C');
+  setValues(filledArray1, `allEquipments!A2:C${experimentConditionRows*equipmentCount+1}`, experimentConditionSpreadsheetId);
   // column D~E
-  Sheets.Spreadsheets.Values.update(
-    {"majorDimension": "ROWS", "values": filledArray2},
-    experimentConditionSpreadsheetId, 
-    `allEquipments!D2:E${experimentConditionRows*equipmentCount+1}`,
-    {"valueInputOption": "USER_ENTERED"}
-  );
+  Logger.log('Settings formulas for columns D~E');
+  setValues(filledArray2, `allEquipments!D2:E${experimentConditionRows*equipmentCount+1}`, experimentConditionSpreadsheetId);
   
   // column F (could not be set with sheetsAPI for some reason...)
   //see if event exists (if it is 1[unmodified(is the last entry with the same id)] and 2[not canceled]) or 3[cell is empty]
+  Logger.log('Settings formulas for column F');
   experimentConditionSpreadsheet
     .getSheetByName('allEquipments')
     .getRange(2, 6, experimentConditionRows*equipmentCount, 1)
@@ -248,11 +242,28 @@ function createSpreadsheets2() {
       }
     }
   }
+  Logger.log('Adding sort filter view');
   Sheets.Spreadsheets.batchUpdate(
     {'requests': [addFilterViewRequest]}, experimentConditionSpreadsheetId
   );
+}
 
-  Utilities.sleep(1000);
+// creates spreadsheet for {userCount} users
+function createSpreadsheets3() {
+  const properties = PropertiesService.getUserProperties();
+  const userCount = parseInt(properties.getProperty('userCount'));
+  const timeZone = properties.getProperty('timeZone');
+  const groupUrl = properties.getProperty('groupUrl');
+  const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
+  const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
+  const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
+  const experimentConditionSpreadsheetId = properties.getProperty('experimentConditionSpreadsheetId');
+  const loggingSpreadsheetId = properties.getProperty('loggingSpreadsheetId');
+  const finalLoggingRows = parseInt(properties.getProperty('finalLoggingRows'));
+  const experimentConditionSpreadsheet = SpreadsheetApp.openById(experimentConditionSpreadsheetId);
+  const loggingSpreadsheet = SpreadsheetApp.openById(loggingSpreadsheetId);
+  const sheetIds = JSON.parse(properties.getProperty('sheetIds'));
+  
   // users sheet
   Logger.log('Creating users sheet');
   var activeSheet = experimentConditionSpreadsheet.getSheetByName('users'); 
@@ -996,6 +1007,16 @@ function arrayFill2d(rows, columns, value) {
   return Array(rows).fill().map(() => Array(columns).fill(value));
 }
 
+// fill array with value in sheetsAPI
+function setValues(filledArray, range, spreadsheetId) {
+  Sheets.Spreadsheets.Values.update(
+    {"majorDimension": "ROWS", "values": filledArray},
+    spreadsheetId, 
+    range,
+    {"valueInputOption": "USER_ENTERED"},
+  );
+}
+
 // update the sync token after adding and deleting guests
 function updateSyncToken(calendarId) {
   const properties = PropertiesService.getUserProperties();
@@ -1247,3 +1268,37 @@ function UTCToLocalTime(inputDate) {
   const outputDate = moment(inputDate).tz(timeZone).format("MM/DD/YY HH:mm");
   return outputDate
 }
+
+
+// timed trigger after 10 seconds
+function timedTrigger(functionName) {  
+  ScriptApp
+    .newTrigger(functionName)
+    .timeBased()
+    .at(new Date((new Date()).getTime()+10000))
+    .create();
+  Logger.log(`trigger set for ${functionName}`);
+}
+
+// convert R1C1 range notation to A1 range string notation
+function R1C1RangeToA1Range(row, column, rowCount, columnCount) {
+  return `${R1C1ToA1(row, column)}:${R1C1ToA1(row+rowCount-1, column+columnCount-1)}`
+}
+
+// convert R1C1 notation to A1 notation
+function R1C1ToA1(row, column) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let columnRef = '';
+  column -= 1;
+
+  if (column < 1) {
+    columnRef = chars[0];
+  }
+  else {
+    const base26 = column.toString(26);
+    const digits = base26.split('');
+    columnRef = digits.map((digit, i) => chars[parseInt(digit, 26) - (i === digits.length-1?0:1)]).join('');
+  }
+
+  return `${columnRef}${Math.max(row, 1)}`;
+};
