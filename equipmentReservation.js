@@ -74,8 +74,7 @@ function createSpreadsheets1() {
   
   // users sheet
   Logger.log('Creating users sheet');
-  var returnValues = insertSheetWithFormat(experimentConditionSpreadsheetId, 'users', userCount+2, equipmentCount+9);
-  activeSheet = returnValues.sheet;
+  var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, 'users', userCount+2, equipmentCount+9);
   activeSheet.hideColumns(2, 6); // hide columns used for debug
   activeSheet.getRange(2, 6, userCount+1, 4).setHorizontalAlignment("left"); // show "https://..." not the center of url
   activeSheet.getRange(2, 6, userCount+1, 4).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
@@ -110,8 +109,7 @@ function createSpreadsheets1() {
   // properties sheet
   Logger.log('Creating properties sheet');
   Utilities.sleep(1000);
-  var returnValues = insertSheetWithFormat(experimentConditionSpreadsheetId, 'properties', equipmentCount+1, experimentConditionCount+1);
-  activeSheet = returnValues.sheet;
+  var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, 'properties', equipmentCount+1, experimentConditionCount+1);
   // draw borders
   activeSheet.getRange(1, 1, equipmentCount+1, experimentConditionCount+1).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   activeSheet.getRange(1, 1, 1, experimentConditionCount+1).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
@@ -128,8 +126,7 @@ function createSpreadsheets1() {
   Logger.log('Creating logging spreadsheet');
   Utilities.sleep(1000);
   Logger.log('Creating final log sheet');
-  var returnValues = insertSheetWithFormat(loggingSpreadsheetId, 'finalLog', finalLoggingRows, 8);
-  activeSheet = returnValues.sheet;
+  var activeSheetId = insertSheetWithFormat(loggingSpreadsheetId, 'finalLog', finalLoggingRows, 8);
   loggingSpreadsheet.deleteSheet(loggingSpreadsheet.getSheetByName('Sheet1'));
   // draw borders
   activeSheet.getRange(1, 1, 1, 8).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
@@ -158,8 +155,7 @@ function createSpreadsheets2() {
   
   // allEquipment sheet
   Logger.log('Creating allEquipment sheet');
-  var returnValues = insertSheetWithFormat(experimentConditionSpreadsheetId, 'allEquipments', experimentConditionRows*equipmentCount+1, 6)
-  activeSheet = returnValues.sheet;
+  var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, 'allEquipments', experimentConditionRows*equipmentCount+1, 6)
   // draw borders
   Logger.log('Drawing borders');
   activeSheet.getRange(1, 1, 1, 6).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
@@ -241,10 +237,8 @@ function createSpreadsheets3() {
     Logger.log(`Creating equipmentSheet ${i+1}/${equipmentCount}`);
     Utilities.sleep(100);
     if (i === 0) { // create first sheet
-      var returnValues = insertSheetWithFormat(experimentConditionSpreadsheetId, `equipment${i+1}`, experimentConditionRows, 12+experimentConditionCount)
-      activeSheet = returnValues.sheet;
-      firstSheet = returnValues.sheet;
-      sheetIds[i] = returnValues.sheetId;
+      var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, `equipment${i+1}`, experimentConditionRows, 12+experimentConditionCount)
+      sheetIds[i] = activeSheetId;
       experimentConditionSpreadsheet.deleteSheet(experimentConditionSpreadsheet.getSheetByName('Sheet1'));
       activeSheet.hideColumns(6, 7); // hide columns used for debug
       var filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists']];
@@ -950,9 +944,25 @@ function backupAndDeleteOverflownLoggingData(finalLogSheet) {
 // ================================================================================================
 
 // insertSheet with sheetsAPI
-function insertSheetWithFormat(spreadsheetId, sheetName, rows, columns) {
-  var activeSheet = SpreadsheetApp.openById(spreadsheetId).insertSheet(sheetName);
-  const sheetId = activeSheet.getSheetId();
+function insertSheetWithFormat(spreadsheetId, sheetName, rows, columns) {  
+  requests = [
+    {
+      "addSheet": {
+        "properties": {
+          "title": sheetName,
+          "gridProperties": {
+            "rowCount": rows,
+            "columnCount": columns
+          },
+        }
+      },
+    }
+  ]
+  Sheets.Spreadsheets.batchUpdate(
+    {'requests': requests}, spreadSheetId
+  );
+
+  const sheetId = response.replies[0].addSheet.properties.sheetId;
 
   var requests = [
     {
@@ -998,7 +1008,7 @@ function insertSheetWithFormat(spreadsheetId, sheetName, rows, columns) {
   Sheets.Spreadsheets.batchUpdate(
     {'requests': requests}, spreadsheetId
   );
-  return {"sheetId": sheetId, "sheet": activeSheet}
+  return sheetId
 }
 
 // set row and column count of sheet
