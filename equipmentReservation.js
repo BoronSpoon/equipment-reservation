@@ -52,7 +52,6 @@ function createSpreadsheets1() {
   const groupUrl = properties.getProperty('groupUrl');
   const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
   const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
-  const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
   const finalLoggingRows = parseInt(properties.getProperty('finalLoggingRows'));
 
   // create workbooks(spreadsheets) and sheets
@@ -92,11 +91,11 @@ function createSpreadsheets1() {
   var filledArray = [['Full Name (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read CalendarId', 'Write CalendarId', 'Read Calendar URL', 'Write Calendar URL']];
   setValues(filledArray, `users!${R1C1RangeToA1Range(1, 1, 1, 9)}`, experimentConditionSpreadsheetId);
   // normal user row
-  activeSheet.getRange(2, 10, userCount, equipmentCount).insertCheckboxes(); // create unchecked checkbox for 100 columns (equipments)
+  insertCheckboxes(experimentConditionSpreadsheetId, activeSheetId, 2, 10, userCount, equipmentCount); // create unchecked checkbox for 100 columns (equipments)
   var filledArray = arrayFill2d(userCount, 1, 'First Last');
   setValues(filledArray, `users!${R1C1RangeToA1Range(2, 1, userCount, 1)}`, experimentConditionSpreadsheetId);
   // 'ALL EVENTS' user row
-  activeSheet.getRange(2+userCount, 10, 1, equipmentCount).insertCheckboxes(); // create checked checkbox for 'ALL EVENTS'
+  insertCheckboxes(experimentConditionSpreadsheetId, activeSheetId, 2+userCount, 10, 1, equipmentCount); // create checked checkbox for 'ALL EVENTS'
   activeSheet.getRange(2+userCount, 1).setValue('ALL EVENTS');
   // copy equipments name from properties sheet
   var filledArray = [[]];
@@ -138,18 +137,10 @@ function createSpreadsheets1() {
 // creates spreadsheet for {userCount} users
 function createSpreadsheets2() {
   const properties = PropertiesService.getUserProperties();
-  const userCount = parseInt(properties.getProperty('userCount'));
-  const timeZone = properties.getProperty('timeZone');
-  const groupUrl = properties.getProperty('groupUrl');
   const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
-  const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
   const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
   const experimentConditionSpreadsheetId = properties.getProperty('experimentConditionSpreadsheetId');
-  const loggingSpreadsheetId = properties.getProperty('loggingSpreadsheetId');
-  const finalLoggingRows = parseInt(properties.getProperty('finalLoggingRows'));
   const experimentConditionSpreadsheet = SpreadsheetApp.openById(experimentConditionSpreadsheetId);
-  const loggingSpreadsheet = SpreadsheetApp.openById(loggingSpreadsheetId);
-  const sheetIds = JSON.parse(properties.getProperty('sheetIds'));
   
   // allEquipment sheet
   Logger.log('Creating allEquipment sheet');
@@ -716,7 +707,6 @@ function changeSubscribedEquipments(index){
 function updateCalendarUserName(sheet, cell, newValue){  
   setFirstLastNames(sheet, cell, newValue); // get last and first names from full name and set User Name 1
   setUserNames(sheet); // set User Name 2 using User Name 1
-  setCheckboxes(sheet, cell); // create checkboxes for selecting equipment
   setCalendars(sheet, cell); // set read calendar and write calendar for created user
   Logger.log('Updated user name');
 }
@@ -939,6 +929,29 @@ function backupAndDeleteOverflownLoggingData(finalLogSheet) {
 // ======================================= HELPER FUNCTIONS (API calls) ======================================= 
 // ============================================================================================================ 
 
+function insertCheckboxes(spreadsheetId, sheetId, startRow, startColumn, rowCount, columnCount) {
+  const endRow = startRow + rowCount;
+  const endColumn = startColumn + columnCount;
+  requests = [
+    {
+      'repeatCell': {
+        "cell": {'dataValidation': {'condition': {'type': 'BOOLEAN'}}},
+        "range": {
+          "sheetId": sheetId,
+          "startRowIndex": startRow-1,
+          "endRowIndex": endRow-1,
+          "startColumnIndex": startColumn-1,
+          "endColumnIndex": endColumn-1,
+        },
+        'fields': '*'
+      }
+    },
+  ]
+  Sheets.Spreadsheets.batchUpdate(
+    {'requests': requests}, spreadsheetId
+  );
+}
+ 
 // copy sheet
 function copyTo(spreadsheetId, sheetId, sheetName) {
   var response = Sheets.Spreadsheets.copyTo(
@@ -1330,17 +1343,6 @@ function setUserNames(sheet){
   }
   // use count as unique identifier (1,2,3,...)
   setValues(filledArray, `users!${R1C1RangeToA1Range(2, 5, lastRow-1)}`, experimentConditionSpreadsheetId);
-}
-
-// create checkboxes for selecting which equipment to show in the calendar
-function setCheckboxes(sheet, cell) {
-  const lastColumn = sheet.getLastColumn();
-  const row = cell.getRow();
-  if (sheet.getRange(row, 10).isChecked() == null){ // if cell is not a checkbox
-    // create checkboxes
-    sheet.getRange(row, column, 1, lastColumn-9).insertCheckboxes();
-  }
-  Logger.log('Created checkboxes');
 }
 
 // set read calendar and write calendar for created user
