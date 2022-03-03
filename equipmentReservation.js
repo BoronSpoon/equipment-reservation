@@ -283,8 +283,8 @@ function createSpreadsheets3() {
         {'requests': [addFilterViewRequest]}, experimentConditionSpreadsheetId
       );
     } else { // copy most contents from first sheet
-      var activeSheet = firstSheet.copyTo(experimentConditionSpreadsheet).setName(`equipment${i+1}`);
-      sheetIds[i] = activeSheet.getSheetId();
+      var activeSheetId = copyTo(experimentConditionSpreadsheet, sheetIds[0], `equipment${i+1}`);
+      sheetIds[i] = activeSheetId;
       // set headers
       var filledArray = [[]];
       for (var j = 0; j < experimentConditionCount; j++) {
@@ -938,6 +938,31 @@ function backupAndDeleteOverflownLoggingData(finalLogSheet) {
 // ============================================================================================================ 
 // ======================================= HELPER FUNCTIONS (API calls) ======================================= 
 // ============================================================================================================ 
+
+// copy sheet
+function copyTo(spreadsheetId, sheetId, sheetName) {
+  var response = Sheets.Spreadsheets.copyTo(
+    {"destinationSpreadsheetId": spreadsheetId}, spreadsheetId, sheetId
+  );
+  const sheetId = response.sheetId;
+
+  // set title of sheet
+  requests = [
+    {
+      "updateSheetProperties": {
+        "properties": {
+          "sheetId": sheetId,
+          "title": sheetName,
+        },
+        "fields": "*"
+      }
+    }
+  ]
+  Sheets.Spreadsheets.batchUpdate(
+    {'requests': requests}, spreadsheetId
+  );
+  return sheetId
+}
 
 // protect the specified range
 function protectRange(spreadsheetId, sheetId, startRow, startColumn, rowCount, columnCount) {  
