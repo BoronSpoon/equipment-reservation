@@ -23,21 +23,19 @@ function defineConstants() {
 }
 
 // setup: split into 4 parts to avoid execution time limit (6 min)
-function setup() { // 0.5 min
+function setup() { 
   Logger.log('Running setup. Dont touch any files and wait for **15** minutes`');
   defineConstants(); // define constants used over several scripts
   createSpreadsheets1(); // create spreadsheet for 18 users
   timedTrigger('setup2'); // create spreadsheet for 18 users
 }
-function setup2() { // 2.4 min
+function setup2() { 
   createSpreadsheets2();
   timedTrigger('setup3'); 
+
 }
-function setup3() { // 
-  createSpreadsheets3();
-  timedTrigger('setup4'); // create 19 read + 18 write calendars
-}
-function setup4() { // 
+
+function setup3() { 
   createCalendars();
   deleteTriggers(); // delete timed triggers and previous triggers
   getAndStoreObjects();
@@ -52,6 +50,7 @@ function createSpreadsheets1() {
   const groupUrl = properties.getProperty('groupUrl');
   const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
   const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
+  const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
   const finalLoggingRows = parseInt(properties.getProperty('finalLoggingRows'));
 
   // create workbooks(spreadsheets) and sheets
@@ -132,15 +131,6 @@ function createSpreadsheets1() {
   // set headers
   var filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent']];
   setValues(filledArray, `finalLog!${R1C1RangeToA1Range(1, 1, 1, 8)}`, loggingSpreadsheetId);
-}
-
-// creates spreadsheet for {userCount} users
-function createSpreadsheets2() {
-  const properties = PropertiesService.getUserProperties();
-  const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
-  const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
-  const experimentConditionSpreadsheetId = properties.getProperty('experimentConditionSpreadsheetId');
-  const experimentConditionSpreadsheet = SpreadsheetApp.openById(experimentConditionSpreadsheetId);
   
   // allEquipment sheet
   Logger.log('Creating allEquipment sheet');
@@ -181,10 +171,8 @@ function createSpreadsheets2() {
   // column F (could not be set with sheetsAPI for some reason...)
   //see if event exists (if it is 1[unmodified(is the last entry with the same id)] and 2[not canceled]) or 3[cell is empty]
   Logger.log('Settings formulas for column F');
-  experimentConditionSpreadsheet
-    .getSheetByName('allEquipments')
-    .getRange(2, 6, experimentConditionRows*equipmentCount, 1)
-    .setFormula(`=OR(AND(COUNTIF(INDIRECT("R[1]C[-3]:R${experimentConditionRows*equipmentCount+1}C[-3]", FALSE), INDIRECT("R[0]C[-3]", FALSE))=0, INDIRECT("R[0]C[-2]", FALSE)="add"), INDIRECT("R[0]C[-4]", FALSE)="")`);
+  var filledArray = arrayFill2d(experimentConditionRows*equipmentCount, 1, `=OR(AND(COUNTIF(INDIRECT(\"R[1]C[-3]:R${experimentConditionRows*equipmentCount+1}C[-3]\", FALSE), INDIRECT(\"R[0]C[-3]\", FALSE))=0, INDIRECT(\"R[0]C[-2]\", FALSE)=\"add\"), INDIRECT(\"R[0]C[-4]\", FALSE)=\"\")`);
+  setValues(filledArray, `allEquipments!${R1C1RangeToA1Range(2, 6, experimentConditionRows*equipmentCount, 1)}`, experimentConditionSpreadsheetId);
 
   addFilterViewRequest = {
     'addFilterView': {
@@ -196,7 +184,7 @@ function createSpreadsheets2() {
           {'dimensionIndex': 1, 'sortOrder': 'ASCENDING'}, // sort by executionTime if startTime is same
         ], 
         "range": {
-          "sheetId": activeSheet.getSheetId(),
+          "sheetId": activeSheetId,
         },
       }
     }
@@ -208,7 +196,7 @@ function createSpreadsheets2() {
 }
 
 // creates spreadsheet for {userCount} users
-function createSpreadsheets3() {
+function createSpreadsheets2() {
   const properties = PropertiesService.getUserProperties();
   const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
   const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
@@ -219,8 +207,6 @@ function createSpreadsheets3() {
   Logger.log('Creating experiment condition spreadsheet');
   var sheetIds = [];
   var filledArrayBatch = []; // list of filledArray
-  var activeSheet = '';
-  var firstSheet = '';
   for (var i = 0; i < equipmentCount; i++) { // create sheet for each equipment
     Logger.log(`Creating equipmentSheet ${i+1}/${equipmentCount}`);
     Utilities.sleep(100);
@@ -274,7 +260,7 @@ function createSpreadsheets3() {
         {'requests': [addFilterViewRequest]}, experimentConditionSpreadsheetId
       );
     } else { // copy most contents from first sheet
-      var activeSheetId = copyTo(experimentConditionSpreadsheet, sheetIds[0], `equipment${i+1}`);
+      var activeSheetId = copyTo(experimentConditionSpreadsheetId, sheetIds[0], `equipment${i+1}`);
       sheetIds[i] = activeSheetId;
       // set headers
       var filledArray = [[]];
@@ -1218,8 +1204,6 @@ function setValuesBatch(filledArrayBatch, spreadsheetId) {
 function arrayFill2d(rows, columns, value) { 
   return Array(rows).fill().map(() => Array(columns).fill(value));
 }
-
-
 
 // update the sync token after adding and deleting guests
 function updateSyncToken(calendarId) {
