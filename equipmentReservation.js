@@ -81,7 +81,7 @@ function createSpreadsheets1() {
     Logger.log(`Creating equipmentSheet ${i+1}/${equipmentCount}`);
     Utilities.sleep(100);
     if (i === 0) { // create first sheet
-      var returnValues = insertSheet(experimentConditionSpreadsheetId, `equipment${i+1}`, experimentConditionRows, 12+experimentConditionCount)
+      var returnValues = insertSheetWithFormat(experimentConditionSpreadsheetId, `equipment${i+1}`, experimentConditionRows, 12+experimentConditionCount)
       activeSheet = experimentConditionSpreadsheet.getSheetByName(`equipment${i+1}`);
       firstSheet = experimentConditionSpreadsheet.getSheetByName(`equipment${i+1}`);
       sheetIds[i] = returnValues.sheetId;
@@ -175,7 +175,7 @@ function createSpreadsheets2() {
   
   // allEquipment sheet
   Logger.log('Creating allEquipment sheet');
-  var returnValues = insertSheet(experimentConditionSpreadsheetId, 'allEquipments', experimentConditionRows*equipmentCount+1, 6)
+  var returnValues = insertSheetWithFormat(experimentConditionSpreadsheetId, 'allEquipments', experimentConditionRows*equipmentCount+1, 6)
   activeSheet = experimentConditionSpreadsheet.getSheetByName('allEquipments');
   // draw borders
   Logger.log('Drawing borders');
@@ -261,7 +261,7 @@ function createSpreadsheets3() {
   
   // users sheet
   Logger.log('Creating users sheet');
-  var returnValues = insertSheet(experimentConditionSpreadsheetId, 'users', userCount+2, equipmentCount+9);
+  var returnValues = insertSheetWithFormat(experimentConditionSpreadsheetId, 'users', userCount+2, equipmentCount+9);
   activeSheet = experimentConditionSpreadsheet.getSheetByName('users');
   activeSheet.hideColumns(2, 6); // hide columns used for debug
   activeSheet.getRange(2, 6, userCount+1, 4).setHorizontalAlignment("left"); // show "https://..." not the center of url
@@ -297,7 +297,7 @@ function createSpreadsheets3() {
   // properties sheet
   Logger.log('Creating properties sheet');
   Utilities.sleep(1000);
-  var returnValues = insertSheet(experimentConditionSpreadsheetId, 'properties', equipmentCount+1, experimentConditionCount+1);
+  var returnValues = insertSheetWithFormat(experimentConditionSpreadsheetId, 'properties', equipmentCount+1, experimentConditionCount+1);
   activeSheet = experimentConditionSpreadsheet.getSheetByName('properties');
   // draw borders
   activeSheet.getRange(1, 1, equipmentCount+1, experimentConditionCount+1).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
@@ -322,7 +322,7 @@ function createSpreadsheets3() {
   Logger.log('Creating logging spreadsheet');
   Utilities.sleep(1000);
   Logger.log('Creating final log sheet');
-  var returnValues = insertSheet(loggingSpreadsheetId, 'finalLog', finalLoggingRows, 8);
+  var returnValues = insertSheetWithFormat(loggingSpreadsheetId, 'finalLog', finalLoggingRows, 8);
   activeSheet = loggingSpreadsheet.getSheetByName('finalLog');
   loggingSpreadsheet.deleteSheet(loggingSpreadsheet.getSheetByName('Sheet1'));
   // draw borders
@@ -965,7 +965,7 @@ function backupAndDeleteOverflownLoggingData(finalLogSheet) {
 // ================================================================================================
 
 // insertSheet with sheetsAPI
-function insertSheet(spreadsheetId, sheetName, rows, columns) {
+function insertSheetWithFormat(spreadsheetId, sheetName, rows, columns) {
   //var requests = [
   //  {
   //    "addSheet": {
