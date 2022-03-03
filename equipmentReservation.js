@@ -82,8 +82,8 @@ function createSpreadsheets1() {
     Utilities.sleep(100);
     if (i === 0) { // create first sheet
       var returnValues = insertSheet(experimentConditionSpreadsheetId, `equipment${i+1}`, experimentConditionRows, 12+experimentConditionCount)
-      activeSheet = returnValues.sheet;
-      firstSheet = returnValues.sheet;
+      activeSheet = experimentConditionSpreadsheet.getSheetByName(`equipment${i+1}`);
+      firstSheet = experimentConditionSpreadsheet.getSheetByName(`equipment${i+1}`);
       sheetIds[i] = returnValues.sheetId;
       experimentConditionSpreadsheet.deleteSheet(experimentConditionSpreadsheet.getSheetByName('Sheet1'));
       activeSheet.hideColumns(6, 7); // hide columns used for debug
@@ -176,7 +176,7 @@ function createSpreadsheets2() {
   // allEquipment sheet
   Logger.log('Creating allEquipment sheet');
   var returnValues = insertSheet(experimentConditionSpreadsheetId, 'allEquipments', experimentConditionRows*equipmentCount+1, 6)
-  activeSheet = returnValues.sheet;
+  activeSheet = experimentConditionSpreadsheet.getSheetByName('allEquipments');
   // draw borders
   Logger.log('Drawing borders');
   activeSheet.getRange(1, 1, 1, 6).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
@@ -262,7 +262,7 @@ function createSpreadsheets3() {
   // users sheet
   Logger.log('Creating users sheet');
   var returnValues = insertSheet(experimentConditionSpreadsheetId, 'users', userCount+2, equipmentCount+9);
-  activeSheet = returnValues.sheet;
+  activeSheet = experimentConditionSpreadsheet.getSheetByName('users');
   activeSheet.hideColumns(2, 6); // hide columns used for debug
   activeSheet.getRange(2, 6, userCount+1, 4).setHorizontalAlignment("left"); // show "https://..." not the center of url
   activeSheet.getRange(2, 6, userCount+1, 4).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
@@ -298,7 +298,7 @@ function createSpreadsheets3() {
   Logger.log('Creating properties sheet');
   Utilities.sleep(1000);
   var returnValues = insertSheet(experimentConditionSpreadsheetId, 'properties', equipmentCount+1, experimentConditionCount+1);
-  activeSheet = returnValues.sheet;
+  activeSheet = experimentConditionSpreadsheet.getSheetByName('properties');
   // draw borders
   activeSheet.getRange(1, 1, equipmentCount+1, experimentConditionCount+1).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
   activeSheet.getRange(1, 1, 1, experimentConditionCount+1).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
@@ -323,7 +323,7 @@ function createSpreadsheets3() {
   Utilities.sleep(1000);
   Logger.log('Creating final log sheet');
   var returnValues = insertSheet(loggingSpreadsheetId, 'finalLog', finalLoggingRows, 8);
-  activeSheet = returnValues.sheet;
+  activeSheet = loggingSpreadsheet.getSheetByName('finalLog');
   loggingSpreadsheet.deleteSheet(loggingSpreadsheet.getSheetByName('Sheet1'));
   // draw borders
   activeSheet.getRange(1, 1, 1, 8).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
@@ -965,28 +965,53 @@ function backupAndDeleteOverflownLoggingData(finalLogSheet) {
 // ================================================================================================
 
 // insertSheet with sheetsAPI
-function insertSheet(spreadSheetId, sheetName, rows, columns) {
-  requests = [
+function insertSheet(spreadsheetId, sheetName, rows, columns) {
+  //var requests = [
+  //  {
+  //    "addSheet": {
+  //      "properties": {
+  //        "title": sheetName,
+  //        "gridProperties": {
+  //          "rowCount": rows,
+  //          "columnCount": columns
+  //        },
+  //      }
+  //    },
+  //  }
+  //]
+  var activeSheet = SpreadsheetApp.openById(spreadsheetId).insertSheet(sheetName);
+  //var response = Sheets.Spreadsheets.batchUpdate(
+  //  {'requests': requests}, spreadsheetId
+  //);
+
+  const sheetId = activeSheet.getSheetId();
+
+  var requests = [
     {
-      "addSheet": {
+      "updateSheetProperties": {
         "properties": {
+          "sheetId": sheetId,
           "title": sheetName,
           "gridProperties": {
-            "rowCount": rows,
-            "columnCount": columns
-          },
-        }
+            "columnCount": columns,
+            "rowCount": 1, // prevent exceeding cell count limit
+          }
+        },
+        "fields": "*"
       },
-    }
-  ]
-  Sheets.Spreadsheets.batchUpdate(
-    {'requests': requests}, spreadSheetId
-  );
-
-  const sheetId = response.replies[0].addSheet.properties.sheetId;
-
-  requests = [
-    {
+    }, {
+      "updateSheetProperties": {
+        "properties": {
+          "sheetId": sheetId,
+          "title": sheetName,
+          "gridProperties": {
+            "columnCount": columns,
+            "rowCount": rows,
+          }
+        },
+        "fields": "*"
+      },
+    }, {
       "updateCells": {  
         "range": {"sheetId": sheetId}, // all cells in sheet
         "rows": [{
@@ -1003,10 +1028,9 @@ function insertSheet(spreadSheetId, sheetName, rows, columns) {
     }
   ]
   Sheets.Spreadsheets.batchUpdate(
-    {'requests': requests}, spreadSheetId
+    {'requests': requests}, spreadsheetId
   );
-  const sheet = SpreadsheetApp.openById(spreadSheetId).getSheetByName(sheetName);
-  return {sheetId, sheet}
+  return sheetId
 }
 
 // set row and column count of sheet
