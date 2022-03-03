@@ -92,9 +92,8 @@ function createSpreadsheets1() {
       experimentConditionSpreadsheet.deleteSheet(experimentConditionSpreadsheet.getSheetByName('Sheet1'));
       changeSheetSize(activeSheet, experimentConditionRows, 12+experimentConditionCount);
       activeSheet.hideColumns(6, 7); // hide columns used for debug
-      activeSheet.getRange(1, 1, 1, 12).setValues(
-        [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists']]
-      );
+      const filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists']];
+      setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(1, 1, 1, 12)}`, experimentConditionSpreadsheetId);
       activeSheet.getRange(1, 1, 1, 12+experimentConditionCount).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
       activeSheet.getRange(1, 5, experimentConditionRows, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
       activeSheet.getRange(1, 12, experimentConditionRows, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
@@ -104,15 +103,14 @@ function createSpreadsheets1() {
       // set headers
       var filledArray = [[]];
       for (var j = 0; j < experimentConditionCount; j++) {
-        filledArray[0][j] = `=INDIRECT("properties!R${2+i}C${4+j}", FALSE)`;
+        filledArray[0][j] = `=INDIRECT(\"properties!R${2+i}C${4+j}\", FALSE)`;
       }
-      activeSheet.getRange(1, 13, 1, experimentConditionCount).setValues(filledArray); // copy experiment condition 
+      setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(1, 13, 1, experimentConditionCount)}`, experimentConditionSpreadsheetId);
       var filledArray = arrayFill2d(experimentConditionRows, 12, '');
       for (var j = 0; j < experimentConditionRows; j++) {
-        filledArray[j][11] = `=INDIRECT("allEquipments!R" & 1+MATCH("equipment${i+1}!R" & ROW(), INDIRECT("allEquipments!E2:E"), 0) & "C6", FALSE)`; // ADDRESS(row, col)
+        filledArray[j][11] = `=INDIRECT(\"allEquipments!R\" & 1+MATCH(\"equipment${i+1}!R\" & ROW(), INDIRECT(\"allEquipments!E2:E\"), 0) & \"C6\", FALSE)`; // ADDRESS(row, col)
       }
-
-      activeSheet.getRange(2, 1, experimentConditionRows, 12).setFormulas(filledArray);
+      setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(2, 1, experimentConditionRows, 12)}`, experimentConditionSpreadsheetId);
 
       Logger.log('Creating filters for hiding canceled and modified events');
 
@@ -191,9 +189,8 @@ function createSpreadsheets2() {
   Logger.log('Protecting range');
   protectRange(activeSheet.getRange(1, 1, experimentConditionRows*equipmentCount+1, 6));
   // set headers
-  activeSheet.getRange(1, 1, 1, 6).setValues(
-    [['startTime','executionTime','id','action','originalAddress','eventExists']]
-  );
+  var filledArray = [['startTime','executionTime','id','action','originalAddress','eventExists']];
+  setValues(filledArray, `allEquipments!${R1C1RangeToA1Range(1, 1, 1, 6)}`, experimentConditionSpreadsheetId);
   var filledArray1 = [];
   var filledArray2 = [];
   var row = 0;
@@ -286,13 +283,12 @@ function createSpreadsheets3() {
   protectRange(activeSheet.getRange(1, 1, 1, equipmentCount+9));
   protectRange(activeSheet.getRange(2, 2, userCount+1, 8));
   // set headers
-  activeSheet.getRange(1, 1, 1, 9).setValues(
-    [['Full Name (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read CalendarId', 'Write CalendarId', 'Read Calendar URL', 'Write Calendar URL']]
-  );
+  var filledArray = [['Full Name (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read CalendarId', 'Write CalendarId', 'Read Calendar URL', 'Write Calendar URL']];
+  setValues(filledArray, `users!${R1C1RangeToA1Range(1, 1, 1, 9)}`, experimentConditionSpreadsheetId);
   // normal user row
   activeSheet.getRange(2, 10, userCount, equipmentCount).insertCheckboxes(); // create unchecked checkbox for 100 columns (equipments)
   var filledArray = arrayFill2d(userCount, 1, 'First Last');
-  activeSheet.getRange(2, 1, userCount).setValues(filledArray);
+  setValues(filledArray, `users!${R1C1RangeToA1Range(2, 1, userCount, 1)}`, experimentConditionSpreadsheetId);
   // 'ALL EVENTS' user row
   activeSheet.getRange(2+userCount, 10, 1, equipmentCount).insertCheckboxes(); // create checked checkbox for 'ALL EVENTS'
   activeSheet.getRange(2+userCount, 1).setValue('ALL EVENTS');
@@ -322,7 +318,7 @@ function createSpreadsheets3() {
   for (var i = 0; i < equipmentCount; i++) {
     filledArray[i+1] = ['', sheetIds[i], `https://docs.google.com/spreadsheets/d/${experimentConditionSpreadsheetId}/edit#gid=${sheetIds[i]}`, ''];
   }
-  activeSheet.getRange(1, 1, equipmentCount+1, 4).setValues(filledArray);
+  setValues(filledArray, `properties!${R1C1RangeToA1Range(1, 1, equipmentCount+1, 4)}`, experimentConditionSpreadsheetId);
   activeSheet.getRange(1, 2, equipmentCount+1, 2).setHorizontalAlignment("left"); // show https://... not the center of url
   activeSheet.getRange(1, 2, equipmentCount+1, 2).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
   activeSheet.hideColumns(2); // hide columns used for debug
@@ -338,9 +334,8 @@ function createSpreadsheets3() {
   // protect range
   protectRange(activeSheet.getRange(1, 1, finalLoggingRows, 8));
   // set headers
-  activeSheet.getRange(1, 1, 1, 8).setValues(
-    [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent']]
-  );
+  const filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent']];
+  setValues(filledArray, `finalLog!${R1C1RangeToA1Range(1, 1, 1, 8)}`, loggingSpreadsheetId);
 }
 
 // creates calendars for {userCount} users
@@ -782,7 +777,8 @@ function eventLoggingExecute(equipmentSheetName) {
   const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
   const experimentConditionBackupRows = parseInt(properties.getProperty('experimentConditionBackupRows'));
   // spreadsheet for experiment condition logging
-  const equipmentSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName(equipmentSheetName);
+  const experimentConditionSpreadsheetId = properties.getProperty('experimentConditionSpreadsheetId');
+  const equipmentSheet = SpreadsheetApp.openById(experimentConditionSpreadsheetId).getSheetByName(equipmentSheetName);
   const allEquipmentsSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('allEquipments');
   const eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData'));
   properties.deleteProperty('eventLoggingData');
@@ -811,7 +807,7 @@ function eventLoggingExecute(equipmentSheetName) {
     filledArray[0][col-1] = value;
   }
   Logger.log(eventLoggingData);
-  equipmentSheet.getRange(row, 1, 1, 11).setValues(filledArray);    
+  setValues(filledArray, `${equipmentSheetName}!${R1C1RangeToA1Range(row, 1, 1, 11)}`, experimentConditionSpreadsheetId); 
 
   // get experiment condition from description
   try {
@@ -827,7 +823,7 @@ function eventLoggingExecute(equipmentSheetName) {
         filledArray[0][i] = '';
       }
     }
-    equipmentSheet.getRange(row, 13, 1, experimentConditionCount).setValues(filledArray); // experiment condition
+    setValues(filledArray, `${equipmentSheetName}!${R1C1RangeToA1Range(row, 13, 1, experimentConditionCount)}`, experimentConditionSpreadsheetId); // experiment condition
   } catch (e) {}
 
   Logger.log('Sorting events');
@@ -839,7 +835,8 @@ function finalLogging() {
   getAndStoreObjects(); // get sheets, calendars and store them in properties
   const properties = PropertiesService.getUserProperties();
   const finalLoggingBackupRows = parseInt(properties.getProperty('finalLoggingBackupRows'));
-  const finalLogSheet = SpreadsheetApp.openById(properties.getProperty('loggingSpreadsheetId')).getSheetByName('finalLog')
+  const loggingSpreadsheetId = properties.getProperty('loggingSpreadsheetId');
+  const finalLogSheet = SpreadsheetApp.openById(loggingSpreadsheetId).getSheetByName('finalLog');
   const lastRow = finalLogSheet.getLastRow();
   if (lastRow > finalLoggingBackupRows) {
     backupAndDeleteOverflownLoggingData(finalLogSheet) // prevent overflow of spreadsheet data by backing up and deleting it
@@ -918,7 +915,7 @@ function finalLogging() {
         var col = columnDescriptions[key];
         filledArray[0][col-1] = value;
       }
-      finalLogSheet.getRange(row, 1, 1, 11).setValues(filledArray);
+      setValues(filledArray, `finalLog!${R1C1RangeToA1Range(row, 1, 1, 11)}`, loggingSpreadsheetId);
     }
   }
 }
@@ -1012,7 +1009,7 @@ function arrayFill2d(rows, columns, value) {
 
 // fill array with value in sheetsAPI
 function setValues(filledArray, range, spreadsheetId) {
-  Sheets.Spreadsheets.Values.batchUpdate(
+  Sheets.Spreadsheets.Values.update(
     {"majorDimension": "ROWS", "values": filledArray},
     spreadsheetId, 
     range,
@@ -1023,9 +1020,8 @@ function setValues(filledArray, range, spreadsheetId) {
 // fill array with value in sheetsAPI 
 function setValuesBatch(filledArrayBatch, spreadsheetId) {
   Sheets.Spreadsheets.Values.batchUpdate(
-    filledArrayBatch,
+    {"valueInputOption": "USER_ENTERED", "data": filledArrayBatch},
     spreadsheetId, 
-    {"valueInputOption": "USER_ENTERED"},
   );
 }
 
@@ -1175,6 +1171,8 @@ function getRelativeDate(daysOffset, hour) {
 
 // get last and first names from full name
 function setFirstLastNames(sheet, cell, newValue){
+  const properties = PropertiesService.getUserProperties();
+  const experimentConditionSpreadsheetId = properties.getProperty('experimentConditionSpreadsheetId');
   const names = newValue.split(' ', 2); // split to last and first name
   const lastName = names[1];
   const firstName = names[0];
@@ -1182,13 +1180,15 @@ function setFirstLastNames(sheet, cell, newValue){
   // set User Name 1 using last and first name
   // User Name 1 = {Last Name up to 4 letters}.{First Name up to 1 letter}
   const filledArray = [[lastName, firstName, lastName.slice(0,4)+'.'+firstName.slice(0,1)]];
-  sheet.getRange(row, 2, 1, 3).setValues(filledArray);
+  setValues(filledArray, `users!${R1C1RangeToA1Range(row, 2, 1, 3)}`, experimentConditionSpreadsheetId);
 }
 
 // set User Name 2 using User Name 1
 // User Name 2 = {User Name 1}{unique identifier 1~9}
 //             = {Last Name up to 4 letters}.{First Name up to 1 letter}{unique identifier 1,2,3,...}
 function setUserNames(sheet){
+  const properties = PropertiesService.getUserProperties();
+  const experimentConditionSpreadsheetId = properties.getProperty('experimentConditionSpreadsheetId');
   const lastRow = sheet.getLastRow();
   const values = sheet.getRange(2, 4, lastRow-1).getValues();
   const filledArray = [];
@@ -1204,7 +1204,7 @@ function setUserNames(sheet){
     filledArray[i] = [`${values[i][0]}${count}`]; // name + unique number
   }
   // use count as unique identifier (1,2,3,...)
-  sheet.getRange(2, 5, lastRow-1).setValues(filledArray); 
+  setValues(filledArray, `users!${R1C1RangeToA1Range(2, 5, lastRow-1)}`, experimentConditionSpreadsheetId);
 }
 
 // create checkboxes for selecting which equipment to show in the calendar
