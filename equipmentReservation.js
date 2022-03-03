@@ -79,6 +79,7 @@ function createSpreadsheets1() {
   // create spreadsheet for experiment condition logging
   Logger.log('Creating experiment condition spreadsheet');
   var sheetIds = [];
+  var filledArrayBatch = []; // list of filledArray
   var activeSheet = experimentConditionSpreadsheet.getSheetByName('eventLog');
   var firstSheet = '';
   for (var i = 0; i < equipmentCount; i++) { // create sheet for each equipment
@@ -150,14 +151,16 @@ function createSpreadsheets1() {
       for (var j = 0; j < experimentConditionCount; j++) {
         filledArray[0][j] = `=INDIRECT("properties!R${2+i}C${4+j}", FALSE)`;
       }
-      setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(1, 13, 1, experimentConditionCount)}`, experimentConditionSpreadsheetId);
+      filledArrayBatch.push({"majorDimension": "ROWS", "values": filledArray, "range": `equipment${i+1}!${R1C1RangeToA1Range(1, 13, 1, experimentConditionCount)}`});
       var filledArray = arrayFill2d(experimentConditionRows, 1, '');
       for (var j = 0; j < experimentConditionRows; j++) {
         filledArray[j][0] = `=INDIRECT("allEquipments!R" & 1+MATCH("equipment${i+1}!R" & ROW(), INDIRECT("allEquipments!E2:E"), 0) & "C6", FALSE)`; // ADDRESS(row, col)
       }
-      setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(2, 12, experimentConditionRows, 1)}`, experimentConditionSpreadsheetId);
+      filledArrayBatch.push({"majorDimension": "ROWS", "values": filledArray, "range": `equipment${i+1}!${R1C1RangeToA1Range(2, 12, experimentConditionRows, 1)}`});
     }
   }
+  setValuesBatch(filledArrayBatch, experimentConditionSpreadsheetId);
+  filledArrayBatch = [];
   properties.setProperty('sheetIds', JSON.stringify(sheetIds));
 }
 
@@ -1009,10 +1012,19 @@ function arrayFill2d(rows, columns, value) {
 
 // fill array with value in sheetsAPI
 function setValues(filledArray, range, spreadsheetId) {
-  Sheets.Spreadsheets.Values.update(
+  Sheets.Spreadsheets.Values.batchUpdate(
     {"majorDimension": "ROWS", "values": filledArray},
     spreadsheetId, 
     range,
+    {"valueInputOption": "USER_ENTERED"},
+  );
+}
+
+// fill array with value in sheetsAPI 
+function setValuesBatch(filledArrayBatch, spreadsheetId) {
+  Sheets.Spreadsheets.Values.batchUpdate(
+    filledArrayBatch,
+    spreadsheetId, 
     {"valueInputOption": "USER_ENTERED"},
   );
 }
@@ -1268,7 +1280,6 @@ function UTCToLocalTime(inputDate) {
   const outputDate = moment(inputDate).tz(timeZone).format("MM/DD/YY HH:mm");
   return outputDate
 }
-
 
 // timed trigger after 10 seconds
 function timedTrigger(functionName) {  
