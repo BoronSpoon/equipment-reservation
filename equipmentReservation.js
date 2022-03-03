@@ -23,7 +23,7 @@ function defineConstants() {
 }
 
 // setup: split into 4 parts to avoid execution time limit (6 min)
-function setup() { // 2.5 min
+function setup() { // 0.5 min
   Logger.log('Running setup. Dont touch any files and wait for **15** minutes`');
   defineConstants(); // define constants used over several scripts
   createSpreadsheets1(); // create spreadsheet for 18 users
@@ -96,7 +96,7 @@ function createSpreadsheets1() {
   setValues(filledArray, `users!${R1C1RangeToA1Range(2, 1, userCount, 1)}`, experimentConditionSpreadsheetId);
   // 'ALL EVENTS' user row
   insertCheckboxes(experimentConditionSpreadsheetId, activeSheetId, 2+userCount, 10, 1, equipmentCount); // create checked checkbox for 'ALL EVENTS'
-  activeSheet.getRange(2+userCount, 1).setValue('ALL EVENTS');
+  setValues([['ALL EVENTS']], `users!${R1C1RangeToA1Range(2+userCount, 1, 1, 1)}`, experimentConditionSpreadsheetId);
   // copy equipments name from properties sheet
   var filledArray = [[]];
   for (var i = 0; i < equipmentCount; i++) {
@@ -124,7 +124,7 @@ function createSpreadsheets1() {
   Utilities.sleep(1000);
   Logger.log('Creating final log sheet');
   var activeSheetId = insertSheetWithFormat(loggingSpreadsheetId, 'finalLog', finalLoggingRows, 8);
-  loggingSpreadsheet.deleteSheet(loggingSpreadsheet.getSheetByName('Sheet1'));
+  deleteFirstSheet(loggingSpreadsheetId);
   // draw borders
   setBorder(loggingSpreadsheetId, activeSheetId, 1, 1, 1, 8, 'bottom', 'SOLID_THICK');
   // protect range
