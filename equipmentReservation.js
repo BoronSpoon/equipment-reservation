@@ -76,8 +76,8 @@ function createSpreadsheets1() {
   var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, 'users', userCount+2, equipmentCount+9);
   deleteFirstSheet(experimentConditionSpreadsheetId);
   hideColumns(experimentConditionSpreadsheetId, activeSheetId, 2, 6); // hide columns used for debug
-  activeSheet.getRange(2, 6, userCount+1, 4).setHorizontalAlignment("left"); // show "https://..." not the center of url
-  activeSheet.getRange(2, 6, userCount+1, 4).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
+  setHorizontalAlignment(experimentConditionSpreadsheetId, activeSheetId, 2, 6, userCount+1, 4, "left"); // show "https://..." not the center of url
+  setWrapStrategy(experimentConditionSpreadsheetId, activeSheetId, 2, 6, userCount+1, 4, "CLIP"); // link is too long -> clip
   // draw borders
   setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, equipmentCount+9, 'bottom', 'SOLID_THICK');
   setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, userCount+2, 1, 'right', 'SOLID_THICK');
@@ -115,8 +115,8 @@ function createSpreadsheets1() {
   // protect range
   protectRange(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, experimentConditionCount+1);
   protectRange(experimentConditionSpreadsheetId, activeSheetId, 2, 2, equipmentCount, 2);
-  activeSheet.getRange(1, 2, equipmentCount+1, 2).setHorizontalAlignment("left"); // show https://... not the center of url
-  activeSheet.getRange(1, 2, equipmentCount+1, 2).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
+  setHorizontalAlignment(experimentConditionSpreadsheetId, activeSheetId, 1, 2, equipmentCount+1, 2, "left"); // show https://... not the center of url
+  setWrapStrategy(experimentConditionSpreadsheetId, activeSheetId, 1, 2, equipmentCount+1, 2, "CLIP"); // link is too long -> clip
   hideColumns(experimentConditionSpreadsheetId, activeSheetId, 2, 2); // hide columns used for debug
   
   // create spreadsheet for finalized logging
@@ -929,6 +929,64 @@ function backupAndDeleteOverflownLoggingData(finalLogSheet) {
 // ======================================= HELPER FUNCTIONS (API calls) ======================================= 
 // ============================================================================================================ 
 
+function setHorizontalAlignment(spreadsheetId, sheetId, startRow, startColumn, rowCount, columnCount, alignment) {
+  const endRow = startRow + rowCount;
+  const endColumn = startColumn + columnCount;  
+  var requests = [
+    {
+      "updateCells": {  
+        "range": {
+          "sheetId": sheetId,
+          "startRowIndex": startRow-1,
+          "endRowIndex": endRow-1,
+          "startColumnIndex": startColumn-1,
+          "endColumnIndex": endColumn-1,
+        },
+        "rows": [{
+          "values": [{
+            "userEnteredFormat": {
+              "horizontalAlignment": alignment,
+            }
+          }]
+        }],
+        "fields": "*" // use all formats
+      }
+    }
+  ]
+  Sheets.Spreadsheets.batchUpdate(
+    {'requests': requests}, spreadsheetId
+  ); 
+}
+
+function setWrapStrategy(spreadsheetId, sheetId, startRow, startColumn, rowCount, columnCount, wrapStrategy) {
+  const endRow = startRow + rowCount;
+  const endColumn = startColumn + columnCount;  
+  var requests = [
+    {
+      "updateCells": {  
+        "range": {
+          "sheetId": sheetId,
+          "startRowIndex": startRow-1,
+          "endRowIndex": endRow-1,
+          "startColumnIndex": startColumn-1,
+          "endColumnIndex": endColumn-1,
+        },
+        "rows": [{
+          "values": [{
+            "userEnteredFormat": {
+              "wrapStrategy": wrapStrategy,
+            }
+          }]
+        }],
+        "fields": "*" // use all formats
+      }
+    }
+  ]
+  Sheets.Spreadsheets.batchUpdate(
+    {'requests': requests}, spreadsheetId
+  ); 
+}
+
 function insertCheckboxes(spreadsheetId, sheetId, startRow, startColumn, rowCount, columnCount) {
   const endRow = startRow + rowCount;
   const endColumn = startColumn + columnCount;
@@ -953,9 +1011,9 @@ function insertCheckboxes(spreadsheetId, sheetId, startRow, startColumn, rowCoun
 }
  
 // copy sheet
-function copyTo(spreadsheetId, sheetId, sheetName) {
+function copyTo(spreadsheetId, originSheetId, sheetName) {
   var response = Sheets.Spreadsheets.copyTo(
-    {"destinationSpreadsheetId": spreadsheetId}, spreadsheetId, sheetId
+    {"destinationSpreadsheetId": spreadsheetId}, spreadsheetId, originSheetId
   );
   const sheetId = response.sheetId;
 
@@ -1040,7 +1098,7 @@ function hideColumns(spreadsheetId, sheetId, startColumn, endColumn) {
           "endIndex": endColumn-1,
         },
         "properties": {
-          "hiddenByUser": True,
+          "hiddenByUser": true,
         },
         "fields": "*",
       }
@@ -1081,7 +1139,7 @@ function insertSheetWithFormat(spreadsheetId, sheetName, rows, columns) {
       },
     }
   ]
-  Sheets.Spreadsheets.batchUpdate(
+  var response = Sheets.Spreadsheets.batchUpdate(
     {'requests': requests}, spreadsheetId
   );
 
