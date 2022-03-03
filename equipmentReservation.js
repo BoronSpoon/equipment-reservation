@@ -122,10 +122,6 @@ function createSpreadsheets1() {
             ], 
             "range": {
               "sheetId": sheetIds[i],
-              "startRowIndex": 0,
-              "endRowIndex": experimentConditionRows,
-              "startColumnIndex": 0,
-              "endColumnIndex": 12+experimentConditionCount,
             },
             'criteria': { // when column 12 is FALSE, hide row
               11: { 'hiddenValues': ['FALSE'] },
@@ -229,10 +225,6 @@ function createSpreadsheets2() {
         ], 
         "range": {
           "sheetId": activeSheet.getSheetId(),
-          "startRowIndex": 0,
-          "endRowIndex": experimentConditionRows*equipmentCount+1,
-          "startColumnIndex": 0,
-          "endColumnIndex": 6,
         },
       }
     }
