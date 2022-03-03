@@ -22,13 +22,13 @@ function defineConstants() {
 }
 
 // setup: split into 4 parts to avoid execution time limit (6 min)
-function setup() { // 3.5 min
+function setup() { // 2.5 min
   Logger.log('Running setup. Dont touch any files and wait for **15** minutes`');
   defineConstants(); // define constants used over several scripts
   createSpreadsheets1(); // create spreadsheet for 18 users
   timedTrigger('setup2'); // create spreadsheet for 18 users
 }
-function setup2() { // 4.2 min
+function setup2() { // 2.4 min
   createSpreadsheets2();
   timedTrigger('setup3'); 
 }
@@ -46,6 +46,7 @@ function setup4() { //
 // creates spreadsheet for {userCount} users
 function createSpreadsheets1() {
   const properties = PropertiesService.getUserProperties();
+  var cache = CacheService.getScriptCache();
   const userCount = parseInt(properties.getProperty('userCount'));
   const timeZone = properties.getProperty('timeZone');
   const groupUrl = properties.getProperty('groupUrl');
@@ -70,87 +71,73 @@ function createSpreadsheets1() {
   // share to google groups
   DriveApp.getFileById(experimentConditionSpreadsheetId).addEditor(groupUrl);
   DriveApp.getFileById(loggingSpreadsheetId).addEditor(groupUrl);
-
-  // create spreadsheet for experiment condition logging
-  Logger.log('Creating experiment condition spreadsheet');
-  var sheetIds = [];
-  var filledArrayBatch = []; // list of filledArray
-  var activeSheet = '';
-  var firstSheet = '';
-  for (var i = 0; i < equipmentCount; i++) { // create sheet for each equipment
-    Logger.log(`Creating equipmentSheet ${i+1}/${equipmentCount}`);
-    Utilities.sleep(100);
-    if (i === 0) { // create first sheet
-      var returnValues = insertSheetWithFormat(experimentConditionSpreadsheetId, `equipment${i+1}`, experimentConditionRows, 12+experimentConditionCount)
-      activeSheet = returnValues.sheet;
-      firstSheet = returnValues.sheet;
-      sheetIds[i] = returnValues.sheetId;
-      experimentConditionSpreadsheet.deleteSheet(experimentConditionSpreadsheet.getSheetByName('Sheet1'));
-      activeSheet.hideColumns(6, 7); // hide columns used for debug
-      var filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists']];
-      setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(1, 1, 1, 12)}`, experimentConditionSpreadsheetId);
-      activeSheet.getRange(1, 1, 1, 12+experimentConditionCount).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
-      activeSheet.getRange(1, 5, experimentConditionRows, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
-      activeSheet.getRange(1, 12, experimentConditionRows, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
-      // protect range
-      protectRange(activeSheet.getRange(1, 1, 1, 12+experimentConditionCount));
-      protectRange(activeSheet.getRange(2, 6, experimentConditionRows-1, 7));
-      // set headers
-      var filledArray = [[]];
-      for (var j = 0; j < experimentConditionCount; j++) {
-        filledArray[0][j] = `=INDIRECT(\"properties!R${2+i}C${4+j}\", FALSE)`;
-      }
-      setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(1, 13, 1, experimentConditionCount)}`, experimentConditionSpreadsheetId);
-      var filledArray = arrayFill2d(experimentConditionRows, 12, '');
-      for (var j = 0; j < experimentConditionRows; j++) {
-        filledArray[j][11] = `=INDIRECT(\"allEquipments!R\" & 1+MATCH(\"equipment${i+1}!R\" & ROW(), INDIRECT(\"allEquipments!E2:E\"), 0) & \"C6\", FALSE)`; // ADDRESS(row, col)
-      }
-      setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(2, 1, experimentConditionRows, 12)}`, experimentConditionSpreadsheetId);
-
-      Logger.log('Creating filters for hiding canceled and modified events');
-
-      // addFilterView -> adds filter view -> updates automatically -> apply manually after select
-      // setBasicFilter -> adds filter (same as spreadsheetApp filter) -> doesn't update automatically
-      addFilterViewRequest = {
-        'addFilterView': {
-          'filter': {
-            "filterViewId": i+1, // 1~equipmentCount
-            'title': 'hide canceled or modified events',
-            'sortSpecs': [ // sort doesn't include header row
-              {'dimensionIndex': 0, 'sortOrder': 'ASCENDING'}, // sort by startTime
-              {'dimensionIndex': 9, 'sortOrder': 'ASCENDING'}, // sort by executionTime if startTime is same
-            ], 
-            "range": {
-              "sheetId": sheetIds[i],
-            },
-            'criteria': { // when column 12 is FALSE, hide row
-              11: { 'hiddenValues': ['FALSE'] },
-            },
-          }
-        }
-      }
-      Sheets.Spreadsheets.batchUpdate(
-        {'requests': [addFilterViewRequest]}, experimentConditionSpreadsheetId
-      );
-    } else { // copy most contents from first sheet
-      var activeSheet = firstSheet.copyTo(experimentConditionSpreadsheet).setName(`equipment${i+1}`);
-      sheetIds[i] = activeSheet.getSheetId();
-      // set headers
-      var filledArray = [[]];
-      for (var j = 0; j < experimentConditionCount; j++) {
-        filledArray[0][j] = `=INDIRECT("properties!R${2+i}C${4+j}", FALSE)`;
-      }
-      filledArrayBatch.push({"majorDimension": "ROWS", "values": filledArray, "range": `equipment${i+1}!${R1C1RangeToA1Range(1, 13, 1, experimentConditionCount)}`});
-      var filledArray = arrayFill2d(experimentConditionRows, 1, '');
-      for (var j = 0; j < experimentConditionRows; j++) {
-        filledArray[j][0] = `=INDIRECT("allEquipments!R" & 1+MATCH("equipment${i+1}!R" & ROW(), INDIRECT("allEquipments!E2:E"), 0) & "C6", FALSE)`; // ADDRESS(row, col)
-      }
-      filledArrayBatch.push({"majorDimension": "ROWS", "values": filledArray, "range": `equipment${i+1}!${R1C1RangeToA1Range(2, 12, experimentConditionRows, 1)}`});
-    }
+  
+  // users sheet
+  Logger.log('Creating users sheet');
+  var returnValues = insertSheetWithFormat(experimentConditionSpreadsheetId, 'users', userCount+2, equipmentCount+9);
+  activeSheet = returnValues.sheet;
+  activeSheet.hideColumns(2, 6); // hide columns used for debug
+  activeSheet.getRange(2, 6, userCount+1, 4).setHorizontalAlignment("left"); // show "https://..." not the center of url
+  activeSheet.getRange(2, 6, userCount+1, 4).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
+  // draw borders
+  activeSheet.getRange(1, 1, userCount+2, equipmentCount+9).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, userCount+2, equipmentCount+9).setBorder(true, true, true, true, null, true, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  activeSheet.getRange(1, 1, 1, equipmentCount+9).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, userCount+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 5, userCount+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  activeSheet.getRange(1, 7, userCount+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  activeSheet.getRange(1, 9, userCount+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  // protect range
+  protectRange(activeSheet.getRange(1, 1, 1, equipmentCount+9));
+  protectRange(activeSheet.getRange(2, 2, userCount+1, 8));
+  // set headers
+  var filledArray = [['Full Name (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read CalendarId', 'Write CalendarId', 'Read Calendar URL', 'Write Calendar URL']];
+  setValues(filledArray, `users!${R1C1RangeToA1Range(1, 1, 1, 9)}`, experimentConditionSpreadsheetId);
+  // normal user row
+  activeSheet.getRange(2, 10, userCount, equipmentCount).insertCheckboxes(); // create unchecked checkbox for 100 columns (equipments)
+  var filledArray = arrayFill2d(userCount, 1, 'First Last');
+  setValues(filledArray, `users!${R1C1RangeToA1Range(2, 1, userCount, 1)}`, experimentConditionSpreadsheetId);
+  // 'ALL EVENTS' user row
+  activeSheet.getRange(2+userCount, 10, 1, equipmentCount).insertCheckboxes(); // create checked checkbox for 'ALL EVENTS'
+  activeSheet.getRange(2+userCount, 1).setValue('ALL EVENTS');
+  // copy equipments name from properties sheet
+  var filledArray = [[]];
+  for (var i = 0; i < equipmentCount; i++) {
+    filledArray[0][i] = `=INDIRECT(\"properties!R${2+i}C1\", FALSE)`; // refer to sheet 'properties' for equipment name
   }
-  setValuesBatch(filledArrayBatch, experimentConditionSpreadsheetId);
-  filledArrayBatch = [];
-  properties.setProperty('sheetIds', JSON.stringify(sheetIds));
+  setValues(filledArray, `users!${R1C1RangeToA1Range(1, 10, 1, equipmentCount)}`, experimentConditionSpreadsheetId);
+
+  // properties sheet
+  Logger.log('Creating properties sheet');
+  Utilities.sleep(1000);
+  var returnValues = insertSheetWithFormat(experimentConditionSpreadsheetId, 'properties', equipmentCount+1, experimentConditionCount+1);
+  activeSheet = returnValues.sheet;
+  // draw borders
+  activeSheet.getRange(1, 1, equipmentCount+1, experimentConditionCount+1).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, 1, experimentConditionCount+1).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 1, equipmentCount+1, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  activeSheet.getRange(1, 3, equipmentCount+1, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  // protect range
+  protectRange(activeSheet.getRange(1, 1, 1, experimentConditionCount+1));
+  protectRange(activeSheet.getRange(2, 2, equipmentCount, 2));
+  activeSheet.getRange(1, 2, equipmentCount+1, 2).setHorizontalAlignment("left"); // show https://... not the center of url
+  activeSheet.getRange(1, 2, equipmentCount+1, 2).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
+  activeSheet.hideColumns(2); // hide columns used for debug
+  
+  // create spreadsheet for finalized logging
+  Logger.log('Creating logging spreadsheet');
+  Utilities.sleep(1000);
+  Logger.log('Creating final log sheet');
+  var returnValues = insertSheetWithFormat(loggingSpreadsheetId, 'finalLog', finalLoggingRows, 8);
+  activeSheet = returnValues.sheet;
+  loggingSpreadsheet.deleteSheet(loggingSpreadsheet.getSheetByName('Sheet1'));
+  // draw borders
+  activeSheet.getRange(1, 1, 1, 8).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+  // protect range
+  protectRange(activeSheet.getRange(1, 1, finalLoggingRows, 8));
+  // set headers
+  var filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent']];
+  setValues(filledArray, `finalLog!${R1C1RangeToA1Range(1, 1, 1, 8)}`, loggingSpreadsheetId);
 }
 
 // creates spreadsheet for {userCount} users
@@ -238,92 +225,98 @@ function createSpreadsheets2() {
 // creates spreadsheet for {userCount} users
 function createSpreadsheets3() {
   const properties = PropertiesService.getUserProperties();
-  const userCount = parseInt(properties.getProperty('userCount'));
-  const timeZone = properties.getProperty('timeZone');
-  const groupUrl = properties.getProperty('groupUrl');
   const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
   const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
   const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
   const experimentConditionSpreadsheetId = properties.getProperty('experimentConditionSpreadsheetId');
-  const loggingSpreadsheetId = properties.getProperty('loggingSpreadsheetId');
-  const finalLoggingRows = parseInt(properties.getProperty('finalLoggingRows'));
   const experimentConditionSpreadsheet = SpreadsheetApp.openById(experimentConditionSpreadsheetId);
-  const loggingSpreadsheet = SpreadsheetApp.openById(loggingSpreadsheetId);
-  const sheetIds = JSON.parse(properties.getProperty('sheetIds'));
-  
-  // users sheet
-  Logger.log('Creating users sheet');
-  var returnValues = insertSheetWithFormat(experimentConditionSpreadsheetId, 'users', userCount+2, equipmentCount+9);
-  activeSheet = returnValues.sheet;
-  activeSheet.hideColumns(2, 6); // hide columns used for debug
-  activeSheet.getRange(2, 6, userCount+1, 4).setHorizontalAlignment("left"); // show "https://..." not the center of url
-  activeSheet.getRange(2, 6, userCount+1, 4).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
-  // draw borders
-  activeSheet.getRange(1, 1, userCount+2, equipmentCount+9).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
-  activeSheet.getRange(1, 1, userCount+2, equipmentCount+9).setBorder(true, true, true, true, null, true, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-  activeSheet.getRange(1, 1, 1, equipmentCount+9).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
-  activeSheet.getRange(1, 1, userCount+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
-  activeSheet.getRange(1, 5, userCount+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-  activeSheet.getRange(1, 7, userCount+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-  activeSheet.getRange(1, 9, userCount+2, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-  // protect range
-  protectRange(activeSheet.getRange(1, 1, 1, equipmentCount+9));
-  protectRange(activeSheet.getRange(2, 2, userCount+1, 8));
-  // set headers
-  var filledArray = [['Full Name (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read CalendarId', 'Write CalendarId', 'Read Calendar URL', 'Write Calendar URL']];
-  setValues(filledArray, `users!${R1C1RangeToA1Range(1, 1, 1, 9)}`, experimentConditionSpreadsheetId);
-  // normal user row
-  activeSheet.getRange(2, 10, userCount, equipmentCount).insertCheckboxes(); // create unchecked checkbox for 100 columns (equipments)
-  var filledArray = arrayFill2d(userCount, 1, 'First Last');
-  setValues(filledArray, `users!${R1C1RangeToA1Range(2, 1, userCount, 1)}`, experimentConditionSpreadsheetId);
-  // 'ALL EVENTS' user row
-  activeSheet.getRange(2+userCount, 10, 1, equipmentCount).insertCheckboxes(); // create checked checkbox for 'ALL EVENTS'
-  activeSheet.getRange(2+userCount, 1).setValue('ALL EVENTS');
-  // copy equipments name from properties sheet
-  var filledArray = [[]];
-  for (var i = 0; i < equipmentCount; i++) {
-    filledArray[0][i] = `=INDIRECT(\"properties!R${2+i}C1\", FALSE)`; // refer to sheet 'properties' for equipment name
-  }
-  setValues(filledArray, `users!${R1C1RangeToA1Range(1, 10, 1, equipmentCount)}`, experimentConditionSpreadsheetId);
 
-  // properties sheet
-  Logger.log('Creating properties sheet');
-  Utilities.sleep(1000);
-  var returnValues = insertSheetWithFormat(experimentConditionSpreadsheetId, 'properties', equipmentCount+1, experimentConditionCount+1);
-  activeSheet = returnValues.sheet;
-  // draw borders
-  activeSheet.getRange(1, 1, equipmentCount+1, experimentConditionCount+1).setBorder(true, true, true, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
-  activeSheet.getRange(1, 1, 1, experimentConditionCount+1).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
-  activeSheet.getRange(1, 1, equipmentCount+1, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
-  activeSheet.getRange(1, 3, equipmentCount+1, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
-  // protect range
-  protectRange(activeSheet.getRange(1, 1, 1, experimentConditionCount+1));
-  protectRange(activeSheet.getRange(2, 2, equipmentCount, 2));
-  // set headers
+  // create spreadsheet for experiment condition logging
+  Logger.log('Creating experiment condition spreadsheet');
+  var sheetIds = [];
+  var filledArrayBatch = []; // list of filledArray
+  var activeSheet = '';
+  var firstSheet = '';
+  for (var i = 0; i < equipmentCount; i++) { // create sheet for each equipment
+    Logger.log(`Creating equipmentSheet ${i+1}/${equipmentCount}`);
+    Utilities.sleep(100);
+    if (i === 0) { // create first sheet
+      var returnValues = insertSheetWithFormat(experimentConditionSpreadsheetId, `equipment${i+1}`, experimentConditionRows, 12+experimentConditionCount)
+      activeSheet = returnValues.sheet;
+      firstSheet = returnValues.sheet;
+      sheetIds[i] = returnValues.sheetId;
+      experimentConditionSpreadsheet.deleteSheet(experimentConditionSpreadsheet.getSheetByName('Sheet1'));
+      activeSheet.hideColumns(6, 7); // hide columns used for debug
+      var filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists']];
+      setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(1, 1, 1, 12)}`, experimentConditionSpreadsheetId);
+      activeSheet.getRange(1, 1, 1, 12+experimentConditionCount).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+      activeSheet.getRange(1, 5, experimentConditionRows, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+      activeSheet.getRange(1, 12, experimentConditionRows, 1).setBorder(null, null, null, true, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
+      // protect range
+      protectRange(activeSheet.getRange(1, 1, 1, 12+experimentConditionCount));
+      protectRange(activeSheet.getRange(2, 6, experimentConditionRows-1, 7));
+      // set headers
+      var filledArray = [[]];
+      for (var j = 0; j < experimentConditionCount; j++) {
+        filledArray[0][j] = `=INDIRECT(\"properties!R${2+i}C${4+j}\", FALSE)`;
+      }
+      setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(1, 13, 1, experimentConditionCount)}`, experimentConditionSpreadsheetId);
+      var filledArray = arrayFill2d(experimentConditionRows, 12, '');
+      for (var j = 0; j < experimentConditionRows; j++) {
+        filledArray[j][11] = `=INDIRECT(\"allEquipments!R\" & 1+MATCH(\"equipment${i+1}!R\" & ROW(), INDIRECT(\"allEquipments!E2:E\"), 0) & \"C6\", FALSE)`; // ADDRESS(row, col)
+      }
+      setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(2, 1, experimentConditionRows, 12)}`, experimentConditionSpreadsheetId);
+
+      Logger.log('Creating filters for hiding canceled and modified events');
+
+      // addFilterView -> adds filter view -> updates automatically -> apply manually after select
+      // setBasicFilter -> adds filter (same as spreadsheetApp filter) -> doesn't update automatically
+      addFilterViewRequest = {
+        'addFilterView': {
+          'filter': {
+            "filterViewId": i+1, // 1~equipmentCount
+            'title': 'hide canceled or modified events',
+            'sortSpecs': [ // sort doesn't include header row
+              {'dimensionIndex': 0, 'sortOrder': 'ASCENDING'}, // sort by startTime
+              {'dimensionIndex': 9, 'sortOrder': 'ASCENDING'}, // sort by executionTime if startTime is same
+            ], 
+            "range": {
+              "sheetId": sheetIds[i],
+            },
+            'criteria': { // when column 12 is FALSE, hide row
+              11: { 'hiddenValues': ['FALSE'] },
+            },
+          }
+        }
+      }
+      Sheets.Spreadsheets.batchUpdate(
+        {'requests': [addFilterViewRequest]}, experimentConditionSpreadsheetId
+      );
+    } else { // copy most contents from first sheet
+      var activeSheet = firstSheet.copyTo(experimentConditionSpreadsheet).setName(`equipment${i+1}`);
+      sheetIds[i] = activeSheet.getSheetId();
+      // set headers
+      var filledArray = [[]];
+      for (var j = 0; j < experimentConditionCount; j++) {
+        filledArray[0][j] = `=INDIRECT("properties!R${2+i}C${4+j}", FALSE)`;
+      }
+      filledArrayBatch.push({"majorDimension": "ROWS", "values": filledArray, "range": `equipment${i+1}!${R1C1RangeToA1Range(1, 13, 1, experimentConditionCount)}`});
+      var filledArray = arrayFill2d(experimentConditionRows, 1, '');
+      for (var j = 0; j < experimentConditionRows; j++) {
+        filledArray[j][0] = `=INDIRECT("allEquipments!R" & 1+MATCH("equipment${i+1}!R" & ROW(), INDIRECT("allEquipments!E2:E"), 0) & "C6", FALSE)`; // ADDRESS(row, col)
+      }
+      filledArrayBatch.push({"majorDimension": "ROWS", "values": filledArray, "range": `equipment${i+1}!${R1C1RangeToA1Range(2, 12, experimentConditionRows, 1)}`});
+    }
+  }
+  setValuesBatch(filledArrayBatch, experimentConditionSpreadsheetId);
+  filledArrayBatch = [];
+  // set headers for properties sheet
   var filledArray = [[]];
   filledArray[0] = ['equipmentName', 'sheetId', 'sheetUrl', 'Properties ->'];
   for (var i = 0; i < equipmentCount; i++) {
     filledArray[i+1] = ['', sheetIds[i], `https://docs.google.com/spreadsheets/d/${experimentConditionSpreadsheetId}/edit#gid=${sheetIds[i]}`, ''];
   }
-  setValues(filledArray, `properties!${R1C1RangeToA1Range(1, 1, equipmentCount+1, 4)}`, experimentConditionSpreadsheetId);
-  activeSheet.getRange(1, 2, equipmentCount+1, 2).setHorizontalAlignment("left"); // show https://... not the center of url
-  activeSheet.getRange(1, 2, equipmentCount+1, 2).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
-  activeSheet.hideColumns(2); // hide columns used for debug
-  
-  // create spreadsheet for finalized logging
-  Logger.log('Creating logging spreadsheet');
-  Utilities.sleep(1000);
-  Logger.log('Creating final log sheet');
-  var returnValues = insertSheetWithFormat(loggingSpreadsheetId, 'finalLog', finalLoggingRows, 8);
-  activeSheet = returnValues.sheet;
-  loggingSpreadsheet.deleteSheet(loggingSpreadsheet.getSheetByName('Sheet1'));
-  // draw borders
-  activeSheet.getRange(1, 1, 1, 8).setBorder(null, null, true, null, null, null, 'black', SpreadsheetApp.BorderStyle.SOLID_THICK);
-  // protect range
-  protectRange(activeSheet.getRange(1, 1, finalLoggingRows, 8));
-  // set headers
-  var filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent']];
-  setValues(filledArray, `finalLog!${R1C1RangeToA1Range(1, 1, 1, 8)}`, loggingSpreadsheetId);
+  properties.setProperty('sheetIds', JSON.stringify(sheetIds));
 }
 
 // creates calendars for {userCount} users
