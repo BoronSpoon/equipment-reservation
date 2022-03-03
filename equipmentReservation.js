@@ -16,6 +16,7 @@ function defineConstants() {
   properties.setProperty('finalLoggingRows', 1000000); // number of rows in final logging
   properties.setProperty('finalLoggingBackupRows', 990000); // number of rows in final logging
   properties.setProperty('backgroundColor', '#bbbbbb'); // background color of the uneditable cells (gray)
+  properties.setProperty('effectiveUser', Session.getEffectiveUser()) // get current user running the command
   if (properties.getProperty('groupUrl').includes('?')) { // detect default value and throw error
     throw new Error('ERROR: change "?????@googlegroups.com" to your google group name');
   }
@@ -75,18 +76,18 @@ function createSpreadsheets1() {
   Logger.log('Creating users sheet');
   var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, 'users', userCount+2, equipmentCount+9);
   deleteFirstSheet(experimentConditionSpreadsheetId);
-  activeSheet.hideColumns(2, 6); // hide columns used for debug
+  hideColumns(experimentConditionSpreadsheetId, activeSheetId, 2, 6); // hide columns used for debug
   activeSheet.getRange(2, 6, userCount+1, 4).setHorizontalAlignment("left"); // show "https://..." not the center of url
   activeSheet.getRange(2, 6, userCount+1, 4).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
   // draw borders
-  setBorder(activeSheetId, 1, 1, 1, equipmentCount+9, 'bottom', 'SOLID_THICK');
-  setBorder(activeSheetId, 1, 1, userCount+2, 1, 'right', 'SOLID_THICK');
-  setBorder(activeSheetId, 1, 5, userCount+2, 1, 'right', 'SOLID_MEDIUM');
-  setBorder(activeSheetId, 1, 7, userCount+2, 1, 'right', 'SOLID_MEDIUM');
-  setBorder(activeSheetId, 1, 9, userCount+2, 1, 'right', 'SOLID_MEDIUM');
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, equipmentCount+9, 'bottom', 'SOLID_THICK');
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, userCount+2, 1, 'right', 'SOLID_THICK');
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 5, userCount+2, 1, 'right', 'SOLID_MEDIUM');
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 7, userCount+2, 1, 'right', 'SOLID_MEDIUM');
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 9, userCount+2, 1, 'right', 'SOLID_MEDIUM');
   // protect range
-  protectRange(activeSheet.getRange(1, 1, 1, equipmentCount+9));
-  protectRange(activeSheet.getRange(2, 2, userCount+1, 8));
+  protectRange(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, equipmentCount+9);
+  protectRange(experimentConditionSpreadsheetId, activeSheetId, 2, 2, userCount+1, 8);
   // set headers
   var filledArray = [['Full Name (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read CalendarId', 'Write CalendarId', 'Read Calendar URL', 'Write Calendar URL']];
   setValues(filledArray, `users!${R1C1RangeToA1Range(1, 1, 1, 9)}`, experimentConditionSpreadsheetId);
@@ -109,15 +110,15 @@ function createSpreadsheets1() {
   Utilities.sleep(1000);
   var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, 'properties', equipmentCount+1, experimentConditionCount+1);
   // draw borders
-  setBorder(activeSheetId, 1, 1, 1, experimentConditionCount+1, 'bottom', 'SOLID_THICK');
-  setBorder(activeSheetId, 1, 1, equipmentCount+1, 1, 'right', 'SOLID_THICK');
-  setBorder(activeSheetId, 1, 3, equipmentCount+1, 1, 'right', 'SOLID_THICK');
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, experimentConditionCount+1, 'bottom', 'SOLID_THICK');
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, equipmentCount+1, 1, 'right', 'SOLID_THICK');
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 3, equipmentCount+1, 1, 'right', 'SOLID_THICK');
   // protect range
-  protectRange(activeSheet.getRange(1, 1, 1, experimentConditionCount+1));
-  protectRange(activeSheet.getRange(2, 2, equipmentCount, 2));
+  protectRange(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, experimentConditionCount+1);
+  protectRange(experimentConditionSpreadsheetId, activeSheetId, 2, 2, equipmentCount, 2);
   activeSheet.getRange(1, 2, equipmentCount+1, 2).setHorizontalAlignment("left"); // show https://... not the center of url
   activeSheet.getRange(1, 2, equipmentCount+1, 2).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); // link is too long -> clip
-  activeSheet.hideColumns(2); // hide columns used for debug
+  hideColumns(experimentConditionSpreadsheetId, activeSheetId, 2, 2); // hide columns used for debug
   
   // create spreadsheet for finalized logging
   Logger.log('Creating logging spreadsheet');
@@ -126,9 +127,9 @@ function createSpreadsheets1() {
   var activeSheetId = insertSheetWithFormat(loggingSpreadsheetId, 'finalLog', finalLoggingRows, 8);
   loggingSpreadsheet.deleteSheet(loggingSpreadsheet.getSheetByName('Sheet1'));
   // draw borders
-  setBorder(activeSheetId, 1, 1, 1, 8, 'bottom', 'SOLID_THICK');
+  setBorder(loggingSpreadsheetId, activeSheetId, 1, 1, 1, 8, 'bottom', 'SOLID_THICK');
   // protect range
-  protectRange(activeSheet.getRange(1, 1, finalLoggingRows, 8));
+  protectRange(loggingSpreadsheetId, activeSheetId, 1, 1, finalLoggingRows, 8);
   // set headers
   var filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent']];
   setValues(filledArray, `finalLog!${R1C1RangeToA1Range(1, 1, 1, 8)}`, loggingSpreadsheetId);
@@ -155,10 +156,10 @@ function createSpreadsheets2() {
   var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, 'allEquipments', experimentConditionRows*equipmentCount+1, 6)
   // draw borders
   Logger.log('Drawing borders');
-  setBorder(activeSheetId, 1, 1, 1, 6, 'bottom', 'SOLID_THICK');
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, 6, 'bottom', 'SOLID_THICK');
   // protect range
   Logger.log('Protecting range');
-  protectRange(activeSheet.getRange(1, 1, experimentConditionRows*equipmentCount+1, 6));
+  protectRange(experimentConditionSpreadsheetId, activeSheetId, 1, 1, experimentConditionRows*equipmentCount+1, 6);
   // set headers
   var filledArray = [['startTime','executionTime','id','action','originalAddress','eventExists']];
   setValues(filledArray, `allEquipments!${R1C1RangeToA1Range(1, 1, 1, 6)}`, experimentConditionSpreadsheetId);
@@ -235,15 +236,15 @@ function createSpreadsheets3() {
     if (i === 0) { // create first sheet
       var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, `equipment${i+1}`, experimentConditionRows, 12+experimentConditionCount)
       sheetIds[i] = activeSheetId;
-      hideColumns(activeSheetId, 6, 7); // hide columns used for debug
+      hideColumns(experimentConditionSpreadsheetId, activeSheetId, 6, 7); // hide columns used for debug
       var filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists']];
       setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(1, 1, 1, 12)}`, experimentConditionSpreadsheetId);
-      setBorder(activeSheetId, 1, 1, 1, 12+experimentConditionCount, 'bottom', 'SOLID_THICK');
-      setBorder(activeSheetId, 1, 5, experimentConditionRows, 1, 'right', 'SOLID_THICK');
-      setBorder(activeSheetId, 1, 12, experimentConditionRows, 1, 'right', 'SOLID_THICK');
+      setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, 12+experimentConditionCount, 'bottom', 'SOLID_THICK');
+      setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 5, experimentConditionRows, 1, 'right', 'SOLID_THICK');
+      setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 12, experimentConditionRows, 1, 'right', 'SOLID_THICK');
       // protect range
-      protectRange(activeSheet.getRange(1, 1, 1, 12+experimentConditionCount));
-      protectRange(activeSheet.getRange(2, 6, experimentConditionRows-1, 7));
+      protectRange(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, 12+experimentConditionCount);
+      protectRange(experimentConditionSpreadsheetId, activeSheetId, 2, 6, experimentConditionRows-1, 7);
       // set headers
       var filledArray = [[]];
       for (var j = 0; j < experimentConditionCount; j++) {
@@ -938,8 +939,36 @@ function backupAndDeleteOverflownLoggingData(finalLogSheet) {
 // ======================================= HELPER FUNCTIONS (API calls) ======================================= 
 // ============================================================================================================ 
 
+// protect the specified range
+function protectRange(spreadsheetId, sheetId, startRow, startColumn, rowCount, columnCount) {  
+  const endRow = startRow + rowCount;
+  const endColumn = startColumn + columnCount;
+  const properties = PropertiesService.getUserProperties();
+  const effectiveUser = properties.getProperty('effectiveUser')
+  requests = [
+    {
+      "addProtectedRange": {
+        "protectedRange": {
+          "range": {
+            "sheetId": sheetId,
+            "startRowIndex": startRow-1,
+            "endRowIndex": endRow-1,
+            "startColumnIndex": startColumn-1,
+            "endColumnIndex": endColumn-1,
+          },
+          "description": "Protected Range",  
+          "editors": {"users": [effectiveUser]}
+        }
+      }
+    }
+  ]
+  Sheets.Spreadsheets.batchUpdate(
+    {'requests': requests}, spreadsheetId
+  );
+}
+
 // position: {top, bottom, left, right}, style: {DOTTED, DASHED, SOLID, SOLID_MEDIUM, SOLID_THICK, NONE, DOUBLE}
-function setBorder(sheetId, startRow, startColumn, rowCount, columnCount, position, style) {
+function setBorder(spreadsheetId, sheetId, startRow, startColumn, rowCount, columnCount, position, style) {
   const endRow = startRow + rowCount;
   const endColumn = startColumn + columnCount;
   updateBorders = {
@@ -958,11 +987,11 @@ function setBorder(sheetId, startRow, startColumn, rowCount, columnCount, positi
     }
   ]
   Sheets.Spreadsheets.batchUpdate(
-    {'requests': requests}, spreadSheetId
+    {'requests': requests}, spreadsheetId
   );
 }
 
-function hideColumns(sheetId, startColumn, endColumn) {
+function hideColumns(spreadsheetId, sheetId, startColumn, endColumn) {
   requests = [
     {
       "updateDimensionProperties": {
@@ -980,7 +1009,7 @@ function hideColumns(sheetId, startColumn, endColumn) {
     }
   ]
   Sheets.Spreadsheets.batchUpdate(
-    {'requests': requests}, spreadSheetId
+    {'requests': requests}, spreadsheetId
   );
 }
 
@@ -995,7 +1024,7 @@ function deleteFirstSheet(spreadsheetId) {
     }
   ]
   Sheets.Spreadsheets.batchUpdate(
-    {'requests': requests}, spreadSheetId
+    {'requests': requests}, spreadsheetId
   );
 }
 
@@ -1015,7 +1044,7 @@ function insertSheetWithFormat(spreadsheetId, sheetName, rows, columns) {
     }
   ]
   Sheets.Spreadsheets.batchUpdate(
-    {'requests': requests}, spreadSheetId
+    {'requests': requests}, spreadsheetId
   );
 
   const sheetId = response.replies[0].addSheet.properties.sheetId;
@@ -1088,13 +1117,6 @@ function setValuesBatch(filledArrayBatch, spreadsheetId) {
 // ================================================================================================
 // ======================================= HELPER FUNCTIONS ======================================= 
 // ================================================================================================
-
-// protect and color the specified range
-function protectRange(range) {
-  const properties = PropertiesService.getUserProperties();
-  range.protect().setDescription('Protected Range').addEditor(Session.getEffectiveUser());
-  range.setBackground(properties.getProperty('backgroundColor'));
-}
 
 // create 2d array filled with value
 function arrayFill2d(rows, columns, value) { 
