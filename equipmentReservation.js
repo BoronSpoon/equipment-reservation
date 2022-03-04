@@ -33,12 +33,8 @@ function setup2() {
   createSpreadsheets2();
   timedTrigger('setup3'); 
 }
-function setup3() { 
-  createSpreadsheets3();
-  timedTrigger('setup4'); 
-}
 
-function setup4() { 
+function setup3() { 
   createCalendars();
   deleteTriggers(); // delete timed triggers and previous triggers
   getAndStoreObjects();
@@ -134,32 +130,6 @@ function createSpreadsheets1() {
   // set headers
   var filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent']];
   setValues(filledArray, `finalLog!${R1C1RangeToA1Range(1, 1, 1, 8)}`, loggingSpreadsheetId);
-}
-
-function createSpreadsheets2() {
-  const properties = PropertiesService.getUserProperties();
-  const experimentConditionSpreadsheetId = properties.getProperty('experimentConditionSpreadsheetId');
-  const activeSheetId = parseInt(properties.getProperty('activeSheetId'));
-
-  addFilterViewRequest = {
-    'addFilterView': {
-      'filter': {
-        "filterViewId": 0, 
-        'title': 'sort events by date and time',
-        'sortSpecs': [ // sort doesn't include header row
-          {'dimensionIndex': 0, 'sortOrder': 'ASCENDING'}, // sort by startTime
-          {'dimensionIndex': 1, 'sortOrder': 'ASCENDING'}, // sort by executionTime if startTime is same
-        ], 
-        "range": {
-          "sheetId": activeSheetId,
-        },
-      }
-    }
-  }
-  Logger.log('Adding sort filter view');
-  Sheets.Spreadsheets.batchUpdate(
-    {'requests': [addFilterViewRequest]}, experimentConditionSpreadsheetId
-  );
 }
 
 // creates spreadsheet for {userCount} users
@@ -962,7 +932,7 @@ function insertCheckboxes(spreadsheetId, sheetId, startRow, startColumn, rowCoun
  
 // copy sheet
 function copyTo(spreadsheetId, originSheetId, sheetName) {
-  var response = Sheets.Spreadsheets.sheets.copyTo(
+  var response = Sheets.Spreadsheets.Sheets.copyTo(
     {"destinationSpreadsheetId": spreadsheetId}, spreadsheetId, originSheetId
   );
   const sheetId = response.sheetId;
@@ -975,7 +945,7 @@ function copyTo(spreadsheetId, originSheetId, sheetName) {
           "sheetId": sheetId,
           "title": sheetName,
         },
-        "fields": "*"
+        "fields": "title"
       }
     }
   ]
