@@ -134,49 +134,6 @@ function createSpreadsheets1() {
   // set headers
   var filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent']];
   setValues(filledArray, `finalLog!${R1C1RangeToA1Range(1, 1, 1, 8)}`, loggingSpreadsheetId);
-  
-  // allEquipment sheet
-  Logger.log('Creating allEquipment sheet');
-  var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, 'allEquipments', experimentConditionRows*equipmentCount+1, 6)
-  // draw borders
-  Logger.log('Drawing borders');
-  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, 6, 'bottom', 'SOLID_THICK');
-  // protect range
-  Logger.log('Protecting range');
-  protectRange(experimentConditionSpreadsheetId, activeSheetId, 1, 1, experimentConditionRows*equipmentCount+1, 6);
-  // set headers
-  var filledArray = [['startTime','executionTime','id','action','originalAddress','eventExists']];
-  setValues(filledArray, `allEquipments!${R1C1RangeToA1Range(1, 1, 1, 6)}`, experimentConditionSpreadsheetId);
-  var filledArray1 = [];
-  var filledArray2 = [];
-  var row = 0;
-  for (var i = 0; i < equipmentCount; i++) {
-    for (var j = 0; j < experimentConditionRows; j++) {
-      row = i*experimentConditionRows + j;
-      filledArray1[row] = [ // column A~C
-        `=INDIRECT(\"equipment${i+1}!R${2+row}C1\", FALSE)`, // C1
-        `=INDIRECT(\"equipment${i+1}!R${2+row}C10\", FALSE)`, // C10
-        `=INDIRECT(\"equipment${i+1}!R${2+row}C11\", FALSE)`, // C11
-      ]; // refer to sheet 'properties' for equipment name
-      filledArray2[row] = [ // column D~E
-        `=INDIRECT(\"equipment${i+1}!R${2+row}C9\", FALSE)`, // C9
-        `'equipment${i+1}!R${2+j}`,
-      ]; // refer to sheet 'properties' for equipment name
-    }
-  }
-  // column A~C
-  Logger.log('Settings formulas for columns A~C');
-  setValues(filledArray1, `allEquipments!A2:C${experimentConditionRows*equipmentCount+1}`, experimentConditionSpreadsheetId);
-  // column D~E
-  Logger.log('Settings formulas for columns D~E');
-  setValues(filledArray2, `allEquipments!D2:E${experimentConditionRows*equipmentCount+1}`, experimentConditionSpreadsheetId);
-  
-  // column F (could not be set with sheetsAPI for some reason...)
-  //see if event exists (if it is 1[unmodified(is the last entry with the same id)] and 2[not canceled]) or 3[cell is empty]
-  Logger.log('Settings formulas for column F');
-  var filledArray = arrayFill2d(experimentConditionRows*equipmentCount, 1, `=OR(AND(COUNTIF(INDIRECT(\"R[1]C[-3]:R${experimentConditionRows*equipmentCount+1}C[-3]\", FALSE), INDIRECT(\"R[0]C[-3]\", FALSE))=0, INDIRECT(\"R[0]C[-2]\", FALSE)=\"add\"), INDIRECT(\"R[0]C[-4]\", FALSE)=\"\")`);
-  setValues(filledArray, `allEquipments!${R1C1RangeToA1Range(2, 6, experimentConditionRows*equipmentCount, 1)}`, experimentConditionSpreadsheetId);
-  properties.setProperty('activeSheetId', activeSheetId.toString()); // for createSpreadsheets2
 }
 
 function createSpreadsheets2() {
@@ -240,7 +197,8 @@ function createSpreadsheets3() {
       setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(1, 13, 1, experimentConditionCount)}`, experimentConditionSpreadsheetId);
       var filledArray = arrayFill2d(experimentConditionRows, 12, '');
       for (var j = 0; j < experimentConditionRows; j++) {
-        filledArray[j][11] = `=INDIRECT(\"allEquipments!R\" & 1+MATCH(\"equipment${i+1}!R\" & ROW(), INDIRECT(\"allEquipments!E2:E\"), 0) & \"C6\", FALSE)`; // ADDRESS(row, col)
+        //see if event exists (if it is 1[unmodified(is the last entry with the same id)] and 2[not canceled]) or 3[cell is empty]
+        filledArray[j][11] = `=OR(AND(COUNTIF(INDIRECT(\"R[1]C[-1]:R${experimentConditionRows}C[-1]\", FALSE), INDIRECT(\"R[0]C[-1]\", FALSE))=0, INDIRECT(\"R[0]C[-3]\", FALSE)=\"add\"), INDIRECT(\"R[0]C[-1]\", FALSE)=\"\")`
       }
       setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(2, 1, experimentConditionRows, 12)}`, experimentConditionSpreadsheetId);
 
@@ -279,10 +237,6 @@ function createSpreadsheets3() {
       }
       filledArrayBatch.push({"majorDimension": "ROWS", "values": filledArray, "range": `equipment${i+1}!${R1C1RangeToA1Range(1, 13, 1, experimentConditionCount)}`});
       var filledArray = arrayFill2d(experimentConditionRows, 1, '');
-      for (var j = 0; j < experimentConditionRows; j++) {
-        filledArray[j][0] = `=INDIRECT("allEquipments!R" & 1+MATCH("equipment${i+1}!R" & ROW(), INDIRECT("allEquipments!E2:E"), 0) & "C6", FALSE)`; // ADDRESS(row, col)
-      }
-      filledArrayBatch.push({"majorDimension": "ROWS", "values": filledArray, "range": `equipment${i+1}!${R1C1RangeToA1Range(2, 12, experimentConditionRows, 1)}`});
     }
   }
   setValuesBatch(filledArrayBatch, experimentConditionSpreadsheetId);
