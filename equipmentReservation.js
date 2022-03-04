@@ -8,13 +8,13 @@ function defineConstants() {
   const properties = PropertiesService.getUserProperties();
   properties.setProperty('groupUrl', '?????@googlegroups.com'); // groupURL
   properties.setProperty('timeZone', 'Asia/Tokyo'); // set timezone
-  properties.setProperty('userCount', 18); // number of users
-  properties.setProperty('equipmentCount', 30); // number of equipments
-  properties.setProperty('experimentConditionCount', 20); // number of experiment conditions for a single equipment
-  properties.setProperty('experimentConditionRows', 1000); // number of rows in experiment condition
-  properties.setProperty('experimentConditionBackupRows', 800); // number of rows to backup and delete in case of overflow of sheets
-  properties.setProperty('finalLoggingRows', 1000000); // number of rows in final logging
-  properties.setProperty('finalLoggingBackupRows', 990000); // number of rows in final logging
+  properties.setProperty('userCount', 18); // number of users (MAX 18)
+  properties.setProperty('equipmentCount', 30); // number of equipments (MAX 50)
+  properties.setProperty('experimentConditionCount', 20); // number of experiment conditions for a single equipment (MAX 20)
+  properties.setProperty('experimentConditionRows', 1000); // number of rows in experiment condition (MAX 5000)
+  properties.setProperty('experimentConditionBackupRows', 800); // number of rows to backup and delete in case of overflow of sheets (MAX 4000)
+  properties.setProperty('finalLoggingRows', 1000000); // number of rows in final logging (MAX 1000000)
+  properties.setProperty('finalLoggingBackupRows', 990000); // number of rows in final logging (MAX 990000)
   properties.setProperty('backgroundColor', '#bbbbbb'); // background color of the uneditable cells (gray)
   properties.setProperty('effectiveUser', Session.getEffectiveUser()) // get current user running the command
   if (properties.getProperty('groupUrl').includes('?')) { // detect default value and throw error
