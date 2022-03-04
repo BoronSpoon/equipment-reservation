@@ -247,7 +247,7 @@ function createCalendars() {
     var readCalendarId = calendar.getId();
     Calendar.Acl.insert(resource, readCalendarId); // add access permission to google group
     fillValues[i][0] = readCalendarId;
-    fillValues[i][2] = `=HYPERLINK(\"https://calendar.google.com/calendar/u/0?cid=${readCalendarId}\", "CLICK ME")`);
+    fillValues[i][2] = `=HYPERLINK(\"https://calendar.google.com/calendar/u/0?cid=${readCalendarId}\", "CLICK ME")`;
     Logger.log(`Created read calendar ${calendar.getName()}, with the ID ${readCalendarId}.`);
   }
   // create {userCount} write calendars
