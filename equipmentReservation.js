@@ -9,10 +9,10 @@ function defineConstants() {
   properties.setProperty('groupUrl', '?????@googlegroups.com'); // groupURL
   properties.setProperty('timeZone', 'Asia/Tokyo'); // set timezone
   properties.setProperty('userCount', 18); // number of users
-  properties.setProperty('equipmentCount', 50); // number of equipments
+  properties.setProperty('equipmentCount', 30); // number of equipments
   properties.setProperty('experimentConditionCount', 20); // number of experiment conditions for a single equipment
-  properties.setProperty('experimentConditionRows', 5000); // number of rows in experiment condition
-  properties.setProperty('experimentConditionBackupRows', 4500); // number of rows to backup and delete in case of overflow of sheets
+  properties.setProperty('experimentConditionRows', 1000); // number of rows in experiment condition
+  properties.setProperty('experimentConditionBackupRows', 800); // number of rows to backup and delete in case of overflow of sheets
   properties.setProperty('finalLoggingRows', 1000000); // number of rows in final logging
   properties.setProperty('finalLoggingBackupRows', 990000); // number of rows in final logging
   properties.setProperty('backgroundColor', '#bbbbbb'); // background color of the uneditable cells (gray)
@@ -32,10 +32,13 @@ function setup() {
 function setup2() { 
   createSpreadsheets2();
   timedTrigger('setup3'); 
-
+}
+function setup3() { 
+  createSpreadsheets3();
+  timedTrigger('setup4'); 
 }
 
-function setup3() { 
+function setup4() { 
   createCalendars();
   deleteTriggers(); // delete timed triggers and previous triggers
   getAndStoreObjects();
@@ -173,6 +176,13 @@ function createSpreadsheets1() {
   Logger.log('Settings formulas for column F');
   var filledArray = arrayFill2d(experimentConditionRows*equipmentCount, 1, `=OR(AND(COUNTIF(INDIRECT(\"R[1]C[-3]:R${experimentConditionRows*equipmentCount+1}C[-3]\", FALSE), INDIRECT(\"R[0]C[-3]\", FALSE))=0, INDIRECT(\"R[0]C[-2]\", FALSE)=\"add\"), INDIRECT(\"R[0]C[-4]\", FALSE)=\"\")`);
   setValues(filledArray, `allEquipments!${R1C1RangeToA1Range(2, 6, experimentConditionRows*equipmentCount, 1)}`, experimentConditionSpreadsheetId);
+  properties.setProperty('activeSheetId', activeSheetId.toString()); // for createSpreadsheets2
+}
+
+function createSpreadsheets2() {
+  const properties = PropertiesService.getUserProperties();
+  const experimentConditionSpreadsheetId = properties.getProperty('experimentConditionSpreadsheetId');
+  const activeSheetId = parseInt(properties.getProperty('activeSheetId'));
 
   addFilterViewRequest = {
     'addFilterView': {
@@ -196,7 +206,7 @@ function createSpreadsheets1() {
 }
 
 // creates spreadsheet for {userCount} users
-function createSpreadsheets2() {
+function createSpreadsheets3() {
   const properties = PropertiesService.getUserProperties();
   const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
   const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
@@ -998,7 +1008,7 @@ function insertCheckboxes(spreadsheetId, sheetId, startRow, startColumn, rowCoun
  
 // copy sheet
 function copyTo(spreadsheetId, originSheetId, sheetName) {
-  var response = Sheets.Spreadsheets.copyTo(
+  var response = Sheets.Spreadsheets.sheets.copyTo(
     {"destinationSpreadsheetId": spreadsheetId}, spreadsheetId, originSheetId
   );
   const sheetId = response.sheetId;
