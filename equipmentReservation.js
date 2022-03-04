@@ -76,7 +76,7 @@ function createSpreadsheets1() {
     if (i === 0) { // create first sheet
       var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, `equipment${i+1}`, experimentConditionRows, 12+experimentConditionCount)
       sheetIds[i] = activeSheetId;
-      hideColumns(experimentConditionSpreadsheetId, activeSheetId, 6, 7); // hide columns used for debug
+      hideColumns(experimentConditionSpreadsheetId, activeSheetId, 6, 12); // hide columns used for debug
       var filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists']];
       setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(1, 1, 1, 12)}`, experimentConditionSpreadsheetId);
       setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, 12+experimentConditionCount, 'bottom', 'SOLID_THICK');
