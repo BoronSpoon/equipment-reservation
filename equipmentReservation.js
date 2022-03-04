@@ -152,13 +152,34 @@ function createSpreadsheets2() {
   const loggingSpreadsheetId = properties.getProperty('loggingSpreadsheetId');
   const sheetIds = JSON.parse(properties.getProperty('sheetIds'));
   
+  // properties sheet
+  Logger.log('Creating properties sheet');
+  Utilities.sleep(1000);
+  var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, 'properties', equipmentCount+1, experimentConditionCount+1);
+  hideColumns(experimentConditionSpreadsheetId, activeSheetId, 2, 2); // hide columns used for debug
+  setHorizontalAlignment(experimentConditionSpreadsheetId, activeSheetId, 1, 2, equipmentCount+1, 2, "left"); // show https://... not the center of url
+  // draw borders
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, experimentConditionCount+1, 'bottom', 'SOLID_THICK');
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, equipmentCount+1, 1, 'right', 'SOLID_THICK');
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 3, equipmentCount+1, 1, 'right', 'SOLID_THICK');
+  // protect range
+  protectRange(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, experimentConditionCount+1);
+  protectRange(experimentConditionSpreadsheetId, activeSheetId, 2, 2, equipmentCount, 2);  // set headers for properties sheet
+  var filledArray = [[]];
+  filledArray[0] = ['equipmentName', 'sheetId', 'sheetUrl', 'Properties ->'];
+  for (var i = 0; i < equipmentCount; i++) {
+    filledArray[i+1] = ['', sheetIds[i].toString(), `=HYPERLINK(\"https://docs.google.com/spreadsheets/d/${experimentConditionSpreadsheetId}/edit#gid=${sheetIds[i].toString()}\", \"CLICK ME\")`, ''];
+  }
+  setValues(filledArray, `properties!${R1C1RangeToA1Range(1, 1, equipmentCount+1, 4)}`, experimentConditionSpreadsheetId);
+  //setWrapStrategy(experimentConditionSpreadsheetId, activeSheetId, 1, 2, equipmentCount+1, 2, "CLIP"); // link is too long -> clip
+
   // users sheet
   Logger.log('Creating users sheet');
   var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, 'users', userCount+2, equipmentCount+9);
   deleteFirstSheet(experimentConditionSpreadsheetId);
   hideColumns(experimentConditionSpreadsheetId, activeSheetId, 2, 7); // hide columns used for debug
   setHorizontalAlignment(experimentConditionSpreadsheetId, activeSheetId, 2, 6, userCount+1, 4, "left"); // show "https://..." not the center of url
-  setWrapStrategy(experimentConditionSpreadsheetId, activeSheetId, 2, 6, userCount+1, 4, "CLIP"); // link is too long -> clip
+  //setWrapStrategy(experimentConditionSpreadsheetId, activeSheetId, 2, 6, userCount+1, 4, "CLIP"); // link is too long -> clip
   // draw borders
   setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, equipmentCount+9, 'bottom', 'SOLID_THICK');
   setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, userCount+2, 1, 'right', 'SOLID_THICK');
@@ -184,28 +205,6 @@ function createSpreadsheets2() {
     filledArray[0][i] = `=INDIRECT(\"properties!R${2+i}C1\", FALSE)`; // refer to sheet 'properties' for equipment name
   }
   setValues(filledArray, `users!${R1C1RangeToA1Range(1, 10, 1, equipmentCount)}`, experimentConditionSpreadsheetId);
-
-  // properties sheet
-  Logger.log('Creating properties sheet');
-  Utilities.sleep(1000);
-  var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, 'properties', equipmentCount+1, experimentConditionCount+1);
-  // set headers for properties sheet
-  var filledArray = [[]];
-  filledArray[0] = ['equipmentName', 'sheetId', 'sheetUrl', 'Properties ->'];
-  for (var i = 0; i < equipmentCount; i++) {
-    filledArray[i+1] = ['', sheetIds[i], `https://docs.google.com/spreadsheets/d/${experimentConditionSpreadsheetId}/edit#gid=${sheetIds[i]}`, ''];
-  }
-  setValues(filledArray, `properties!${R1C1RangeToA1Range(1, 1, equipmentCount+1, 4)}`, experimentConditionSpreadsheetId);
-  // draw borders
-  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, experimentConditionCount+1, 'bottom', 'SOLID_THICK');
-  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, equipmentCount+1, 1, 'right', 'SOLID_THICK');
-  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 3, equipmentCount+1, 1, 'right', 'SOLID_THICK');
-  // protect range
-  protectRange(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, experimentConditionCount+1);
-  protectRange(experimentConditionSpreadsheetId, activeSheetId, 2, 2, equipmentCount, 2);
-  setHorizontalAlignment(experimentConditionSpreadsheetId, activeSheetId, 1, 2, equipmentCount+1, 2, "left"); // show https://... not the center of url
-  setWrapStrategy(experimentConditionSpreadsheetId, activeSheetId, 1, 2, equipmentCount+1, 2, "CLIP"); // link is too long -> clip
-  hideColumns(experimentConditionSpreadsheetId, activeSheetId, 2, 2); // hide columns used for debug
 
   // create spreadsheet for finalized logging
   Logger.log('Creating logging spreadsheet');
@@ -993,9 +992,9 @@ function setBorder(spreadsheetId, sheetId, startRow, startColumn, rowCount, colu
     "range": {
       "sheetId": sheetId,
       "startRowIndex": startRow-1,
-      "endRowIndex": endRow,
+      "endRowIndex": endRow-1,
       "startColumnIndex": startColumn-1,
-      "endColumnIndex": endColumn,
+      "endColumnIndex": endColumn-1,
     },
   }
   updateBorders[position] = {"style": style},
