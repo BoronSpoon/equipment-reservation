@@ -156,6 +156,7 @@ function createSpreadsheets2() {
   Logger.log('Creating properties sheet');
   Utilities.sleep(1000);
   var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, 'properties', equipmentCount+1, experimentConditionCount+1);
+  properties.setProperty('propertiesSheetId', activeSheetId);
   hideColumns(experimentConditionSpreadsheetId, activeSheetId, 2, 2); // hide columns used for debug
   setHorizontalAlignment(experimentConditionSpreadsheetId, activeSheetId, 1, 2, equipmentCount+1, 2, "left"); // show https://... not the center of url
   // draw borders
@@ -176,6 +177,7 @@ function createSpreadsheets2() {
   // users sheet
   Logger.log('Creating users sheet');
   var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, 'users', userCount+2, equipmentCount+9);
+  properties.setProperty('usersSheetId', activeSheetId);
   deleteFirstSheet(experimentConditionSpreadsheetId);
   hideColumns(experimentConditionSpreadsheetId, activeSheetId, 2, 7); // hide columns used for debug
   setHorizontalAlignment(experimentConditionSpreadsheetId, activeSheetId, 2, 6, userCount+1, 4, "left"); // show "https://..." not the center of url
@@ -211,6 +213,7 @@ function createSpreadsheets2() {
   Utilities.sleep(1000);
   Logger.log('Creating final log sheet');
   var activeSheetId = insertSheetWithFormat(loggingSpreadsheetId, 'finalLog', finalLoggingRows, 8);
+  properties.setProperty('finalLogSheetId', activeSheetId);
   deleteFirstSheet(loggingSpreadsheetId);
   // draw borders
   setBorder(loggingSpreadsheetId, activeSheetId, 1, 1, 1, 8, 'bottom', 'SOLID_THICK');
@@ -227,7 +230,7 @@ function createCalendars() {
   const properties = PropertiesService.getUserProperties();
   const userCount = parseInt(properties.getProperty('userCount'));
   const groupUrl = properties.getProperty('groupUrl');
-  const experimentConditionSpreadsheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId'));
+  const experimentConditionSpreadsheetId = properties.getProperty('experimentConditionSpreadsheetId');
   const resource = { // used to add google group as guest
     'scope': {
       'type': 'group',
@@ -236,14 +239,15 @@ function createCalendars() {
     'role': 'writer',
   }
   // create {userCount+1} read calendars
+  var fillValues = []
   for (var i = 0; i < userCount+1; i++){
+    fillValues[i] = ['', '', '', ''] // fill columns 6~9 
     Utilities.sleep(3000);
     var calendar = CalendarApp.createCalendar(`read ${i+1}`);
     var readCalendarId = calendar.getId();
     Calendar.Acl.insert(resource, readCalendarId); // add access permission to google group
-    var activeSheet = experimentConditionSpreadsheet.getSheetByName('users');
-    activeSheet.getRange(2+i, 6).setValue(readCalendarId);
-    activeSheet.getRange(2+i, 8).setValue(`https://calendar.google.com/calendar/u/0?cid=${readCalendarId}`);
+    fillValues[i][0] = readCalendarId;
+    fillValues[i][2] = `=HYPERLINK(\"https://calendar.google.com/calendar/u/0?cid=${readCalendarId}\", "CLICK ME")`);
     Logger.log(`Created read calendar ${calendar.getName()}, with the ID ${readCalendarId}.`);
   }
   // create {userCount} write calendars
@@ -252,11 +256,11 @@ function createCalendars() {
     var calendar = CalendarApp.createCalendar(`write ${i+1}`);
     var writeCalendarId = calendar.getId();
     Calendar.Acl.insert(resource, writeCalendarId); // add access permission to google group
-    var activeSheet = experimentConditionSpreadsheet.getSheetByName('users');
-    activeSheet.getRange(2+i, 7).setValue(writeCalendarId);
-    activeSheet.getRange(2+i, 9).setValue(`https://calendar.google.com/calendar/u/0?cid=${writeCalendarId}`);
+    fillValues[i][1] = writeCalendarId;
+    fillValues[i][3] = `=HYPERLINK(\"https://calendar.google.com/calendar/u/0?cid=${writeCalendarId}\", "CLICK ME")`;
     Logger.log(`Created write calendar ${calendar.getName()}, with the ID ${writeCalendarId}.`);
   }
+  setValues(filledArray, `users!${R1C1RangeToA1Range(2, 6, userCount+1, 4)}`, experimentConditionSpreadsheetId);
 }
 
 // set ids
