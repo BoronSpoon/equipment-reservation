@@ -695,7 +695,7 @@ function eventLoggingExecute(equipmentSheetName) {
     filledArray[0][col-1] = value;
   }
   Logger.log(eventLoggingData);
-  setValues(filledArray, `${equipmentSheetName}!${R1C1RangeToA1Range(row, 1, 1, 11)}`, experimentConditionSpreadsheetId); 
+  equipmentSheet.getRange(row, 1, 1, 11).setValues(filledArray); 
 
   // get experiment condition from description
   try {
@@ -711,7 +711,7 @@ function eventLoggingExecute(equipmentSheetName) {
         filledArray[0][i] = '';
       }
     }
-    setValues(filledArray, `${equipmentSheetName}!${R1C1RangeToA1Range(row, 13, 1, experimentConditionCount)}`, experimentConditionSpreadsheetId); // experiment condition
+    equipmentSheet.getRange(row, 13, 1, experimentConditionCount).setValues(filledArray); // experiment condition
   } catch (e) {}
 
   Logger.log('Sorting events');
@@ -1301,7 +1301,7 @@ function setFirstLastNames(sheet, cell, newValue){
   // set User Name 1 using last and first name
   // User Name 1 = {Last Name up to 4 letters}.{First Name up to 1 letter}
   var filledArray = [[lastName, firstName, lastName.slice(0,4)+'.'+firstName.slice(0,1)]];
-  setValues(filledArray, `users!${R1C1RangeToA1Range(row, 2, 1, 3)}`, experimentConditionSpreadsheetId);
+  sheet.getRange(row, 2, 1, 3).setValues(filledArray);
 }
 
 // set User Name 2 using User Name 1
@@ -1325,7 +1325,7 @@ function setUserNames(sheet){
     filledArray[i] = [`${values[i][0]}${count}`]; // name + unique number
   }
   // use count as unique identifier (1,2,3,...)
-  setValues(filledArray, `users!${R1C1RangeToA1Range(2, 5, lastRow-1)}`, experimentConditionSpreadsheetId);
+  sheet.getRange(2, 5, lastRow-1).setValues(filledArray);
 }
 
 // set read calendar and write calendar for created user
