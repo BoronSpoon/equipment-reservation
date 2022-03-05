@@ -397,7 +397,7 @@ function onUsersSheetEdit() {
 
   // get all the write and read calendar's calendarIds
   lastRow = usersSheet.getLastRow();
-  lastColumn = usersSheet.getLastColumn();
+  lastColumn = usersSheet.getMaxColumns();
   values = usersSheet.getRange(2, 5, lastRow-1, 3).getValues();
   var readCalendarIds = []; // get read calendars' Ids
   var writeCalendarIds = []; // get write calendars' Ids
@@ -477,7 +477,7 @@ function onEquipmentConditionEdit(equipmentSheet, row) {
   Logger.log('Equipment condition edit trigger');
   const properties = PropertiesService.getUserProperties();
   // 4: equipment, 6: description, 7: isAllDayEvent, 8: isRecurringEvent, 9: action, 10: executionTime, 11: id, are protected from being edited
-  const lastColumn = equipmentSheet.getLastColumn();
+  const lastColumn = equipmentSheet.getMaxColumns();
   const values = equipmentSheet.getRange(row, 1, 1, lastColumn).getValues();
   const headers = equipmentSheet.getRange(1, 1, 1, lastColumn).getValues();
   // when experiment condition gets edited -> change event summary 
@@ -820,7 +820,7 @@ function backupAndDeleteOverflownEquipmentData(equipmentSheet) {
   const startTime = localTimeToUTC(equipmentSheet.getRange(2, 1).getValue());
   const endTime = localTimeToUTC(equipmentSheet.getRange(2+experimentConditionBackupRows-1, 1).getValue());
   const experimentConditionBackupRows = parseInt(properties.getProperty('experimentConditionBackupRows'));
-  const backupColumns = equipmentSheet.getLastColumn();
+  const backupColumns = equipmentSheet.getMaxColumns();
   equipmentSheet.getRange(1, 1, experimentConditionBackupRows+1, backupColumns).copyTo(
     SpreadsheetApp.create(`BACKUP_${equipment}_${startTime}-${endTime}`),
     SpreadsheetApp.CopyPasteType.PASTE_VALUES, 
@@ -838,7 +838,7 @@ function backupAndDeleteOverflownEquipmentData(equipmentSheet) {
 function backupAndDeleteOverflownLoggingData(finalLogSheet) {
   // backup rows
   const backupRows = finalLogSheet.getLastRow()-1;
-  const backupColumns = finalLogSheet.getLastColumn();
+  const backupColumns = finalLogSheet.getMaxColumns();
   const startTime = localTimeToUTC(finalLogSheet.getRange(2, 1).getValue());
   const endTime = localTimeToUTC(finalLogSheet.getRange(2+backupRows-1, 1).getValue());
   finalLogSheet.getRange(1, 1, backupRows+1, backupColumns).copyTo(
