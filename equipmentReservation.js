@@ -362,16 +362,17 @@ function onSheetsEdit(e) {
   
   // when the 'users' sheet is edited
   if (sheetName === 'users') {
-    onUsersSheetEdit();
     // when the checkbox (H2~nm) is edited in sheets on sheet 'users'
     // update corresponding user's subscribed equipments
     if (row > 1 && column > 9){ 
       changeSubscribedEquipments(index);
+      onUsersSheetEdit();
     }
     // when the full name (A2~An) is edited in sheets on sheet 'users'
     // update all of the corresponding user's event title
     else if (row > 1 && column === 1){
       updateCalendarUserName(sheet, cell, newValue);
+      onUsersSheetEdit();
       writeEventsToReadCalendar(writeCalendarId, index, fullSync);
     }
   }
