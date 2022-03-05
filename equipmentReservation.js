@@ -241,15 +241,15 @@ function createCalendars() {
     'role': 'writer',
   }
   // create {userCount+1} read calendars
-  var fillValues = []
+  var filledArray = []
   for (var i = 0; i < userCount+1; i++){
-    fillValues[i] = ['', '', '', ''] // fill columns 6~9 
+    filledArray[i] = ['', '', '', ''] // fill columns 6~9 
     Utilities.sleep(8000);
     var calendar = CalendarApp.createCalendar(`read ${i+1}`);
     var readCalendarId = calendar.getId();
     Calendar.Acl.insert(resource, readCalendarId); // add access permission to google group
-    fillValues[i][0] = readCalendarId;
-    fillValues[i][2] = `=HYPERLINK(\"https://calendar.google.com/calendar/u/0?cid=${readCalendarId}\", "CLICK ME")`;
+    filledArray[i][0] = readCalendarId;
+    filledArray[i][2] = `=HYPERLINK(\"https://calendar.google.com/calendar/u/0?cid=${readCalendarId}\", "CLICK ME")`;
     Logger.log(`Created read calendar ${calendar.getName()}, with the ID ${readCalendarId}.`);
   }
   // create {userCount} write calendars
@@ -258,11 +258,11 @@ function createCalendars() {
     var calendar = CalendarApp.createCalendar(`write ${i+1}`);
     var writeCalendarId = calendar.getId();
     Calendar.Acl.insert(resource, writeCalendarId); // add access permission to google group
-    fillValues[i][1] = writeCalendarId;
-    fillValues[i][3] = `=HYPERLINK(\"https://calendar.google.com/calendar/u/0?cid=${writeCalendarId}\", "CLICK ME")`;
+    filledArray[i][1] = writeCalendarId;
+    filledArray[i][3] = `=HYPERLINK(\"https://calendar.google.com/calendar/u/0?cid=${writeCalendarId}\", "CLICK ME")`;
     Logger.log(`Created write calendar ${calendar.getName()}, with the ID ${writeCalendarId}.`);
   }
-  setValues(filledValues, `users!${R1C1RangeToA1Range(2, 6, userCount+1, 4)}`, experimentConditionSpreadsheetId);
+  setValues(filledArray, `users!${R1C1RangeToA1Range(2, 6, userCount+1, 4)}`, experimentConditionSpreadsheetId);
 }
 
 // set ids
