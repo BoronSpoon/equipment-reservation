@@ -817,6 +817,7 @@ function finalLogging() {
 function backupAndDeleteOverflownEquipmentData(equipmentSheet) {
   const properties = PropertiesService.getUserProperties();
   const experimentConditionBackupRows = parseInt(properties.getProperty('experimentConditionBackupRows'));
+  const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
   // backup rows
   const equipment = equipmentSheet.getRange(2, 4).getValue();
   const startTime = localTimeToUTC(equipmentSheet.getRange(2, 1).getValue());
@@ -831,7 +832,7 @@ function backupAndDeleteOverflownEquipmentData(equipmentSheet) {
     SpreadsheetApp.CopyPasteType.PASTE_VALUES, // copy just the text discard the formulas
     false
   );
-  backupSheet.deleteSheet('Sheet1'); // delete placeholder sheet
+  backupSpreadsheet.deleteSheet(backupSheet); // delete placeholder sheet
   
   // delete rows
   var filledArray = [];
@@ -858,7 +859,7 @@ function backupAndDeleteOverflownLoggingData(finalLogSheet) {
     SpreadsheetApp.CopyPasteType.PASTE_VALUES, // copy just the text discard the formulas
     false
   );
-  backupSheet.deleteSheet('Sheet1'); // delete placeholder sheet
+  backupSpreadsheet.deleteSheet(backupSheet); // delete placeholder sheet
 
   // delete rows
   var filledArray = [];
