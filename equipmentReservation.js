@@ -262,7 +262,7 @@ function createCalendars() {
     fillValues[i][3] = `=HYPERLINK(\"https://calendar.google.com/calendar/u/0?cid=${writeCalendarId}\", "CLICK ME")`;
     Logger.log(`Created write calendar ${calendar.getName()}, with the ID ${writeCalendarId}.`);
   }
-  setValues(filledArray, `users!${R1C1RangeToA1Range(2, 6, userCount+1, 4)}`, experimentConditionSpreadsheetId);
+  setValues(filledValues, `users!${R1C1RangeToA1Range(2, 6, userCount+1, 4)}`, experimentConditionSpreadsheetId);
 }
 
 // set ids
