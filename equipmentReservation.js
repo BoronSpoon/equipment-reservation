@@ -1361,8 +1361,9 @@ function changeCalendarName(calendarId, userName, readOrWrite) {
     calendar.setName(summary);
     calendar.setDescription(JSON.stringify(description));
     Logger.log('Updated calendar name');
+  } else {
+    Logger.log('Skipped update of calendar name because calendarId is empty');
   }
-  Logger.log('Skipped update of calendar name because calendarId is empty');
 }
 
 function importMomentJS() {
