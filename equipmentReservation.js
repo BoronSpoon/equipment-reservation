@@ -823,7 +823,7 @@ function backupAndDeleteOverflownEquipmentData(equipmentSheet) {
   const experimentConditionBackupRows = parseInt(properties.getProperty('experimentConditionBackupRows'));
   const backupColumns = equipmentSheet.getMaxColumns();
   equipmentSheet.getRange(1, 1, experimentConditionBackupRows+1, backupColumns).copyTo(
-    SpreadsheetApp.create(`BACKUP_${equipment}_${startTime}-${endTime}`),
+    SpreadsheetApp.create(`BACKUP_${equipment}_${startTime}-${endTime}`).getSheetByName('Sheet 1'),
     SpreadsheetApp.CopyPasteType.PASTE_VALUES, 
     false
   )
@@ -843,7 +843,7 @@ function backupAndDeleteOverflownLoggingData(finalLogSheet) {
   const startTime = localTimeToUTC(finalLogSheet.getRange(2, 1).getValue());
   const endTime = localTimeToUTC(finalLogSheet.getRange(2+backupRows-1, 1).getValue());
   finalLogSheet.getRange(1, 1, backupRows+1, backupColumns).copyTo(
-    SpreadsheetApp.create(`BACKUP_LOG_${startTime}-${endTime}`),
+    SpreadsheetApp.create(`BACKUP_LOG_${startTime}-${endTime}`).getSheetByName('Sheet 1'),
     SpreadsheetApp.CopyPasteType.PASTE_VALUES, 
     false
   )
