@@ -1345,21 +1345,13 @@ function changeCalendarName(calendarId, userName, readOrWrite) {
   if (calendarId !== '') { // write calendarId is empty for "all event" calendar
     if (readOrWrite === 'Read') { 
       var summary = `Read ${userName}`;
-      var description = '装置の予約状況\n' +
-        'schedule for selected equipments';  
     } else if (readOrWrite === 'Write') { 
       var summary = `Write ${userName}`;
-      var description = '装置を予約する\n' +
-        'Reserve equipments\n' +
-        'Formatting: [Equipment] [State]\n' +
-        'Equipments: rie, nrie(new RIE), cvd, ncvd(new CVD), pvd, fts\n' +
-        'States: evac(evacuation), use(or no entry), cool(cooldown), o2(RIE O2 ashing)\n';  
     } else {
       Logger.log('readOrWrite has to be \'Read\' or \'Write\'');
     };
     const calendar = CalendarApp.getCalendarById(calendarId);
     calendar.setName(summary);
-    calendar.setDescription(JSON.stringify(description));
     Logger.log('Updated calendar name');
   } else {
     Logger.log('Skipped update of calendar name because calendarId is empty');
