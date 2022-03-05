@@ -828,16 +828,14 @@ function backupAndDeleteOverflownEquipmentData(equipmentSheet) {
   Logger.log('Creating new spreadsheet for backing up data');
   const backupSpreadsheet = SpreadsheetApp.create(`BACKUP_${equipment}_${startTime}-${endTime}`);
   Logger.log('Copying data');
-  equipmentSheet.copyTo(backupSpreadsheet, {contentsOnly:true});
+  var filledArray = equipmentSheet.getRange(1, 1, experimentConditionBackupRows+1, backupColumns).getValues();
   backupSpreadsheet.insertSheet('data'); // create new sheet for holding data
-  backupSheet.getRange(1, 1, experimentConditionBackupRows+1, backupColumns).copyTo(
-    backupSpreadsheet.getSheetByName('data').getRange("A1"),
-    SpreadsheetApp.CopyPasteType.PASTE_VALUES, // copy just the text discard the formulas
-    false
-  );
-  Logger.log('Deleting temporary data');
   backupSpreadsheet.deleteSheet(backupSpreadsheet.getSheetByName('Sheet1')); // delete placeholder sheet
-  
+  backupSpreadsheet
+    .getSheetByName('data')
+    .getRange(1, 1, experimentConditionBackupRows+1, backupColumns)
+    .setValues(filledArray);
+  Logger.log('Deleting backed up data');
   // delete rows
   var filledArray = [];
   filledArray = arrayFill2d(experimentConditionBackupRows, 11, '');
@@ -858,17 +856,15 @@ function backupAndDeleteOverflownLoggingData(finalLogSheet) {
   // copy whole sheet because copying range to another spreadsheet is not allowed
   Logger.log('Creating new spreadsheet for backing up data');
   const backupSpreadsheet = SpreadsheetApp.create(`BACKUP_LOG_${startTime}-${endTime}`);
-  finalLogSheet.copyTo(backupSpreadsheet, {contentsOnly:true});
-  backupSpreadsheet.insertSheet('data'); // create new sheet for holding data
   Logger.log('Copying data');
-  backupSheet.getRange(1, 1, finalLoggingBackupRows+1, backupColumns).copyTo(
-    backupSpreadsheet.getSheetByName('data').getRange("A1"),
-    SpreadsheetApp.CopyPasteType.PASTE_VALUES, // copy just the text discard the formulas
-    false
-  );
-  Logger.log('Deleting temporary data');
+  var filledArray = finalLogSheet.getRange(1, 1, finalLoggingBackupRows+1, backupColumns);
+  backupSpreadsheet.insertSheet('data'); // create new sheet for holding data
   backupSpreadsheet.deleteSheet(backupSpreadsheet.getSheetByName('Sheet1')); // delete placeholder sheet
-
+  backupSpreadsheet
+    .getSheetByName('data')
+    .getRange(1, 1, finalLoggingBackupRows+1, backupColumns)
+    .setValues(filledArray);
+  Logger.log('Deleting backed up data');
   // delete rows
   var filledArray = [];
   filledArray = arrayFill2d(finalLoggingBackupRows, 8, '');
