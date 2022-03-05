@@ -815,6 +815,7 @@ function finalLogging() {
 
 // prevent overflow of spreadsheet data by backing up and deleting it
 function backupAndDeleteOverflownEquipmentData(equipmentSheet) {
+  Logger.log('Backing up overflown equipment data');
   const properties = PropertiesService.getUserProperties();
   const experimentConditionBackupRows = parseInt(properties.getProperty('experimentConditionBackupRows'));
   const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
@@ -824,15 +825,18 @@ function backupAndDeleteOverflownEquipmentData(equipmentSheet) {
   const endTime = localTimeToUTC(equipmentSheet.getRange(2+experimentConditionBackupRows-1, 1).getValue());
   const backupColumns = equipmentSheet.getMaxColumns();
   // copy whole sheet because copying range to another spreadsheet is not allowed
+  Logger.log('Creating new spreadsheet for backing up data');
   const backupSpreadsheet = SpreadsheetApp.create(`BACKUP_${equipment}_${startTime}-${endTime}`);
-  const backupSheet = equipmentSheet.copyTo(backupSpreadsheet);
+  Logger.log('Copying data');
+  equipmentSheet.copyTo(backupSpreadsheet, {contentsOnly:true});
   backupSpreadsheet.insertSheet('data'); // create new sheet for holding data
   backupSheet.getRange(1, 1, experimentConditionBackupRows+1, backupColumns).copyTo(
     backupSpreadsheet.getSheetByName('data').getRange("A1"),
     SpreadsheetApp.CopyPasteType.PASTE_VALUES, // copy just the text discard the formulas
     false
   );
-  backupSpreadsheet.deleteSheet(backupSheet); // delete placeholder sheet
+  Logger.log('Deleting temporary data');
+  backupSpreadsheet.deleteSheet(backupSpreadsheet.getSheetByName('Sheet1')); // delete placeholder sheet
   
   // delete rows
   var filledArray = [];
@@ -844,6 +848,7 @@ function backupAndDeleteOverflownEquipmentData(equipmentSheet) {
 
 // prevent overflow of spreadsheet data by backing up and deleting it
 function backupAndDeleteOverflownLoggingData(finalLogSheet) {
+  Logger.log('Backing up overflown logging data');
   const properties = PropertiesService.getUserProperties();
   const finalLoggingBackupRows = parseInt(properties.getProperty('finalLoggingBackupRows'));
   // backup rows
@@ -851,15 +856,18 @@ function backupAndDeleteOverflownLoggingData(finalLogSheet) {
   const startTime = localTimeToUTC(finalLogSheet.getRange(2, 1).getValue());
   const endTime = localTimeToUTC(finalLogSheet.getRange(2+finalLoggingBackupRows-1, 1).getValue());
   // copy whole sheet because copying range to another spreadsheet is not allowed
+  Logger.log('Creating new spreadsheet for backing up data');
   const backupSpreadsheet = SpreadsheetApp.create(`BACKUP_LOG_${startTime}-${endTime}`);
-  const backupSheet = finalLogSheet.copyTo(backupSpreadsheet);
+  finalLogSheet.copyTo(backupSpreadsheet, {contentsOnly:true});
   backupSpreadsheet.insertSheet('data'); // create new sheet for holding data
+  Logger.log('Copying data');
   backupSheet.getRange(1, 1, finalLoggingBackupRows+1, backupColumns).copyTo(
     backupSpreadsheet.getSheetByName('data').getRange("A1"),
     SpreadsheetApp.CopyPasteType.PASTE_VALUES, // copy just the text discard the formulas
     false
   );
-  backupSpreadsheet.deleteSheet(backupSheet); // delete placeholder sheet
+  Logger.log('Deleting temporary data');
+  backupSpreadsheet.deleteSheet(backupSpreadsheet.getSheetByName('Sheet1')); // delete placeholder sheet
 
   // delete rows
   var filledArray = [];
