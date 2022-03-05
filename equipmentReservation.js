@@ -244,7 +244,7 @@ function createCalendars() {
   var fillValues = []
   for (var i = 0; i < userCount+1; i++){
     fillValues[i] = ['', '', '', ''] // fill columns 6~9 
-    Utilities.sleep(3000);
+    Utilities.sleep(8000);
     var calendar = CalendarApp.createCalendar(`read ${i+1}`);
     var readCalendarId = calendar.getId();
     Calendar.Acl.insert(resource, readCalendarId); // add access permission to google group
@@ -254,7 +254,7 @@ function createCalendars() {
   }
   // create {userCount} write calendars
   for (var i = 0; i < userCount; i++){
-    Utilities.sleep(3000);
+    Utilities.sleep(8000);
     var calendar = CalendarApp.createCalendar(`write ${i+1}`);
     var writeCalendarId = calendar.getId();
     Calendar.Acl.insert(resource, writeCalendarId); // add access permission to google group
