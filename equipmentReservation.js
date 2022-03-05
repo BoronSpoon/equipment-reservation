@@ -816,11 +816,11 @@ function finalLogging() {
 // prevent overflow of spreadsheet data by backing up and deleting it
 function backupAndDeleteOverflownEquipmentData(equipmentSheet) {
   const properties = PropertiesService.getUserProperties();
+  const experimentConditionBackupRows = parseInt(properties.getProperty('experimentConditionBackupRows'));
   // backup rows
   const equipment = equipmentSheet.getRange(2, 4).getValue();
   const startTime = localTimeToUTC(equipmentSheet.getRange(2, 1).getValue());
   const endTime = localTimeToUTC(equipmentSheet.getRange(2+experimentConditionBackupRows-1, 1).getValue());
-  const experimentConditionBackupRows = parseInt(properties.getProperty('experimentConditionBackupRows'));
   const backupColumns = equipmentSheet.getMaxColumns();
   // copy whole sheet because copying range to another spreadsheet is not allowed
   const backupSpreadsheet = SpreadsheetApp.create(`BACKUP_${equipment}_${startTime}-${endTime}`);
@@ -843,16 +843,17 @@ function backupAndDeleteOverflownEquipmentData(equipmentSheet) {
 
 // prevent overflow of spreadsheet data by backing up and deleting it
 function backupAndDeleteOverflownLoggingData(finalLogSheet) {
+  const properties = PropertiesService.getUserProperties();
+  const finalLoggingBackupRows = parseInt(properties.getProperty('finalLoggingBackupRows'));
   // backup rows
-  const backupRows = finalLogSheet.getLastRow()-1;
   const backupColumns = finalLogSheet.getMaxColumns();
   const startTime = localTimeToUTC(finalLogSheet.getRange(2, 1).getValue());
-  const endTime = localTimeToUTC(finalLogSheet.getRange(2+backupRows-1, 1).getValue());
+  const endTime = localTimeToUTC(finalLogSheet.getRange(2+finalLoggingBackupRows-1, 1).getValue());
   // copy whole sheet because copying range to another spreadsheet is not allowed
   const backupSpreadsheet = SpreadsheetApp.create(`BACKUP_LOG_${startTime}-${endTime}`);
   const backupSheet = finalLogSheet.copyTo(backupSpreadsheet);
   backupSpreadsheet.insertSheet('data'); // create new sheet for holding data
-  backupSheet.getRange(1, 1, backupRows+1, backupColumns).copyTo(
+  backupSheet.getRange(1, 1, finalLoggingBackupRows+1, backupColumns).copyTo(
     backupSpreadsheet.getSheetByName('data').getRange("A1"),
     SpreadsheetApp.CopyPasteType.PASTE_VALUES, // copy just the text discard the formulas
     false
@@ -861,8 +862,8 @@ function backupAndDeleteOverflownLoggingData(finalLogSheet) {
 
   // delete rows
   var filledArray = [];
-  filledArray = arrayFill2d(backupRows, 8, '');
-  finalLogSheet.getRange(2, 1, backupRows, 8).setValues(filledArray);
+  filledArray = arrayFill2d(finalLoggingBackupRows, 8, '');
+  finalLogSheet.getRange(2, 1, finalLoggingBackupRows, 8).setValues(filledArray);
 }
 
 // ============================================================================================================ 
