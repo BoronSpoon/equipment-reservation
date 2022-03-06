@@ -23,13 +23,13 @@ function defineConstants() {
 }
 
 // setup: split into 4 parts to avoid execution time limit (6 min)
-function setup() { 
+function setup() {  // 0.5 min
   Logger.log('Running setup. Dont touch any files and wait for **15** minutes`');
   defineConstants(); // define constants used over several scripts
   createSpreadsheets1(); // create spreadsheet for 18 users
   timedTrigger('setup2'); // create spreadsheet for 18 users
 }
-function setup2() { 
+function setup2() { // 1.4 min
   createSpreadsheets2();
   timedTrigger('setup3'); 
 }
@@ -881,9 +881,9 @@ function setHorizontalAlignment(spreadsheetId, sheetId, startRow, startColumn, r
         "range": {
           "sheetId": sheetId,
           "startRowIndex": startRow-1,
-          "endRowIndex": endRow,
+          "endRowIndex": endRow-1,
           "startColumnIndex": startColumn-1,
-          "endColumnIndex": endColumn,
+          "endColumnIndex": endColumn-1,
         },
         "rows": [{
           "values": [{
@@ -910,9 +910,9 @@ function setWrapStrategy(spreadsheetId, sheetId, startRow, startColumn, rowCount
         "range": {
           "sheetId": sheetId,
           "startRowIndex": startRow-1,
-          "endRowIndex": endRow,
+          "endRowIndex": endRow-1,
           "startColumnIndex": startColumn-1,
-          "endColumnIndex": endColumn,
+          "endColumnIndex": endColumn-1,
         },
         "rows": [{
           "values": [{
