@@ -39,7 +39,7 @@
 <img align="right" width="100%" src="pics/advanced_calendar_and_sheets.png">
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-5. In the GAS project, run the function `setup1()`.
+5. In the GAS project, run the function `setup()`.
 
 <img align="right" width="55%" src="pics/apps_script_run_1.png">
 <img width="100%" src="pics/horizontal_line_invisible.png">
@@ -59,7 +59,7 @@ Click `Go to {project name} (unsafe)`.
 <img align="right" width="55%" src="pics/apps_script_run_4.png">
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-Click `Allow`. Don't touch any files and wait for **5** minutes after the setup is done.
+Click `Allow`. Don't touch any files and wait for **15** minutes.
 
 <img align="right" width="55%" src="pics/apps_script_run_5.png">
 <img width="100%" src="pics/horizontal_line_invisible.png">
@@ -75,10 +75,31 @@ Click `Deploy`
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
 5. Add admin user
+- Go to https://docs.google.com/spreadsheets and find a spreadsheet named `experimentConditionSpreadsheet`. Open the file and go to `users` sheet.   
+- Change `ALL EVENTS` to something else as shown in below figure.
+
+<img align="right" width="55%" src="pics/admin_user.png">
+<img width="100%" src="pics/horizontal_line_invisible.png">
 
 6. Add equipments
+- In `experimentConditionSpreadsheet`, go to `properties` sheet.   
+- Add equipment names as shown in below figure.
+
+<img align="right" width="35%" src="pics/equipment_name.png">
+<img width="100%" src="pics/horizontal_line_invisible.png">
+
+- If possible, in each `equipment` sheet, enable filter as shown in below figure.
+- this will auto sort reservations and hide canceled reservations.
+
+<img align="right" width="60%" src="pics/enable_filter.png">
+<img width="100%" src="pics/horizontal_line_invisible.png">
 
 7. Add equipment conditions
+- In `experimentConditionSpreadsheet`, , go to `properties` sheet.   
+- Add equipment conditions as shown in below figure.
+
+<img align="right" width="35%" src="pics/experiment_condition.png">
+<img width="100%" src="pics/horizontal_line_invisible.png">
 
 </details>
 
