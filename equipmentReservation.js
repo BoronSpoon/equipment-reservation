@@ -720,6 +720,7 @@ function eventLoggingExecute(equipmentSheetName) {
 
 // logs just the necessary data
 function finalLogging() { 
+  importMomentJS();
   Logger.log('Daily logging of event');
   getAndStoreObjects(); // get sheets, calendars and store them in properties
   const properties = PropertiesService.getUserProperties();
@@ -740,9 +741,6 @@ function finalLogging() {
     description: 6,
     isAllDayEvent: 7,
     isRecurringEvent: 8,
-    action: 9,
-    executionTime: 10,
-    id: 11,
   };
   const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
   const users = JSON.parse(properties.getProperty('users'));
@@ -804,7 +802,7 @@ function finalLogging() {
         var col = columnDescriptions[key];
         filledArray[0][col-1] = value;
       }
-      setValues(filledArray, `finalLog!${R1C1RangeToA1Range(row, 1, 1, 11)}`, loggingSpreadsheetId);
+      finalLogSheet.getRange(row, 1, 1, 8).setValues(filledArray);
     }
   }
 }

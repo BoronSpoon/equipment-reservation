@@ -299,6 +299,9 @@ https://google.github.io/styleguide/jsguide.html (以下jsguideと呼ぶ)の内�
    - 新しい予定を作る
       - [ ] オンライン状態で作る
       - [ ] オフライン状態で作り、オンラインにする
+- backup
+   - [x] イベント
+   - [ ] daily logging
 - その他
    - Sheetsをシェア
       - [ ] Sheetsの所有者以外のユーザーによる操作でのtriggerの発火の確認。
