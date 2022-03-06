@@ -1,10 +1,9 @@
 ## Setting Up (administrator side) 
-```
+
 <details> 
 <summary> 
 (click to expand) 
 </summary>
-```
 
 ### 1. Create a Google account
 ### 2. Create a Google Group
@@ -115,38 +114,58 @@ Click `Deploy`
 <img width="100%" src="pics/horizontal_line_invisible.png">
 <img align="left" display="block" width="30%" hspace="4%" src="pics/googlegroups2.png">   
 
-4. Fill out the form like the following image. Use a display name that can be understood to the admin.
+4. Fill out the form like the following image. **Use a display name that can be understood to the admin**.
 5. Subscription is complete. The security settings in the google groups is very strict, therefore you cannot see other members, and cannot post group emails.   
 
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
 ### 2. Initial settings
-1. Adding you as an user
-   1. Enter your name. Refer to ① in the below picture.
-   2. Link for sheets：https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit?usp=sharing
-2. Select devices you will use
-   1. Check the devices you would like to use. Refer to ③ in the below picture.   
+- Go to https://docs.google.com/spreadsheets and find a spreadsheet named `experimentConditionSpreadsheet`. Open the file and go to `users` sheet.  
 
-<img align="right" display="block" width="70%" hspace="4%" src="pics/sheets1.png">   
+<img align="right" display="block" width="40%" hspace="4%" src="pics/sheets1.png"> 
+<img width="100%" src="pics/horizontal_line_invisible.png">
+<img align="right" display="block" width="40%" hspace="4%" src="pics/sheets2.png">   
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-### 3. Add the user calendars to your calendar application (in your smartphone or on your PC)
-1. Links for Read(read only) calendar and Write(write only) calendar are prepared. (Don't use the link in ➁)
-2. Select the sheet named "URL of Calendar", and click the link like the figure below. Google calendar will open and you can add the calendar.   
+2. Adding yourself as an user. Enter your name as shown in the below picture.
 
-<img align="right" display="block" width="70%" hspace="4%" src="pics/sheets2.png">   
+<img align="right" display="block" width="50%" hspace="4%" src="pics/sheets3.png">   
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-### 4. Adding a reservation (Write calendar)
+3. Select devices you will use. Check the devices you would like to use as shown in the below picture.   
+
+<img align="right" display="block" width="50%" hspace="4%" src="pics/sheets4.png">   
+<img width="100%" src="pics/horizontal_line_invisible.png">
+
+4. Add the user calendars to your calendar application (in your smartphone or on your PC)
+   1. Click the link as shown in the figure below. Google calendar will open and you can add the calendar.   
+   2. Add both `Read Calendar` and `Write Calendar`.
+
+<img align="right" display="block" width="50%" hspace="4%" src="pics/sheets5.png">   
+<img width="100%" src="pics/horizontal_line_invisible.png">
+
+### 3. Adding a reservation (Write calendar)
 <img align="right" display="block" width="30%" src="pics/calendar1.png">   
 
 1. Add an event on Google calendar
 2. Title should be`[Device] [State]`. Refer to ① in the below picture. Refer to `naming conventions` for naming convention of Device and State.
-3. Add the event to `Write [User Name]`. Refer to ① in the below picture.
+3. Add the event to `Write [User Name]`. Refer to ② in the below picture.
 <img width="100%" src="pics/horizontal_line_invisible.png">
 
-### 5. naming conventions
+### 4. Observing reservations (Write calendar)
+1. Observe events on Google Calendar
+2. Event title is `[Name] [Device] [State]`.
+3. If there are too many reservations and it is overwhelming, you can hide the Read calendar in your calendar app and view it only when you need to.
+
+### 5. Writing experiment conditions (Experiment Sheets)
+1. Open Experiment Sheets
+2. Find the current event that you created in Google Calendar
+3. Write experiment conditions in Sheets
+4. The conditions will automatically get updated to the event in Google \Calendar.
+
+### 6. naming conventions
 - Devices (__You can change the name of devices in Sheets__)
+- This is just a recommendation.
 -  | Device | Description |
    | ---- | ---- |
    | cmp  | Chemical mechanical planarization |
@@ -159,6 +178,7 @@ Click `Deploy`
    | dicg | Dicing |
    | pack | Packaging |
 - States of equiment
+- This is just a recommendation.
 -  | State | 説明 |
    | ---- | ---- |
    | evac | evacuation |
@@ -172,17 +192,6 @@ Click `Deploy`
    | Tana.S1 | Tanahashi Shion |
    | Chen.F1 | Chen Fan |
    | Zhu.Y1  | Zhu Yu |
-
-### 6. Observing reservations (Write calendar)
-1. Observe events on Google Calendar
-2. Event title is `[Name] [Device] [State]`.
-3. If there are too many reservations and it is overwhelming, you can hide the Read calendar in your calendar app and view it only when you need to.
-
-### 7. Writing experiment conditions (Experiment Sheets)
-1. Open Experiment Sheets
-2. Find the current event that you created in Google Calendar
-3. Write experiment conditions in Sheets
-4. The conditions will automatically get updated to the event in Google \Calendar.
 
 >The implementations details are in [details (Japanese)](https://github.com/rayanti/equipment-reservation/blob/master/details.md).
 
