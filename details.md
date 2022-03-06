@@ -297,15 +297,15 @@ https://google.github.io/styleguide/jsguide.html (以下jsguideと呼ぶ)の内�
    - [x] 実験条件変更が反映されるか確認
    - [x] startTime, name, stateを変更できるか確認
    - 新しい予定を作る
-      - [ ] オンライン状態で作る
-      - [ ] オフライン状態で作り、オンラインにする
+      - [x] オンライン状態で作る
+      - [x] オフライン状態で作り、オンラインにする
 - backup
    - [x] イベント
    - [ ] daily logging
 - その他
    - Sheetsをシェア
-      - [ ] Sheetsの所有者以外のユーザーによる操作でのtriggerの発火の確認。
-      - [ ] Sheetsの所有者以外のユーザーによる操作可能範囲の設定の確認
+      - [x] Sheetsの所有者以外のユーザーによる操作でのtriggerの発火の確認。
+      - [x] Sheetsの所有者以外のユーザーによる操作可能範囲の設定の確認
 
 #### installable triggerのquotaの確認
 
