@@ -792,9 +792,6 @@ function finalLogging() {
           description: event.getDescription(),
           isAllDayEvent: event.isAllDayEvent(),
           isRecurringEvent: event.isRecurringEvent(),
-          action: '',
-          executionTime: '',
-          id: eid,
       }
       var filledArray = [[]];
       for (const key in logObj) { // iterate through log object
@@ -849,6 +846,31 @@ function backupAndDeleteOverflownLoggingData(finalLogSheet) {
   const finalLoggingBackupRows = parseInt(properties.getProperty('finalLoggingBackupRows'));
   // backup rows
   const backupColumns = finalLogSheet.getMaxColumns();
+  const backupRows = finalLogSheet.getLastRow();
+  const startTime = localTimeToUTC(finalLogSheet.getRange(2, 1).getValue());
+  const endTime = localTimeToUTC(finalLogSheet.getRange(2+finalLoggingBackupRows-1, 1).getValue());
+  // copy whole sheet because copying range to another spreadsheet is not allowed
+  Logger.log('Creating new spreadsheet for backing up data');
+  const backupSpreadsheet = SpreadsheetApp.create(`BACKUP_LOG_${startTime}-${endTime}`);
+  Logger.log('Copying data');
+  var filledArray = finalLogSheet.getRange(1, 1, finalLoggingBackupRows+1, backupColumns).getValues();
+  backupSpreadsheet.insertSheet('data'); // create new sheet for holding data
+  backupSpreadsheet.deleteSheet(backupSpreadsheet.getSheetByName('Sheet1')); // delete placeholder sheet
+  backupSpreadsheet
+    .getSheetByName('data')
+    .getRange(1, 1, finalLoggingBackupRows+1, backupColumns)
+    .setValues(filledArray);
+  Logger.log('Deleting backed up data');
+  // delete rows
+  finalLogSheet.getRange(2, 1, finalLoggingBackupRows, 8).setValues('');
+  // move rows to front// prevent overflow of spreadsheet data by backing up and deleting it
+function backupAndDeleteOverflownLoggingData(finalLogSheet) {
+  Logger.log('Backing up overflown logging data');
+  const properties = PropertiesService.getUserProperties();
+  const finalLoggingBackupRows = parseInt(properties.getProperty('finalLoggingBackupRows'));
+  // backup rows
+  const backupColumns = finalLogSheet.getMaxColumns();
+  const backupRows = finalLogSheet.getlastRow();
   const startTime = localTimeToUTC(finalLogSheet.getRange(2, 1).getValue());
   const endTime = localTimeToUTC(finalLogSheet.getRange(2+finalLoggingBackupRows-1, 1).getValue());
   // copy whole sheet because copying range to another spreadsheet is not allowed
@@ -867,6 +889,11 @@ function backupAndDeleteOverflownLoggingData(finalLogSheet) {
   var filledArray = [];
   filledArray = arrayFill2d(finalLoggingBackupRows, 8, '');
   finalLogSheet.getRange(2, 1, finalLoggingBackupRows, 8).setValues(filledArray);
+  // move rows to front
+  var filledArray = finalLogSheet.getRange(finalLoggingBackupRows+1, 1, backupRows-finalLoggingBackupRows, 8).getValues();
+  finalLogSheet.getRange(finalLoggingBackupRows+1, 1, backupRows-finalLoggingBackupRows, 8).setValue('');
+  finalLogSheet.getRange(2, 1, backupRows-finalLoggingBackupRows, 8).setValues(filledArray);
+}
 }
 
 // ============================================================================================================ 
