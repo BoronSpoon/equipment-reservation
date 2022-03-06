@@ -855,7 +855,7 @@ function backupAndDeleteOverflownLoggingData(finalLogSheet) {
   Logger.log('Creating new spreadsheet for backing up data');
   const backupSpreadsheet = SpreadsheetApp.create(`BACKUP_LOG_${startTime}-${endTime}`);
   Logger.log('Copying data');
-  var filledArray = finalLogSheet.getRange(1, 1, finalLoggingBackupRows+1, backupColumns);
+  var filledArray = finalLogSheet.getRange(1, 1, finalLoggingBackupRows+1, backupColumns).getValues();
   backupSpreadsheet.insertSheet('data'); // create new sheet for holding data
   backupSpreadsheet.deleteSheet(backupSpreadsheet.getSheetByName('Sheet1')); // delete placeholder sheet
   backupSpreadsheet
