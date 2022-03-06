@@ -1,5 +1,293 @@
+// ===============================================================================================
+// ======================================= SETUP FUNCTIONS ======================================= 
+// ===============================================================================================
+
+// define constants used over several scripts
+function defineConstants() {
+  Logger.log('Defining constants');
+  const properties = PropertiesService.getUserProperties();
+  properties.setProperty('groupUrl', '?????@googlegroups.com'); // groupURL
+  properties.setProperty('timeZone', 'Asia/Tokyo'); // set timezone
+  properties.setProperty('userCount', 18); // number of users (MAX 18)
+  properties.setProperty('equipmentCount', 30); // number of equipments (MAX 50)
+  properties.setProperty('experimentConditionCount', 20); // number of experiment conditions for a single equipment
+  properties.setProperty('experimentConditionRows', 1000); // number of rows in experiment condition (MAX 5000) 
+  properties.setProperty('experimentConditionBackupRows', 800); // number of rows to backup and delete in case of overflow of sheets (MAX 4000)
+  properties.setProperty('finalLoggingRows', 1000000); // number of rows in final logging (MAX 1000000)
+  properties.setProperty('finalLoggingBackupRows', 990000); // number of rows in final logging (MAX 990000)
+  properties.setProperty('backgroundColor', '#bbbbbb'); // background color of the uneditable cells (gray)
+  properties.setProperty('effectiveUser', Session.getEffectiveUser()) // get current user running the command
+  if (properties.getProperty('groupUrl').includes('?')) { // detect default value and throw error
+    throw new Error('ERROR: change "?????@googlegroups.com" to your google group name');
+  }
+}
+
+// setup: split into 4 parts to avoid execution time limit (6 min)
+function setup() {  // 0.5 min
+  Logger.log('Running setup. Dont touch any files and wait for **15** minutes`');
+  defineConstants(); // define constants used over several scripts
+  createSpreadsheets1(); // create spreadsheet for 18 users
+  timedTrigger('setup2'); // create spreadsheet for 18 users
+}
+function setup2() { // 1.4 min
+  createSpreadsheets2();
+  timedTrigger('setup3'); 
+}
+
+function setup3() { 
+  createCalendars();
+  deleteTriggers(); // delete timed triggers and previous triggers
+  getAndStoreObjects();
+  createTriggers();
+}
+
+// creates spreadsheet for {userCount} users
+function createSpreadsheets1() {
+  const properties = PropertiesService.getUserProperties();
+  const timeZone = properties.getProperty('timeZone');
+  const groupUrl = properties.getProperty('groupUrl');
+  const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
+  const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
+  const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
+  const userCount = parseInt(properties.getProperty('userCount'));
+  const finalLoggingRows = parseInt(properties.getProperty('finalLoggingRows'));
+  // create workbooks(spreadsheets) and sheets
+  var experimentConditionSpreadsheet = SpreadsheetApp.create('experimentConditionSpreadsheet');
+  experimentConditionSpreadsheet.setSpreadsheetTimeZone(timeZone);
+  var loggingSpreadsheet = SpreadsheetApp.create('loggingSpreadsheet');
+  loggingSpreadsheet.setSpreadsheetTimeZone(timeZone);
+  // get ids
+  const experimentConditionSpreadsheetId = experimentConditionSpreadsheet.getId();
+  const loggingSpreadsheetId = loggingSpreadsheet.getId();
+  var property = { // store spreadsheetIds
+    experimentConditionSpreadsheetId : experimentConditionSpreadsheetId,
+    loggingSpreadsheetId : loggingSpreadsheetId,
+  };
+  setIds(property);
+  // share to google groups
+  DriveApp.getFileById(experimentConditionSpreadsheetId).addEditor(groupUrl);
+  DriveApp.getFileById(loggingSpreadsheetId).addEditor(groupUrl);
+  
+  // properties sheet
+  Logger.log('Creating properties sheet');
+  Utilities.sleep(1000);
+  var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, 'properties', equipmentCount+1, experimentConditionCount+1);
+  properties.setProperty('propertiesSheetId', activeSheetId);
+  hideColumns(experimentConditionSpreadsheetId, activeSheetId, 2, 2); // hide columns used for debug
+  setHorizontalAlignment(experimentConditionSpreadsheetId, activeSheetId, 1, 2, equipmentCount+1, 2, "left"); // show https://... not the center of url
+  // draw borders
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, experimentConditionCount+1, 'bottom', 'SOLID_THICK');
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, equipmentCount+1, 1, 'right', 'SOLID_THICK');
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 3, equipmentCount+1, 1, 'right', 'SOLID_THICK');
+  // protect range
+  protectRange(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, experimentConditionCount+1);
+  protectRange(experimentConditionSpreadsheetId, activeSheetId, 2, 2, equipmentCount, 2);  // set headers for properties sheet
+
+  // users sheet
+  Logger.log('Creating users sheet');
+  var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, 'users', userCount+2, equipmentCount+9);
+  properties.setProperty('usersSheetId', activeSheetId);
+  deleteFirstSheet(experimentConditionSpreadsheetId);
+  hideColumns(experimentConditionSpreadsheetId, activeSheetId, 2, 7); // hide columns used for debug
+  setHorizontalAlignment(experimentConditionSpreadsheetId, activeSheetId, 2, 6, userCount+1, 4, "left"); // show "https://..." not the center of url
+  //setWrapStrategy(experimentConditionSpreadsheetId, activeSheetId, 2, 6, userCount+1, 4, "CLIP"); // link is too long -> clip
+  // draw borders
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, equipmentCount+9, 'bottom', 'SOLID_THICK');
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, userCount+2, 1, 'right', 'SOLID_THICK');
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 5, userCount+2, 1, 'right', 'SOLID_MEDIUM');
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 7, userCount+2, 1, 'right', 'SOLID_MEDIUM');
+  setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 9, userCount+2, 1, 'right', 'SOLID_MEDIUM');
+  // protect range
+  protectRange(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, equipmentCount+9);
+  protectRange(experimentConditionSpreadsheetId, activeSheetId, 2, 2, userCount+1, 8);
+  // set headers
+  var filledArray = [['Full Name (EDIT this line)', 'Last Name', 'First Name', 'User Name 1', 'User Name 2', 'Read CalendarId', 'Write CalendarId', 'Read Calendar URL', 'Write Calendar URL']];
+  setValues(filledArray, `users!${R1C1RangeToA1Range(1, 1, 1, 9)}`, experimentConditionSpreadsheetId);
+  // normal user row
+  insertCheckboxes(experimentConditionSpreadsheetId, activeSheetId, 2, 10, userCount, equipmentCount); // create unchecked checkbox for 100 columns (equipments)
+  var filledArray = arrayFill2d(userCount, 1, 'First Last');
+  setValues(filledArray, `users!${R1C1RangeToA1Range(2, 1, userCount, 1)}`, experimentConditionSpreadsheetId);
+  // 'ALL EVENTS' user row
+  insertCheckboxes(experimentConditionSpreadsheetId, activeSheetId, 2+userCount, 10, 1, equipmentCount); // create checked checkbox for 'ALL EVENTS'
+  setValues([['ALL EVENTS']], `users!${R1C1RangeToA1Range(2+userCount, 1, 1, 1)}`, experimentConditionSpreadsheetId);
+  // copy equipments name from properties sheet
+  var filledArray = [[]];
+  for (var i = 0; i < equipmentCount; i++) {
+    filledArray[0][i] = `=INDIRECT(\"properties!R${2+i}C1\", FALSE)`; // refer to sheet 'properties' for equipment name
+  }
+  setValues(filledArray, `users!${R1C1RangeToA1Range(1, 10, 1, equipmentCount)}`, experimentConditionSpreadsheetId);
+
+  // create spreadsheet for finalized logging
+  Logger.log('Creating logging spreadsheet');
+  Utilities.sleep(1000);
+  Logger.log('Creating final log sheet');
+  var activeSheetId = insertSheetWithFormat(loggingSpreadsheetId, 'finalLog', finalLoggingRows, 8);
+  properties.setProperty('finalLogSheetId', activeSheetId);
+  deleteFirstSheet(loggingSpreadsheetId);
+  // draw borders
+  setBorder(loggingSpreadsheetId, activeSheetId, 1, 1, 1, 8, 'bottom', 'SOLID_THICK');
+  // protect range
+  protectRange(loggingSpreadsheetId, activeSheetId, 1, 1, finalLoggingRows, 8);
+  // set headers
+  var filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent']];
+  setValues(filledArray, `finalLog!${R1C1RangeToA1Range(1, 1, 1, 8)}`, loggingSpreadsheetId);
+}
+
+// creates spreadsheet for {userCount} users
+function createSpreadsheets2() {
+  const properties = PropertiesService.getUserProperties();
+  const userCount = parseInt(properties.getProperty('userCount'));
+  const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
+  const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
+  const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
+  const finalLoggingRows = parseInt(properties.getProperty('finalLoggingRows'));
+  const experimentConditionSpreadsheetId = properties.getProperty('experimentConditionSpreadsheetId');
+  const loggingSpreadsheetId = properties.getProperty('loggingSpreadsheetId');
+
+  // create spreadsheet for experiment condition logging
+  Logger.log('Creating experiment condition spreadsheet');
+  var sheetIds = [];
+  var filledArrayBatch = []; // list of filledArray
+  for (var i = 0; i < equipmentCount; i++) { // create sheet for each equipment
+    Utilities.sleep(100);
+    Logger.log(`Creating equipmentSheet ${i+1}/${equipmentCount}`);
+    if (i === 0) { // create first sheet
+      var activeSheetId = insertSheetWithFormat(experimentConditionSpreadsheetId, `equipment${i+1}`, experimentConditionRows, 12+experimentConditionCount)
+      sheetIds[i] = activeSheetId;
+      hideColumns(experimentConditionSpreadsheetId, activeSheetId, 6, 12); // hide columns used for debug
+      var filledArray = [['startTime', 'endTime', 'name', 'equipment', 'state', 'description', 'isAllDayEvent', 'isRecurringEvent', 'action', 'executionTime', 'id', 'eventExists']];
+      setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(1, 1, 1, 12)}`, experimentConditionSpreadsheetId);
+      setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, 12+experimentConditionCount, 'bottom', 'SOLID_THICK');
+      setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 5, experimentConditionRows, 1, 'right', 'SOLID_THICK');
+      setBorder(experimentConditionSpreadsheetId, activeSheetId, 1, 12, experimentConditionRows, 1, 'right', 'SOLID_THICK');
+      // protect range
+      protectRange(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, 12+experimentConditionCount);
+      protectRange(experimentConditionSpreadsheetId, activeSheetId, 2, 6, experimentConditionRows-1, 7);
+      protectRange(experimentConditionSpreadsheetId, activeSheetId, 2, 4, experimentConditionRows-1, 1); // protect equipment name
+      // set headers
+      var filledArray = [[]];
+      for (var j = 0; j < experimentConditionCount; j++) {
+        filledArray[0][j] = `=INDIRECT(\"properties!R${2+i}C${4+j}\", FALSE)`;
+      }
+      setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(1, 13, 1, experimentConditionCount)}`, experimentConditionSpreadsheetId);
+      var filledArray = arrayFill2d(experimentConditionRows, 12, '');
+      for (var j = 0; j < experimentConditionRows; j++) {
+        //see if event exists (if it is 1[unmodified(is the last entry with the same id)] and 2[not canceled]) or 3[cell is empty]
+        filledArray[j][11] = `=OR(AND(COUNTIF(INDIRECT(\"R[1]C[-1]:R${experimentConditionRows}C[-1]\", FALSE), INDIRECT(\"R[0]C[-1]\", FALSE))=0, INDIRECT(\"R[0]C[-3]\", FALSE)=\"add\"), INDIRECT(\"R[0]C[-1]\", FALSE)=\"\")`
+      }
+      setValues(filledArray, `equipment${i+1}!${R1C1RangeToA1Range(2, 1, experimentConditionRows, 12)}`, experimentConditionSpreadsheetId);
+
+      Logger.log('Creating filters for hiding canceled and modified events');
+
+      // addFilterView -> adds filter view -> updates automatically -> apply manually after select
+      // setBasicFilter -> adds filter (same as spreadsheetApp filter) -> doesn't update automatically
+      addFilterViewRequest = {
+        'addFilterView': {
+          'filter': {
+            "filterViewId": i+1, // 1~equipmentCount
+            'title': 'hide canceled or modified events',
+            'sortSpecs': [ // sort doesn't include header row
+              {'dimensionIndex': 0, 'sortOrder': 'ASCENDING'}, // sort by startTime
+              {'dimensionIndex': 9, 'sortOrder': 'ASCENDING'}, // sort by executionTime if startTime is same
+            ], 
+            "range": {
+              "sheetId": sheetIds[i],
+            },
+            'criteria': { // when column 12 is FALSE, hide row
+              11: { 'hiddenValues': ['FALSE'] },
+            },
+          }
+        }
+      }
+      Sheets.Spreadsheets.batchUpdate(
+        {'requests': [addFilterViewRequest]}, experimentConditionSpreadsheetId
+      );
+    } else { // copy most contents from first sheet
+      var activeSheetId = copyTo(experimentConditionSpreadsheetId, sheetIds[0], `equipment${i+1}`);
+      sheetIds[i] = activeSheetId;
+      // set headers
+      var filledArray = [[]];
+      for (var j = 0; j < experimentConditionCount; j++) {
+        filledArray[0][j] = `=INDIRECT("properties!R${2+i}C${4+j}", FALSE)`;
+      }
+      filledArrayBatch.push({"majorDimension": "ROWS", "values": filledArray, "range": `equipment${i+1}!${R1C1RangeToA1Range(1, 13, 1, experimentConditionCount)}`});
+      var filledArray = arrayFill2d(experimentConditionRows, 1, '');
+    }
+  }
+  setValuesBatch(filledArrayBatch, experimentConditionSpreadsheetId);
+  filledArrayBatch = [];
+
+  // set values for properties sheet
+  var filledArray = [[]];
+  filledArray[0] = ['equipmentName', 'sheetId', 'sheetUrl', 'Properties ->'];
+  for (var i = 0; i < equipmentCount; i++) {
+    filledArray[i+1] = ['', sheetIds[i].toString(), `=HYPERLINK(\"https://docs.google.com/spreadsheets/d/${experimentConditionSpreadsheetId}/edit#gid=${sheetIds[i].toString()}\", \"CLICK ME\")`, ''];
+  }
+  setValues(filledArray, `properties!${R1C1RangeToA1Range(1, 1, equipmentCount+1, 4)}`, experimentConditionSpreadsheetId);
+  //setWrapStrategy(experimentConditionSpreadsheetId, activeSheetId, 1, 2, equipmentCount+1, 2, "CLIP"); // link is too long -> clip
+}
+
+// creates calendars for {userCount} users
+function createCalendars() {
+  Logger.log('Creating calendars');
+  const properties = PropertiesService.getUserProperties();
+  const userCount = parseInt(properties.getProperty('userCount'));
+  const groupUrl = properties.getProperty('groupUrl');
+  const experimentConditionSpreadsheetId = properties.getProperty('experimentConditionSpreadsheetId');
+  const resource = { // used to add google group as guest
+    'scope': {
+      'type': 'group',
+      'value': groupUrl,
+    },
+    'role': 'writer',
+  }
+  // create {userCount+1} read calendars
+  var filledArray = []
+  for (var i = 0; i < userCount+1; i++){
+    filledArray[i] = ['', '', '', ''] // fill columns 6~9 
+    Utilities.sleep(8000);
+    var calendar = CalendarApp.createCalendar(`read ${i+1}`);
+    var readCalendarId = calendar.getId();
+    Calendar.Acl.insert(resource, readCalendarId); // add access permission to google group
+    filledArray[i][0] = readCalendarId;
+    filledArray[i][2] = `=HYPERLINK(\"https://calendar.google.com/calendar/u/0?cid=${readCalendarId}\", "CLICK ME")`;
+    Logger.log(`Created read calendar ${calendar.getName()}, with the ID ${readCalendarId}.`);
+  }
+  // create {userCount} write calendars
+  for (var i = 0; i < userCount; i++){
+    Utilities.sleep(8000);
+    var calendar = CalendarApp.createCalendar(`write ${i+1}`);
+    var writeCalendarId = calendar.getId();
+    Calendar.Acl.insert(resource, writeCalendarId); // add access permission to google group
+    filledArray[i][1] = writeCalendarId;
+    filledArray[i][3] = `=HYPERLINK(\"https://calendar.google.com/calendar/u/0?cid=${writeCalendarId}\", "CLICK ME")`;
+    Logger.log(`Created write calendar ${calendar.getName()}, with the ID ${writeCalendarId}.`);
+  }
+  setValues(filledArray, `users!${R1C1RangeToA1Range(2, 6, userCount+1, 4)}`, experimentConditionSpreadsheetId);
+}
+
+// set ids
+function setIds(property) {
+  const properties = PropertiesService.getUserProperties();
+  properties.setProperty('experimentConditionSpreadsheetId', property.experimentConditionSpreadsheetId);
+  properties.setProperty('loggingSpreadsheetId', property.loggingSpreadsheetId);
+}
+
+// set ids manually
+function setIdsManual() {
+  Logger.log('manually setting spreadsheet ids');
+  const properties = PropertiesService.getUserProperties();
+  //property = {
+  //  experimentConditionSpreadsheetId : ;
+  //  loggingSpreadsheetId : ;
+  //}
+  properties.setProperty('experimentConditionSpreadsheetId', property.experimentConditionSpreadsheetId);
+  properties.setProperty('loggingSpreadsheetId', property.loggingSpreadsheetId);
+}
+
 // delete all triggers for this script
-function deleteTriggers(){
+function deleteTriggers() {
+  Logger.log('deleting triggers');
   const triggers = ScriptApp.getProjectTriggers();
   for (var i = 0; i < triggers.length; i++){
     trigger = triggers[i];
@@ -11,12 +299,12 @@ function deleteTriggers(){
 // only 20 triggers can be made for single script
 // we will use 18 for write calendars, 1 for daily logging, 1 for spreadsheet
 function createTriggers() {
-  const sheet = SpreadsheetApp.openById('{spreadsheetid}').getSheetByName('users');
-  const writeCalendarIds = getWriteCalendarIds(sheet);
+  const properties = PropertiesService.getUserProperties();
+  const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
   
   // create trigger for each of the 18 write calendars
   // (calls function 'onCalendarEdit' on trigger)
-  Logger.log(writeCalendarIds.length + ' calendar triggers will be created');
+  Logger.log(`Creating triggers. ${writeCalendarIds.length} calendar(s) triggers will be created`);
   for (var i = 0; i < writeCalendarIds.length; i++){
     const writeCalendarId = writeCalendarIds[i];
     ScriptApp.newTrigger('onCalendarEdit')
@@ -26,11 +314,11 @@ function createTriggers() {
   }
   // create 1 Sheets trigger (calls function 'onSheetsEdit' on trigger)
   ScriptApp.newTrigger('onSheetsEdit')
-      .forSpreadsheet('{spreadsheetid}')
+      .forSpreadsheet(properties.getProperty('experimentConditionSpreadsheetId'))
       .onEdit()
       .create();
   // create 1 Sheets trigger for daily logging past events
-  ScriptApp.newTrigger("eventLogging")
+  ScriptApp.newTrigger('finalLogging')
     .timeBased()
     .atHour(4) // 4:00
     .nearMinute(0)  
@@ -38,170 +326,432 @@ function createTriggers() {
     .create();
 }
 
+// ==============================================================================================
+// ======================================= MAIN FUNCTIONS =======================================
+// ==============================================================================================
+
 // when calendar gets edited
 function onCalendarEdit(e) {
-  const sheet = SpreadsheetApp.openById('{spreadsheetid}').getSheetByName('users');
-  const sheet = book.getSheetByName('users');
-  const users = getUsers(sheet);
+  Logger.log('Calendar edit trigger');
+  getAndStoreObjects(); // get sheets, calendars and store them in properties
+  importMomentJS();
+  const properties = PropertiesService.getUserProperties();
+  const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
   const calendarId = e.calendarId;
-  const writeCalendarIds = getWriteCalendarIds(sheet);
   const index = writeCalendarIds.indexOf(calendarId);
   const fullSync = false;
-  adminLoggingSetup(); // setup admin logging
-  adminLogging({ 
-    name: users[index],
-    action: "add/move/del event", 
-  });
-  writeEventsToReadCalendar(sheet, calendarId, index, fullSync);
+  writeEventsToReadCalendar(calendarId, index, fullSync);
 }
 
 // when sheets gets edited
 function onSheetsEdit(e) {
-  const book = SpreadsheetApp.openById('{spreadsheetid}');
+  Logger.log('Sheets edit trigger');
+  const properties = PropertiesService.getUserProperties();
+  getAndStoreObjects(); // get sheets, calendars and store them in properties
+  importMomentJS();
+  const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
   const sheet = e.source.getActiveSheet();
+  const sheetName = sheet.getName();
   const cell = e.source.getActiveRange();
   const newValue = e.value;
   const row = cell.getRow();
   const column = cell.getColumn();
-  const lastRow = sheet.getLastRow();
-  const lastColumn = sheet.getLastColumn();
-  const users = getUsers(sheet);
   const index = row-2;
-  const readUser = users[index];
-  const writeCalendarIds = getWriteCalendarIds(sheet);
-  const calendarId = writeCalendarIds[index]
+  const writeCalendarId = writeCalendarIds[index]
   const fullSync = true;
+  const equipmentSheetNameFromEquipmentName = JSON.parse(properties.getProperty('equipmentSheetNameFromEquipmentName'));
   
-  adminLoggingSetup(); // setup admin logging
-  if (row == 1 || row > lastRow || column > lastColumn || (column > 1 && column < 6)){
-    action = "edited invalid area";
-  } else if (column === 1) {
-    action = "edited name";
-  } else if (column === 6) {
-    action = "edited read calendarId";
-  } else if (column === 7) {
-    action = "edited write calendarId";
-  } else if (column > 7) {
-    action = "edited device";
-  } 
-  const executionDateTime = new Date(); // current time
-    adminLogging({
-      executionYear: executionDateTime.getFullYear(),
-      executionMonth: executionDateTime.getMonth()+1, // Jan. is 0, Dec is 11 --change--> 1~12
-      executionDay: executionDateTime.getDate(),
-      executionHour: executionDateTime.getHours(),
-      executionMin: executionDateTime.getMinutes(),
-      executionSec: executionDateTime.getSeconds(),
-      executionMilliSec: executionDateTime.getMilliseconds(),
-    name: readUser,
-    action: 'sheets (row, col) = (' + row + ', ' + column + '): ' + action,
-  });  
-  // when the checkbox (H2~nm) is edited in sheets on sheet 'users'
-  // update corresponding user's subscribed devices
-  if (sheet.getName() === 'users' && row > 1 && column > 7){ 
-    changeSubscribedDevices(sheet, readUser, index, users);
+  // when the 'users' sheet is edited
+  if (sheetName === 'users') {
+    // when the checkbox (H2~nm) is edited in sheets on sheet 'users'
+    // update corresponding user's subscribed equipments
+    if (row > 1 && column > 9){ 
+      changeSubscribedEquipments(index);
+      onUsersSheetEdit();
+    }
+    // when the full name (A2~An) is edited in sheets on sheet 'users'
+    // update all of the corresponding user's event title
+    else if (row > 1 && column === 1){
+      updateCalendarUserName(sheet, cell, newValue);
+      onUsersSheetEdit();
+      writeEventsToReadCalendar(writeCalendarId, index, fullSync);
+    }
   }
-  // when the full name (A2~An) is edited in sheets on sheet 'users'
-  // update all of the corresponding user's event title
-  else if (sheet.getName() === 'users' && row > 1 && column === 1){
-    updateCalendarUserName(sheet, cell, newValue);
-    writeEventsToReadCalendar(sheet, calendarId, index, fullSync);
+  // when the 'properties' sheet is edited
+  else if (sheetName === 'properties') {
+    onPropertiesSheetEdit();
+  }
+  // if equipment sheet is edited
+  else if (Object.values(equipmentSheetNameFromEquipmentName).includes(sheet.getName()) && row > 1){ 
+    onEquipmentConditionEdit(sheet, row);
   }
 }
 
-function adminLoggingSetup() { // prepares constant for adminLogging
-  book = SpreadsheetApp.openById('{loggingspreadsheetid}'); // spreadsheet for loggingrepares constant for adminLogging
+function onUsersSheetEdit() {
   const properties = PropertiesService.getUserProperties();
-  const lastRow = book.getSheetByName('admin_log').getLastRow();
-  const row = lastRow + 1; // write on new row
-  properties.setProperty('row', row.toString());
-  properties.setProperty('adminLoggingDone', 'false'); // reset execution state of admin logging
+  var lastRow = '';
+  var lastColumn = '';
+  var values = '';
+
+  // get sheets
+  const experimentConditionSpreadsheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId'));
+  const usersSheet = experimentConditionSpreadsheet.getSheetByName('users');
+
+  // get all the write and read calendar's calendarIds
+  lastRow = usersSheet.getLastRow();
+  lastColumn = usersSheet.getMaxColumns();
+  values = usersSheet.getRange(2, 5, lastRow-1, 3).getValues();
+  var readCalendarIds = []; // get read calendars' Ids
+  var writeCalendarIds = []; // get write calendars' Ids
+  var users = []; // get user names
+  for (var i = 0; i < lastRow-1; i++) {
+    users[i] = values[i][0];
+    readCalendarIds[i] = values[i][1];
+    if (i !== lastRow-2) {
+      writeCalendarIds[i] = values[i][2]; // writeCalendarId in the last row is blank
+    }
+  }
+
+  // get equipments that are enabled by user
+  var enabledEquipmentsList = []; 
+  var equipmentValues = usersSheet.getRange(1, 10, 1, lastColumn-9).getValues();
+  var checkedValues = usersSheet.getRange(2, 10, lastRow-1, lastColumn-9).getValues();
+  for (var i = 0; i < lastRow-1; i++) {
+    enabledEquipmentsList[i] = [];
+    for (var j = 0; j < lastColumn-9; j++) {
+      if (checkedValues[i][j] === true) {
+        enabledEquipmentsList[i].push(equipmentValues[0][j]);
+      }
+    }
+  }
+
+  // store objects in property
+  properties.setProperty('writeCalendarIds', JSON.stringify(writeCalendarIds));
+  properties.setProperty('readCalendarIds', JSON.stringify(readCalendarIds));
+  properties.setProperty('usersSheet', JSON.stringify(usersSheet));
+  properties.setProperty('users', JSON.stringify(users));
+  properties.setProperty('enabledEquipmentsList', JSON.stringify(enabledEquipmentsList));
 }
 
-function adminLogging(logObj) { // logs everything
-  const columnDescriptions = { // shows which description corresponds to which column
-    executionYear: 1,
-    executionMonth: 2,
-    executionDay: 3,
-    executionHour: 4,
-    executionMin: 5,
-    executionSec: 6,
-    executionMilliSec: 7,
-    startYear: 8,
-    startMonth: 9,
-    startDay: 10,
-    startHour: 11,
-    startMin: 12,
-    startSec: 13,
-    startMilliSec: 14,
-    endYear: 15,
-    endMonth: 16,
-    endDay: 17,
-    endHour: 18,
-    endMin: 19,
-    endSec: 20,
-    endMilliSec: 21,
-    durationYear: 22,
-    durationMonth: 23,
-    durationDay: 24,
-    durationHour: 25,
-    durationMin: 26,
-    durationSec: 27,
-    durationMilliSec: 28,
-    specialAllDay: 29,
-    specialReccuring: 30,
-    specialRecurringDays: 31,
-    name: 32,
-    device: 33,
-    status: 34,
-    comment: 35,
-    action: 36,
-  }; // didn't put this in adminLoggingSetup because it cannot hold js objects
+function onPropertiesSheetEdit() {  
   const properties = PropertiesService.getUserProperties();
-  const row = parseInt(properties.getProperty('row'));
-  const adminLogSheet = SpreadsheetApp.openById('{loggingspreadsheetid}').getSheetByName('admin_log'); // spreadsheet for logging
+  var lastRow = '';
+  var lastColumn = '';
+  var values = '';
+
+  // get sheets
+  const experimentConditionSpreadsheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId'));
+  const sheets = experimentConditionSpreadsheet.getSheets();
+  const sheetNames = sheets.map((sheet) => {return sheet.getName()});
+  const propertiesSheet = experimentConditionSpreadsheet.getSheetByName('properties');
+
+  // get equipment sheet id for each equipment name
+  var equipmentSheetIdFromEquipmentName = {};
+  var equipmentSheetNameFromEquipmentName = {};
+  lastRow = propertiesSheet.getLastRow();
+  values = propertiesSheet.getRange(2, 1, lastRow-1, 2).getValues();
+
+  var sheetId = '';
+  var sheetName = '';
+  var equipmentName = '';
+
+  // convert sheetId to sheetName
+  for (var i = 0; i < sheetNames.length; i++) {
+    sheetId = experimentConditionSpreadsheet.getSheetByName(sheetNames[i]).getSheetId();
+    for (var j = 0; j < lastRow-1; j++){
+      equipmentName = values[j][0];
+      if (sheetId === values[j][1]) {
+        sheetName = sheetNames[i];
+        break;  
+      }
+    }
+    equipmentSheetIdFromEquipmentName[equipmentName] = sheetId; // get sheetId
+    equipmentSheetNameFromEquipmentName[equipmentName] = sheetName; // get sheetName
+  }
+
+  // store objects in property
+  properties.setProperty('propertiesSheet', JSON.stringify(propertiesSheet));
+  properties.setProperty('equipmentSheetIdFromEquipmentName', JSON.stringify(equipmentSheetIdFromEquipmentName));
+  properties.setProperty('equipmentSheetNameFromEquipmentName', JSON.stringify(equipmentSheetNameFromEquipmentName));
+}
+
+function onEquipmentConditionEdit(equipmentSheet, row) {
+  Logger.log('Equipment condition edit trigger');
+  const properties = PropertiesService.getUserProperties();
+  // 4: equipment, 6: description, 7: isAllDayEvent, 8: isRecurringEvent, 9: action, 10: executionTime, 11: id, are protected from being edited
+  const lastColumn = equipmentSheet.getMaxColumns();
+  const values = equipmentSheet.getRange(row, 1, 1, lastColumn).getValues();
+  const headers = equipmentSheet.getRange(1, 1, 1, lastColumn).getValues();
+  // when experiment condition gets edited -> change event summary 
+  const startTime = values[0][0];
+  const endTime = values[0][1];
+  const user = values[0][2];
+  const state = values[0][4];
+  const id = values[0][10];
+  const users = JSON.parse(properties.getProperty('users'));
+  const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
+  const equipmentSheetIdFromEquipmentName = JSON.parse(properties.getProperty('equipmentSheetIdFromEquipmentName'));
+  const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
+  const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
+  const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
+  const equipment = Object.keys(equipmentSheetIdFromEquipmentName).filter( (key) => { 
+    return equipmentSheetIdFromEquipmentName[key] === equipmentSheet.getSheetId();
+  });
+  if (users.includes(user)) { // if user exists
+    var writeCalendarId = writeCalendarIds[users.indexOf(user)]; // get writeCalendarId for specified user
+    var writeCalendar = CalendarApp.getCalendarById(writeCalendarId);
+  } else {
+    Logger.log('the specified user does not exist');
+    return;
+  }
+  if (startTime === '' || endTime === '' || user === '') {
+    Logger.log('startTime, endTime, user cannot be empty')
+    return;
+  }
+  var experimentCondition = {};
+  for (var i = 0; i < lastColumn-12; i++) {
+    if (headers[0][12+i] !== '') { // if condition is not ''
+      experimentCondition[headers[0][12+i]] = values[0][12+i];
+    }
+  }
+  equipmentSheet.getRange(row, 6).setValue(JSON.stringify(experimentCondition)); // set description in sheets
+  if (id === '') { // 1. when experiment id doesn't exist -> add event 
+    if (state === ''){
+      var title = `${user} ${equipment}`;
+    } else {
+      var title = `${user} ${equipment} ${state}`;
+    }
+    var event = writeCalendar.createEvent(title, localTimeToUTC(startTime), localTimeToUTC(endTime), {description: experimentCondition});
+  } else { // 2. when experiment id exists -> modify event
+    var event = writeCalendar.getEventById(id);
+    event.setDescription(JSON.stringify(experimentCondition)); // save experiment condition as stringified JSON
+    if (event === null) {
+      Logger.log('the specified event id does not exist');
+    } else {
+      event.setTime(localTimeToUTC(startTime), localTimeToUTC(endTime))// edit start and end time
+      event.setTitle(`${user} ${equipment} ${state}`); // edit equipmentName, name ,state
+      event.setDescription(JSON.stringify(experimentCondition)); // write experiment condition in details
+    }
+  }
+  Logger.log('Sorting events');
+  const allEquipmentsSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('allEquipments');
+}  
+
+// write events to read calendar based on updated events in write calendar
+function writeEventsToReadCalendar(writeCalendarId, index, fullSync) {
+  const properties = PropertiesService.getUserProperties();
+  const readCalendarIds = JSON.parse(properties.getProperty('readCalendarIds'));
+  const enabledEquipmentsList = JSON.parse(properties.getProperty('enabledEquipmentsList'));
+  const users = JSON.parse(properties.getProperty('users'));
+  const writeUser = users[index];
+  const allEvents = getEvents(writeCalendarId, fullSync);
+  const events = allEvents.events;
+  const canceledEvents = allEvents.canceledEvents;
+  Logger.log(`${readCalendarIds.length} read calendars`);
+  const equipmentSheetNameFromEquipmentName = JSON.parse(properties.getProperty('equipmentSheetNameFromEquipmentName'));
+  for (var i = 0; i < events.length; i++){
+    var event = events[i];
+    const filteredReadCalendarIds = filterUsers(writeUser, event, readCalendarIds, enabledEquipmentsList).filteredReadCalendarIds;
+    Logger.log(`writing event no.${i+1} to [ ${filteredReadCalendarIds} ]`);
+    writeEvent(event, writeCalendarId, writeUser, filteredReadCalendarIds); // create event in write calendar and add read calendars as guests
+  }
+  const writeCalendar = CalendarApp.getCalendarById(writeCalendarId);
+  for (var i = 0; i < events.length; i++) { // log events
+    var event = events[i];
+    const equipmentStatus = getEquipmentNameAndStateFromEvent(event);
+    const equipmentName = equipmentStatus.equipmentName;
+    const state = equipmentStatus.state;
+    const action = 'add';
+    const eid = event.getId();
+    event = writeCalendar.getEventById(eid);
+    eventLoggingStoreData({ // log event
+      startTime: UTCToLocalTime(event.getStartTime()),
+      endTime: UTCToLocalTime(event.getEndTime()),
+      name: writeUser,
+      equipmentName: equipmentName,
+      state: state,
+      description: event.getDescription(),
+      isAllDayEvent: event.isAllDayEvent(),
+      isRecurringEvent: event.isRecurringEvent(),
+      action: action, 
+      executionTime: UTCToLocalTime(new Date()), // current time
+      id: eid, 
+    });
+    eventLoggingExecute(equipmentSheetNameFromEquipmentName[equipmentName]);
+  }
+  for (var i = 0; i < canceledEvents.length; i++) { // log canceled events
+    var event = canceledEvents[i];
+    const equipmentStatus = getEquipmentNameAndStateFromEvent(event);
+    const equipmentName = equipmentStatus.equipmentName;
+    const state = equipmentStatus.state;
+    const action = 'cancel';
+    const eid = event.getId();
+    event = writeCalendar.getEventById(eid);
+    eventLoggingStoreData({ // log event
+      startTime: UTCToLocalTime(event.getStartTime()),
+      endTime: UTCToLocalTime(event.getEndTime()),
+      name: writeUser,
+      equipmentName: equipmentName,
+      state: state,
+      description: event.getDescription(),
+      isAllDayEvent: event.isAllDayEvent(),
+      isRecurringEvent: event.isRecurringEvent(),
+      action: action, 
+      executionTime: UTCToLocalTime(new Date()), // current time
+      id: eid, 
+    });
+    eventLoggingExecute(equipmentSheetNameFromEquipmentName[equipmentName]);
+  }
+  Logger.log('event logging done');
+  updateSyncToken(writeCalendarId); // renew sync token after adding guest
+  Logger.log(`Wrote updated events to read calendar. Fullsync = ${fullSync}`);
+}
+
+// update corresponding user's subscribed equipments 
+function changeSubscribedEquipments(index){
+  const properties = PropertiesService.getUserProperties();
+  const readCalendarIds = JSON.parse(properties.getProperty('readCalendarIds'));
+  const enabledEquipmentsList = JSON.parse(properties.getProperty('enabledEquipmentsList'));
+  const fullSync = true;
+  const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
+  const readCalendarId = readCalendarIds[index];
+  const users = JSON.parse(properties.getProperty('users'));
+  Logger.log(`${writeCalendarIds.length} write calendars`);
+  for (var i = 0; i < writeCalendarIds.length; i++){
+    const writeUser = users[i];
+    const writeCalendarId = writeCalendarIds[i];
+    const allEvents = getEvents(writeCalendarId, fullSync);
+    const events = allEvents.events;
+    for (var j = 0; j < events.length; j++){
+      const event = events[j];
+      const filteredReadCalendarIds = filterUsers(writeUser, event, readCalendarIds, enabledEquipmentsList).filteredReadCalendarIds;
+      writeEvent(event, writeCalendarId, writeUser, filteredReadCalendarIds); // create event in write calendar and add read calendars as guests
+    }
+    updateSyncToken(writeCalendarId);
+  }
+  Logger.log('Changed subscribed equipments');
+}
+  
+// update calendar's User Name based on full name input
+function updateCalendarUserName(sheet, cell, newValue){  
+  setFirstLastNames(sheet, cell, newValue); // get last and first names from full name and set User Name 1
+  setUserNames(sheet); // set User Name 2 using User Name 1
+  setCalendars(sheet, cell); // set read calendar and write calendar for created user
+  Logger.log('Updated user name');
+}
+
+// =================================================================================================
+// ======================================= LOGGING FUNCTIONS ======================================= 
+// =================================================================================================
+
+// set data for logging
+function eventLoggingStoreData(logObj) { 
+  const properties = PropertiesService.getUserProperties();
+  if (properties.getProperty('eventLoggingData') === null) { // if key value pair not defined
+    var eventLoggingData = {}; // initialize
+  } else {
+    var eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData'));    
+  }
   for (const key in logObj) { // iterate through log object
-    var value = logObj[key];
-    var col = columnDescriptions[key];
-    adminLogSheet.getRange(row,col).setValue(value);
+    eventLoggingData[key] = logObj[key];
   }
+  properties.setProperty('eventLoggingData', JSON.stringify(eventLoggingData));
 }
 
-function eventLogging() { // logs just the necessary data
-  const eventLogSheet = SpreadsheetApp.openById('{loggingspreadsheetid}').getSheetByName('event_log')
-  const lastRow = eventLogSheet.getLastRow();
+// execute logging to sheets
+function eventLoggingExecute(equipmentSheetName) { 
+  Logger.log('Logging event');
+  const properties = PropertiesService.getUserProperties();
+  const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
+  const experimentConditionRows = parseInt(properties.getProperty('experimentConditionRows'));
+  const equipmentCount = parseInt(properties.getProperty('equipmentCount'));
+  const experimentConditionBackupRows = parseInt(properties.getProperty('experimentConditionBackupRows'));
+  // spreadsheet for experiment condition logging
+  const experimentConditionSpreadsheetId = properties.getProperty('experimentConditionSpreadsheetId');
+  const equipmentSheet = SpreadsheetApp.openById(experimentConditionSpreadsheetId).getSheetByName(equipmentSheetName);
+  const allEquipmentsSheet = SpreadsheetApp.openById(properties.getProperty('experimentConditionSpreadsheetId')).getSheetByName('allEquipments');
+  const eventLoggingData = JSON.parse(properties.getProperty('eventLoggingData'));
+  properties.deleteProperty('eventLoggingData');
+  var row = equipmentSheet.getRange("A1:A").getValues().filter(String).length + 1; // get last row of first column
+  if (row > experimentConditionBackupRows) { // prevent overflow of spreadsheet data by backing up and deleting it
+    backupAndDeleteOverflownEquipmentData(equipmentSheet) 
+    row = equipmentSheet.getRange("A1:A").getValues().filter(String).length + 1; // get last row of first column
+  }
+  const columnDescriptions = { // shows which description corresponds to which column
+    startTime: 1,
+    endTime: 2,
+    name: 3,
+    equipmentName: 4,
+    state: 5,
+    description: 6,
+    isAllDayEvent: 7,
+    isRecurringEvent: 8,
+    action: 9,
+    executionTime: 10,
+    id: 11,
+  };
+  var filledArray = [[]];
+  for (const key in eventLoggingData) { // iterate through log object
+    var value = eventLoggingData[key];
+    var col = columnDescriptions[key];
+    filledArray[0][col-1] = value;
+  }
+  Logger.log(eventLoggingData);
+  equipmentSheet.getRange(row, 1, 1, 11).setValues(filledArray); 
+
+  // get experiment condition from description
+  try {
+    const description = JSON.parse(eventLoggingData['description']);
+    const descriptionHeaders = equipmentSheet.getRange(1, 13, 1, experimentConditionCount).getValues();
+    var descriptionHeader = '';
+    var filledArray = [[]];
+    for (var i = 0; i < experimentConditionCount; i++){
+      descriptionHeader = descriptionHeaders[0][i]; // experiment condition header
+      if (descriptionHeader in description) { // if value exists for key 'descriptionHeader'
+        filledArray[0][i] = description[descriptionHeader];;
+      } else {
+        filledArray[0][i] = '';
+      }
+    }
+    equipmentSheet.getRange(row, 13, 1, experimentConditionCount).setValues(filledArray); // experiment condition
+  } catch (e) {}
+
+  Logger.log('Sorting events');
+}
+
+// logs just the necessary data
+function finalLogging() { 
+  importMomentJS();
+  Logger.log('Daily logging of event');
+  getAndStoreObjects(); // get sheets, calendars and store them in properties
+  const properties = PropertiesService.getUserProperties();
+  const finalLoggingBackupRows = parseInt(properties.getProperty('finalLoggingBackupRows'));
+  const loggingSpreadsheetId = properties.getProperty('loggingSpreadsheetId');
+  const finalLogSheet = SpreadsheetApp.openById(loggingSpreadsheetId).getSheetByName('finalLog');
+  var lastRow = finalLogSheet.getLastRow();
+  if (lastRow > finalLoggingBackupRows) {
+    backupAndDeleteOverflownLoggingData(finalLogSheet) // prevent overflow of spreadsheet data by backing up and deleting it
+  }
+  var lastRow = finalLogSheet.getLastRow();
   const row = lastRow + 1; // write on new row
   const columnDescriptions = { // shows which description corresponds to which column
-    startYear: 1,
-    startMonth: 2,
-    startDay: 3,
-    startHour: 4,
-    startMin: 5,
-    endYear: 6,
-    endMonth: 7,
-    endDay: 8,
-    endHour: 9,
-    endMin: 10,
-    durationYear: 11,
-    durationMonth: 12,
-    durationDay: 13,
-    durationHour: 14,
-    durationMin: 15,
-    specialAllDay: 16,
-    specialReccuring: 17,
-    specialRecurringDays: 18,
-    name: 19,
-    device: 20,
-    status: 21,
-    comment: 22,
+    startTime: 1,
+    endTime: 2,
+    name: 3,
+    equipmentName: 4,
+    state: 5,
+    description: 6,
+    isAllDayEvent: 7,
+    isRecurringEvent: 8,
   };
-  const sheet = SpreadsheetApp.openById('{spreadsheetid}').getSheetByName('users');
-  const writeCalendarIds = getWriteCalendarIds(sheet);
-  const users = getUsers(sheet);
+  const writeCalendarIds = JSON.parse(properties.getProperty('writeCalendarIds'));
+  const users = JSON.parse(properties.getProperty('users'));
   // get events from 2~3 days ago
-  options = {}
-  options.timeMin = getRelativeDate(-3, 0).toISOString(); // 3 days ago
-  options.timeMax = getRelativeDate(-2, 0).toISOString(); // 2 days ago
+  options = {
+    timeMin : getRelativeDate(-3, 0).toISOString(), // 3 days ago
+    timeMax : getRelativeDate(-2, 0).toISOString(), // 2 days ago
+    showDeleted : true,
+  }
   for (var i = 0; i < writeCalendarIds.length; i++){ // iterate through every write calendar id
     Utilities.sleep(100);
     const writeCalendarId = writeCalendarIds[i];
@@ -213,7 +763,7 @@ function eventLogging() { // logs just the necessary data
       for (var j = 0; j < eventsList.items.length; j++) {
         const event = eventsList.items[j];
         if (event.status === 'cancelled') {
-          Logger.log('Event id %s was cancelled.', event.id);
+          Logger.log(`Event id ${event.id} was cancelled.`);
         } else{
           events.push(event);
         }
@@ -221,66 +771,428 @@ function eventLogging() { // logs just the necessary data
     } 
 
     if (events.length === 0) {
-      Logger.log('No events found for: ' + writeCalendarId);
+      Logger.log(`No events found for: ${writeCalendarId}`);
     } else {
-      Logger.log(events.length + ' events found for: ' + writeCalendarId);
+      Logger.log(`${events.length} events found for: ${writeCalendarId}`);
     }
     
     // log each event
+    var filledArray = [];
     for (var j = 0; j < events.length; j++){
       Utilities.sleep(100);
       var event = events[j];
-      const deviceStateFromEvent = getDeviceStateFromEvent(event); // this must be called first before getCalendarById
-      const device = deviceStateFromEvent.device;
-      const state = deviceStateFromEvent.state;
+      const equipmentStateFromEvent = getEquipmentNameAndStateFromEvent(event); // this must be called first before getCalendarById
+      const equipmentName = equipmentStateFromEvent.equipmentName;
+      const state = equipmentStateFromEvent.state;
       const eid = event.iCalUID;
       event = CalendarApp.getCalendarById(writeCalendarId).getEventById(eid);
-      const startDateTime = event.getStartTime();
-      const endDateTime = event.getEndTime();
-      const durationDateTime = new Date(endDateTime - startDateTime);
       var logObj = {
-          startYear: startDateTime.getFullYear(),
-          startMonth: startDateTime.getMonth()+1,
-          startDay: startDateTime.getDate(),
-          startHour: startDateTime.getHours(),
-          startMin: startDateTime.getMinutes(),
-          endYear: endDateTime.getFullYear(),
-          endMonth: endDateTime.getMonth()+1,
-          endDay: endDateTime.getDate(),
-          endHour: endDateTime.getHours(),
-          endMin: endDateTime.getMinutes(),
-          durationYear: durationDateTime.getFullYear() - 1970, // starts at 1970
-          durationMonth: durationDateTime.getMonth(), // dont add 1 to difference
-          durationDay: durationDateTime.getDate()-1, // dont know why it shows 1 when it should be 0
-          durationHour: durationDateTime.getHours(),
-          durationMin: durationDateTime.getMinutes(),
-          specialAllDay: event.isAllDayEvent(),
-          specialReccuring: event.isRecurringEvent(),
-          specialRecurringDays: "",
-          name: writeUser,
-          device: device,
-          status: state,
-          comment: "",
+        startTime: UTCToLocalTime(event.getStartTime()),
+        endTime: UTCToLocalTime(event.getEndTime()),
+        name: writeUser,
+        equipmentName: equipmentName,
+        state: state,
+        description: event.getDescription(),
+        isAllDayEvent: event.isAllDayEvent(),
+        isRecurringEvent: event.isRecurringEvent(),
       }
+      filledArray[j] = [];
       for (const key in logObj) { // iterate through log object
         var value = logObj[key];
         var col = columnDescriptions[key];
-        eventLogSheet.getRange(row,col).setValue(value);
+        filledArray[j][col-1] = value;
       }
     }
+    finalLogSheet.getRange(row, 1, events.length, 8).setValues(filledArray);
   }
 }
 
-// filter readUsers who are not writeUser and have the device
-function filterUsers(writeUser, event, readCalendarIds, users, enabledDevicesList) {
+// ===============================================================================================
+// ======================================= OTHER FUNCTIONS ======================================= 
+// ===============================================================================================
+
+// prevent overflow of spreadsheet data by backing up and deleting it
+function backupAndDeleteOverflownEquipmentData(equipmentSheet) {
+  Logger.log('Backing up overflown equipment data');
+  const properties = PropertiesService.getUserProperties();
+  const experimentConditionBackupRows = parseInt(properties.getProperty('experimentConditionBackupRows'));
+  const experimentConditionCount = parseInt(properties.getProperty('experimentConditionCount'));
+  // backup rows
+  const equipment = equipmentSheet.getRange(2, 4).getValue();
+  const startTime = localTimeToUTC(equipmentSheet.getRange(2, 1).getValue());
+  const endTime = localTimeToUTC(equipmentSheet.getRange(experimentConditionBackupRows, 1).getValue());
+  const backupColumns = equipmentSheet.getMaxColumns();
+  // copy whole sheet because copying range to another spreadsheet is not allowed
+  Logger.log('Creating new spreadsheet for backing up data');
+  const backupSpreadsheet = SpreadsheetApp.create(`BACKUP_${equipment}_${startTime}-${endTime}`);
+  Logger.log('Copying data');
+  var filledArray = equipmentSheet.getRange(1, 1, experimentConditionBackupRows, backupColumns).getValues();
+  backupSpreadsheet.insertSheet('data'); // create new sheet for holding data
+  backupSpreadsheet.deleteSheet(backupSpreadsheet.getSheetByName('Sheet1')); // delete placeholder sheet
+  backupSpreadsheet
+    .getSheetByName('data')
+    .getRange(1, 1, experimentConditionBackupRows, backupColumns)
+    .setValues(filledArray);
+  Logger.log('Deleting backed up data');
+  // delete rows
+  equipmentSheet.getRange(2, 1, experimentConditionBackupRows-1, 11).setValue('');
+  equipmentSheet.getRange(2, 13, experimentConditionBackupRows-1, experimentConditionCount).setValue('');
+}
+
+function backupAndDeleteOverflownLoggingData(finalLogSheet) {
+  Logger.log('Backing up overflown logging data');
+  const properties = PropertiesService.getUserProperties();
+  const finalLoggingBackupRows = parseInt(properties.getProperty('finalLoggingBackupRows'));
+  // backup rows
+  const backupColumns = finalLogSheet.getMaxColumns();
+  const backupRows = finalLogSheet.getLastRow();
+  const startTime = localTimeToUTC(finalLogSheet.getRange(2, 1).getValue());
+  const endTime = localTimeToUTC(finalLogSheet.getRange(finalLoggingBackupRows, 1).getValue());
+  // copy whole sheet because copying range to another spreadsheet is not allowed
+  Logger.log('Creating new spreadsheet for backing up data');
+  const backupSpreadsheet = SpreadsheetApp.create(`BACKUP_LOG_${startTime}-${endTime}`);
+  Logger.log('Copying data');
+  var filledArray = finalLogSheet.getRange(1, 1, finalLoggingBackupRows, backupColumns).getValues();
+  backupSpreadsheet.insertSheet('data'); // create new sheet for holding data
+  backupSpreadsheet.deleteSheet(backupSpreadsheet.getSheetByName('Sheet1')); // delete placeholder sheet
+  backupSpreadsheet
+    .getSheetByName('data')
+    .getRange(1, 1, finalLoggingBackupRows, backupColumns)
+    .setValues(filledArray);
+  Logger.log('Deleting backed up data');
+  // delete rows
+  finalLogSheet.getRange(2, 1, finalLoggingBackupRows-1, 8).setValue('');
+  // move rows to front
+  var filledArray = finalLogSheet.getRange(finalLoggingBackupRows+1, 1, backupRows-finalLoggingBackupRows, 8).getValues();
+  finalLogSheet.getRange(finalLoggingBackupRows+1, 1, backupRows-finalLoggingBackupRows, 8).setValue('');
+  finalLogSheet.getRange(2, 1, backupRows-finalLoggingBackupRows, 8).setValues(filledArray);
+}
+
+// ============================================================================================================ 
+// ======================================= HELPER FUNCTIONS (API calls) ======================================= 
+// ============================================================================================================ 
+
+function setHorizontalAlignment(spreadsheetId, sheetId, startRow, startColumn, rowCount, columnCount, alignment) {
+  const endRow = startRow + rowCount;
+  const endColumn = startColumn + columnCount;  
+  var requests = [
+    {
+      "updateCells": {  
+        "range": {
+          "sheetId": sheetId,
+          "startRowIndex": startRow-1,
+          "endRowIndex": endRow-1,
+          "startColumnIndex": startColumn-1,
+          "endColumnIndex": endColumn-1,
+        },
+        "rows": [{
+          "values": [{
+            "userEnteredFormat": {
+              "horizontalAlignment": alignment,
+            }
+          }]
+        }],
+        "fields": "*" // use all formats
+      }
+    }
+  ]
+  Sheets.Spreadsheets.batchUpdate(
+    {'requests': requests}, spreadsheetId
+  ); 
+}
+
+function setWrapStrategy(spreadsheetId, sheetId, startRow, startColumn, rowCount, columnCount, wrapStrategy) {
+  const endRow = startRow + rowCount;
+  const endColumn = startColumn + columnCount;  
+  var requests = [
+    {
+      "updateCells": {  
+        "range": {
+          "sheetId": sheetId,
+          "startRowIndex": startRow-1,
+          "endRowIndex": endRow-1,
+          "startColumnIndex": startColumn-1,
+          "endColumnIndex": endColumn-1,
+        },
+        "rows": [{
+          "values": [{
+            "userEnteredFormat": {
+              "wrapStrategy": wrapStrategy,
+            }
+          }]
+        }],
+        "fields": "*" // use all formats
+      }
+    }
+  ]
+  Sheets.Spreadsheets.batchUpdate(
+    {'requests': requests}, spreadsheetId
+  ); 
+}
+
+function insertCheckboxes(spreadsheetId, sheetId, startRow, startColumn, rowCount, columnCount) {
+  const endRow = startRow + rowCount;
+  const endColumn = startColumn + columnCount;
+  requests = [
+    {
+      'repeatCell': {
+        "cell": {'dataValidation': {'condition': {'type': 'BOOLEAN'}}},
+        "range": {
+          "sheetId": sheetId,
+          "startRowIndex": startRow-1,
+          "endRowIndex": endRow-1,
+          "startColumnIndex": startColumn-1,
+          "endColumnIndex": endColumn-1,
+        },
+        'fields': '*'
+      }
+    },
+  ]
+  Sheets.Spreadsheets.batchUpdate(
+    {'requests': requests}, spreadsheetId
+  );
+}
+ 
+// copy sheet
+function copyTo(spreadsheetId, originSheetId, sheetName) {
+  var response = Sheets.Spreadsheets.Sheets.copyTo(
+    {"destinationSpreadsheetId": spreadsheetId}, spreadsheetId, originSheetId
+  );
+  const sheetId = response.sheetId;
+
+  // set title of sheet
+  requests = [
+    {
+      "updateSheetProperties": {
+        "properties": {
+          "sheetId": sheetId,
+          "title": sheetName,
+        },
+        "fields": "title"
+      }
+    }
+  ]
+  Sheets.Spreadsheets.batchUpdate(
+    {'requests': requests}, spreadsheetId
+  );
+  return sheetId
+}
+
+// protect the specified range
+function protectRange(spreadsheetId, sheetId, startRow, startColumn, rowCount, columnCount) {  
+  const endRow = startRow + rowCount;
+  const endColumn = startColumn + columnCount;
+  const properties = PropertiesService.getUserProperties();
+  const effectiveUser = properties.getProperty('effectiveUser')
+  requests = [
+    {
+      "addProtectedRange": {
+        "protectedRange": {
+          "range": {
+            "sheetId": sheetId,
+            "startRowIndex": startRow-1,
+            "endRowIndex": endRow-1,
+            "startColumnIndex": startColumn-1,
+            "endColumnIndex": endColumn-1,
+          },
+          "description": "Protected Range",  
+          "editors": {"users": [effectiveUser]}
+        }
+      }
+    }
+  ]
+  Sheets.Spreadsheets.batchUpdate(
+    {'requests': requests}, spreadsheetId
+  );
+}
+
+// position: {top, bottom, left, right}, style: {DOTTED, DASHED, SOLID, SOLID_MEDIUM, SOLID_THICK, NONE, DOUBLE}
+function setBorder(spreadsheetId, sheetId, startRow, startColumn, rowCount, columnCount, position, style) {
+  const endRow = startRow + rowCount;
+  const endColumn = startColumn + columnCount;
+  updateBorders = {
+    "range": {
+      "sheetId": sheetId,
+      "startRowIndex": startRow-1,
+      "endRowIndex": endRow-1,
+      "startColumnIndex": startColumn-1,
+      "endColumnIndex": endColumn-1,
+    },
+  }
+  updateBorders[position] = {"style": style},
+  requests = [
+    {
+      "updateBorders": updateBorders
+    }
+  ]
+  Sheets.Spreadsheets.batchUpdate(
+    {'requests': requests}, spreadsheetId
+  );
+}
+
+function hideColumns(spreadsheetId, sheetId, startColumn, endColumn) {
+  requests = [
+    {
+      "updateDimensionProperties": {
+        "range": {
+          "sheetId": sheetId,
+          "dimension": 'COLUMNS',
+          "startIndex": startColumn-1,
+          "endIndex": endColumn,
+        },
+        "properties": {
+          "hiddenByUser": true,
+        },
+        "fields": "*",
+      }
+    }
+  ]
+  Sheets.Spreadsheets.batchUpdate(
+    {'requests': requests}, spreadsheetId
+  );
+}
+
+
+// delete first sheet ("Sheet 1")
+function deleteFirstSheet(spreadsheetId) {  
+  requests = [
+    {
+      "deleteSheet": {
+        "sheetId": 0 // first sheet has sheet id of 0
+      }
+    }
+  ]
+  Sheets.Spreadsheets.batchUpdate(
+    {'requests': requests}, spreadsheetId
+  );
+}
+
+// insertSheet and change row, col count and set wrap, centering
+function insertSheetWithFormat(spreadsheetId, sheetName, rows, columns) {  
+  requests = [
+    {
+      "addSheet": {
+        "properties": {
+          "title": sheetName,
+          "gridProperties": {
+            "rowCount": rows,
+            "columnCount": columns
+          },
+        }
+      },
+    }
+  ]
+  var response = Sheets.Spreadsheets.batchUpdate(
+    {'requests': requests}, spreadsheetId
+  );
+
+  const sheetId = response.replies[0].addSheet.properties.sheetId;
+
+  var requests = [
+    {
+      "updateSheetProperties": {
+        "properties": {
+          "sheetId": sheetId,
+          "title": sheetName,
+          "gridProperties": {
+            "columnCount": columns,
+            "rowCount": 1, // prevent exceeding cell count limit
+          }
+        },
+        "fields": "*"
+      },
+    }, {
+      "updateSheetProperties": {
+        "properties": {
+          "sheetId": sheetId,
+          "title": sheetName,
+          "gridProperties": {
+            "columnCount": columns,
+            "rowCount": rows,
+          }
+        },
+        "fields": "*"
+      },
+    }, {
+      "updateCells": {  
+        "range": {"sheetId": sheetId}, // all cells in sheet
+        "rows": [{
+          "values": [{
+            "userEnteredFormat": {
+              "wrapStrategy": "WRAP", // wrap overflowing text            
+              "horizontalAlignment": "CENTER", // center text
+              "verticalAlignment": "MIDDLE", // center text
+            }
+          }]
+        }],
+        "fields": "*" // use all formats
+      }
+    }
+  ]
+  Sheets.Spreadsheets.batchUpdate(
+    {'requests': requests}, spreadsheetId
+  );
+  return sheetId
+}
+
+// fill array with value
+function setValues(filledArray, range, spreadsheetId) {
+  Sheets.Spreadsheets.Values.update(
+    {"majorDimension": "ROWS", "values": filledArray},
+    spreadsheetId, 
+    range,
+    {"valueInputOption": "USER_ENTERED"},
+  );
+}
+
+// fill array with value in batch
+function setValuesBatch(filledArrayBatch, spreadsheetId) {
+  Sheets.Spreadsheets.Values.batchUpdate(
+    {"valueInputOption": "USER_ENTERED", "data": filledArrayBatch},
+    spreadsheetId, 
+  );
+}
+
+// ================================================================================================
+// ======================================= HELPER FUNCTIONS ======================================= 
+// ================================================================================================
+
+// create 2d array filled with value
+function arrayFill2d(rows, columns, value) { 
+  return Array(rows).fill().map(() => Array(columns).fill(value));
+}
+
+// update the sync token after adding and deleting guests
+function updateSyncToken(calendarId) {
+  const properties = PropertiesService.getUserProperties();
+  const options = {
+    maxResults: 1000, // suppress nextPageToken which supresses nextSyncToken by fitting all events in one page
+    showDeleted: true,
+  };
+  var eventsList;
+  eventsList = Calendar.Events.list(calendarId, options);
+  properties.setProperty(`syncToken ${calendarId}`, eventsList.nextSyncToken);
+  Logger.log('Updated sync token. New sync token: ' + eventsList.nextSyncToken);
+}
+
+// get sheets and store them in properties
+function getAndStoreObjects() {
+  onUsersSheetEdit();
+  onPropertiesSheetEdit();
+}
+
+// filter readUsers who are not writeUser and have the equipment
+function filterUsers(writeUser, event, readCalendarIds, enabledEquipmentsList) {
+  const properties = PropertiesService.getUserProperties();
+  const users = JSON.parse(properties.getProperty('users'));
   var filteredReadCalendarIds = []; // readCalendarIds excluding the same user as writeCalendarId
   var filteredReadUsers = []; // readUsers excluding the same user as writeCalendarId
-  const device = getDeviceStateFromEvent(event).device; // device used in the event
+  const equipmentName = getEquipmentNameAndStateFromEvent(event).equipmentName; // equipment used in the event
   for (var i = 0; i < readCalendarIds.length; i++){
     const readCalendarId = readCalendarIds[i];
     const readUser = users[i];
-    const enabledDevices = enabledDevicesList[i];
-    if (enabledDevices.includes(device) === true){ // if device is enabled for readUser
+    const enabledEquipments = enabledEquipmentsList[i];
+    if (enabledEquipments.includes(equipmentName) === true){ // if equipment is enabled for readUser
       if (readUser != writeUser) { // avoid duplicating event for same user's read and write calendars      
         filteredReadCalendarIds.push(readCalendarId);
         filteredReadUsers.push(readUser);
@@ -290,116 +1202,16 @@ function filterUsers(writeUser, event, readCalendarIds, users, enabledDevicesLis
   return {filteredReadCalendarIds, filteredReadUsers}
 }
 
-// write events to read calendar based on updated events in write calendar
-function writeEventsToReadCalendar(sheet, writeCalendarId, index, fullSync) {
-  const readCalendarIds = getReadCalendars(sheet).readCalendarIds;
-  const enabledDevicesList = getReadCalendars(sheet).enabledDevicesList;
-  const writeCalendarIds = getWriteCalendarIds(sheet);
-  const users = getUsers(sheet);
-  const writeUser = users[index];
-  const events = getEvents(writeCalendarId, fullSync);
-  Logger.log(readCalendarIds.length + ' read calendars');
-  for (var i = 0; i < events.length; i++){
-    const event = events[i];
-    const filteredReadCalendarIds = filterUsers(writeUser, event, readCalendarIds, users, enabledDevicesList).filteredReadCalendarIds;
-    Logger.log('writing event no.' + (i+1).toString() +  ' to [ ' + filteredReadCalendarIds + ' ]');
-    writeEvent(event, writeCalendarId, writeUser, filteredReadCalendarIds); // create event in write calendar and add read calendars as guests
-  }
-  updateSyncToken(calendarId); // renew sync token after adding guest
-  Logger.log('Wrote updated events to read calendar. Fullsync = ' + fullSync);
-}
-
-// update corresponding user's subscribed devices 
-function changeSubscribedDevices(sheet, readUser, index, users){
-  const fullSync = true;
-  const readCalendarIds = getReadCalendars(sheet).readCalendarIds;
-  const enabledDevicesList = getReadCalendars(sheet).enabledDevicesList;
-  const writeCalendarIds = getWriteCalendarIds(sheet);
-  const readCalendarId = readCalendarIds[index];
-  const enabledDevices = enabledDevicesList[index];
-  Logger.log(writeCalendarIds.length + ' write calendars');
-  for (var i = 0; i < writeCalendarIds.length; i++){
-    const writeUser = users[i];
-    const writeCalendarId = writeCalendarIds[i];
-    const events = getEvents(writeCalendarId, fullSync);
-    for (var j = 0; j < events.length; j++){
-      const event = events[j];
-      const filteredUsers = filterUsers(writeUser, event, [readCalendarId], users, enabledDevicesList);
-      writeEvent(event, writeCalendarId, writeUser, readCalendarIds); // create event in write calendar and add read calendars as guests
-    }
-    updateSyncToken(writeCalendarId);
-  }
-  Logger.log('Changed subscribed devices');
-}
-  
-// update calendar's User Name based on full name input
-function updateCalendarUserName(sheet, cell, newValue){  
-  setFirstLastNames(sheet, cell, newValue); // get last and first names from full name and set User Name 1
-  setUserNames(sheet); // set User Name 2 using User Name 1
-  setCheckboxes(sheet, cell); // create checkboxes for selecting equipment
-  setCalendars(sheet, cell); // set read calendar and write calendar for created user
-  Logger.log('Updated user name');
-}
-
-// get all the User Names
-function getUsers(sheet) {
-  const users = [];
-  const lastRow = sheet.getLastRow();
-  for (var row = 2; row < lastRow+1; row++) { 
-    const user = sheet.getRange(row, 5).getValue();
-    users.push(user);
-  }
-  return users;
-}
-
-// get all the write calendar's calendarIds
-function getWriteCalendarIds(sheet) {
-  const calendarIds = [];
-  const lastRow = sheet.getLastRow();
-  for (var row = 2; row < lastRow+1; row++) { 
-    calendarId = sheet.getRange(row, 7).getValue();
-    calendarIds.push(calendarId);
-  }
-  return calendarIds;
-}
-
-// get all the read calendar's calendarIds
-function getReadCalendars(sheet) {
-  const calendarIds = [];  
-  const enabledDevicesList = [];
-  const lastRow = sheet.getLastRow();
-  const lastColumn = sheet.getLastColumn();
-  // get calendarId and enabledDevice
-  for (var row = 2; row < lastRow+1; row++) { 
-    // get calendarId and add to calendarIds
-    const calendarId = sheet.getRange(row, 6).getValue();
-    calendarIds.push(calendarId);
-    // get enabledDevice and add to enabledDevices
-    const enabledDevices = [];
-    for (var column = 8; column < lastColumn+1; column++) { 
-      const device = sheet.getRange(1, column).getValue();
-      const checked = sheet.getRange(row, column).isChecked();
-      if (checked === true){
-        enabledDevices.push(device);
-      }
-    }
-    enabledDevicesList.push(enabledDevices);
-  }
-  return {
-    readCalendarIds: calendarIds,
-    enabledDevicesList: enabledDevicesList,
-  };
-}
-
 // get events from the given calendar that have been modified since the last sync.
 // if the sync token is missing or invalid, log all events from up to a ten days ago (a full sync).
 function getEvents(calendarId, fullSync) {
   const properties = PropertiesService.getUserProperties();
   const options = {
-    maxResults: 100
+    maxResults: 100,
+    showDeleted : true,
   };
-  const syncToken = properties.getProperty('syncToken'+calendarId);
-  Logger.log('Current sync token: ' + syncToken);
+  const syncToken = properties.getProperty(`syncToken ${calendarId}`);
+  Logger.log(`Current sync token: ${syncToken}`);
   if (syncToken && !fullSync) {
     options.syncToken = syncToken;
   } else {
@@ -411,10 +1223,11 @@ function getEvents(calendarId, fullSync) {
   var eventsList;
   var pageToken = null;
   var events = [];
+  var canceledEvents = [];
   do {
     try {
       if (pageToken === null) { // first page
-        delete options.pageToken; // delete key "pageToken"
+        delete options.pageToken; // delete key 'pageToken'
       } else {
         options.pageToken = pageToken;
       }
@@ -424,7 +1237,7 @@ function getEvents(calendarId, fullSync) {
       // if so, perform a full sync instead.
       if (e.message === 'API call to calendar.events.list failed with error: Sync token is no longer valid, a full sync is required.') {
         Logger.log('Sync token invalidated -> Full sync initiated');
-        properties.deleteProperty('syncToken'+calendarId);
+        properties.deleteProperty(`syncToken ${calendarId}`);
         events = getEvents(calendarId, true);
         return events;
       } else {
@@ -435,7 +1248,8 @@ function getEvents(calendarId, fullSync) {
       for (var i = 0; i < eventsList.items.length; i++) {
         const event = eventsList.items[i];
         if (event.status === 'cancelled') {
-          Logger.log('Event id %s was cancelled.', event.id);
+          Logger.log(`Event id ${event.id} was cancelled.`);
+          canceledEvents.push(event);
         } else{
           events.push(event);
         }
@@ -445,86 +1259,54 @@ function getEvents(calendarId, fullSync) {
     }
     pageToken = eventsList.nextPageToken;
   } while (pageToken);
-  properties.setProperty('syncToken'+calendarId, eventsList.nextSyncToken);
-  return events;
+  properties.setProperty(`syncToken ${calendarId}`, eventsList.nextSyncToken);
+  return {canceledEvents, events};
 }
 
-// get device and state from event summary
-function getDeviceStateFromEvent(event){
-  const summary = event.summary;
-  const status = summary.split(' '); // split to device and state
-  if (status.length === 1) { // just the device name (state is 'use')
-    var device = status[0];
+// get equipment name and state from event summary
+function getEquipmentNameAndStateFromEvent(event){
+  const summary = event.summary;  
+  const status = summary.split(' '); // split to equipment and state
+  if (status.length === 1) { // just the equipment name (state is 'use')
+    var equipmentName = status[0];
     var state = 'use';
-  } else if (status.length === 2 || status.length === 3) { // (User Name) + device + state
-    var device = status[status.length-2];
+  } else if (status.length === 2 || status.length === 3) { // (User Name) + equipment + state
+    var equipmentName = status[status.length-2];
     var state = status[status.length-1];
   }
-  return {device, state};
+  return {equipmentName, state};
 }
 
 // rename and write event in write calendar and add read calendars as guests
 function writeEvent(event, writeCalendarId, writeUser, readCalendarIds) {
   Utilities.sleep(100);
-  const deviceStateFromEvent = getDeviceStateFromEvent(event);
-  const device = deviceStateFromEvent.device;
-  const state = deviceStateFromEvent.state;
+  const equipmentStateFromEvent = getEquipmentNameAndStateFromEvent(event);
+  const equipmentName = equipmentStateFromEvent.equipmentName;
+  const state = equipmentStateFromEvent.state;
   const eid = event.iCalUID;
   var event = CalendarApp.getCalendarById(writeCalendarId).getEventById(eid);
-  // if device is enabled in sheets, add to guest subscription
-  // change title from '(User Name) + device + state' to 'User Name + device + state'
-  const summary = writeUser  + ' ' + device + ' ' + state;
+  // if equipment is enabled in sheets, add to guest subscription
+  // change title from '(User Name) + equipment + state' to 'User Name + equipment + state'
+  const summary = `${writeUser} ${equipmentName} ${state}`;
   event.setTitle(summary);
-  // add read calendars as guests
+  var guestList = event.getGuestList(false); // dont include owner
+  var guestEmailList = [];
+  for (var i = 0; i < guestList.length; i++) {
+    guestEmailList[i] = guestList[i].getEmail();
+  }
+  // add readCalendars as guests if not included in guests
   for (var i = 0; i < readCalendarIds.length; i++) {
     const readCalendarId = readCalendarIds[i];
-    event.addGuest(readCalendarId);
+    if (!guestEmailList.includes(readCalendarId)) { // if readCalendar is not added as guest
+      event.addGuest(readCalendarId);
+    }
   }
-  const executionDateTime = new Date(); // current time
-  const startDateTime = event.getStartTime();
-  const endDateTime = event.getEndTime();
-  const durationDateTime = new Date(endDateTime - startDateTime);
-  const properties = PropertiesService.getUserProperties();
-  var adminLoggingDone = properties.getProperty('adminLoggingDone');
-  if (adminLoggingDone === 'false'){ // do admin logging only once
-    adminLogging({
-      executionYear: executionDateTime.getFullYear(),
-      executionMonth: executionDateTime.getMonth()+1, // Jan. is 0, Dec is 11 --change--> 1~12
-      executionDay: executionDateTime.getDate(),
-      executionHour: executionDateTime.getHours(),
-      executionMin: executionDateTime.getMinutes(),
-      executionSec: executionDateTime.getSeconds(),
-      executionMilliSec: executionDateTime.getMilliseconds(),
-      startYear: startDateTime.getFullYear(),
-      startMonth: startDateTime.getMonth()+1,
-      startDay: startDateTime.getDate(),
-      startHour: startDateTime.getHours(),
-      startMin: startDateTime.getMinutes(),
-      startSec: startDateTime.getSeconds(),
-      startMilliSec: startDateTime.getMilliseconds(),
-      endYear: endDateTime.getFullYear(),
-      endMonth: endDateTime.getMonth()+1,
-      endDay: endDateTime.getDate(),
-      endHour: endDateTime.getHours(),
-      endMin: endDateTime.getMinutes(),
-      endSec: endDateTime.getSeconds(),
-      endMilliSec: endDateTime.getMilliseconds(),
-      durationYear: durationDateTime.getFullYear() - 1970, // starts at 1970
-      durationMonth: durationDateTime.getMonth(), // dont add 1 to difference
-      durationDay: durationDateTime.getDate()-1, // dont know why it shows 1 when it should be 0
-      durationHour: durationDateTime.getHours(),
-      durationMin: durationDateTime.getMinutes(),
-      durationSec: durationDateTime.getSeconds(),
-      durationMilliSec: durationDateTime.getMilliseconds(),
-      specialAllDay: event.isAllDayEvent(),
-      specialReccuring: event.isRecurringEvent(),
-      specialRecurringDays: "",
-      device: device,
-      status: state,
-      comment: "",
-    });
-    Logger.log('admin logging done');
-    properties.setProperty('adminLoggingDone', 'true');
+  // remove guest not included in readCalendars
+  for (var i = 0; i < guestEmailList.length; i++) {
+    const guestEmail = guestEmailList[i];
+    if (!readCalendarIds.includes(guestEmail)) { // if guestEmail is not added as guest
+      event.removeGuest(guestEmail);
+    }
   }
 }
 
@@ -540,54 +1322,49 @@ function getRelativeDate(daysOffset, hour) {
 
 // get last and first names from full name
 function setFirstLastNames(sheet, cell, newValue){
+  const properties = PropertiesService.getUserProperties();
+  const experimentConditionSpreadsheetId = properties.getProperty('experimentConditionSpreadsheetId');
   const names = newValue.split(' ', 2); // split to last and first name
   const lastName = names[1];
   const firstName = names[0];
-  sheet.getRange(cell.getRow(), 2).setValue(lastName);
-  sheet.getRange(cell.getRow(), 3).setValue(firstName);
+  const row = cell.getRow();
   // set User Name 1 using last and first name
   // User Name 1 = {Last Name up to 4 letters}.{First Name up to 1 letter}
-  sheet.getRange(cell.getRow(), 4).setValue(lastName.slice(0,4)+'.'+firstName.slice(0,1));
+  var filledArray = [[lastName, firstName, lastName.slice(0,4)+'.'+firstName.slice(0,1)]];
+  sheet.getRange(row, 2, 1, 3).setValues(filledArray);
 }
 
 // set User Name 2 using User Name 1
 // User Name 2 = {User Name 1}{unique identifier 1~9}
 //             = {Last Name up to 4 letters}.{First Name up to 1 letter}{unique identifier 1,2,3,...}
 function setUserNames(sheet){
+  const properties = PropertiesService.getUserProperties();
+  const experimentConditionSpreadsheetId = properties.getProperty('experimentConditionSpreadsheetId');
   const lastRow = sheet.getLastRow();
+  const values = sheet.getRange(2, 4, lastRow-1).getValues();
+  var filledArray = [];
   // update User Name 2 for row0 = 2~lastRow
-  for (var row0 = 2; row0 < lastRow+1; row0++) {
-    const value0 = sheet.getRange(row0, 4).getValue();
-    var count = 0;
+  for (var i = 0; i < lastRow-1; i++){
     // check the duplicate count of value0 for row1 = 2~row0
-    for (var row1 = 2; row1 < row0+1; row1++) {
-      const value1 = sheet.getRange(row1, 4).getValue();
-      if (value0 === value1){
+    var count = 0; // duplicate count
+    for (var j = 0; j < i + 1; j++){
+      if (values[i][0] === values[j][0]){
         count += 1;
       }
     }
-    // use count as unique identifier (1,2,3,...)
-    sheet.getRange(row0, 5).setValue(value0+count); 
+    filledArray[i] = [`${values[i][0]}${count}`]; // name + unique number
   }
-}
-
-// create checkboxes for selecting which equipment to show in the calendar
-function setCheckboxes(sheet, cell) {
-  const lastColumn = sheet.getLastColumn();
-  if (sheet.getRange(cell.getRow(), 8).isChecked() == null){ // if cell is not a checkbox
-    // create checkboxes
-    for (var column = 8; column < lastColumn+1; column++) { 
-      sheet.getRange(cell.getRow(), column).insertCheckboxes();  
-    }
-  }
-  Logger.log('Created checkboxes');
+  // use count as unique identifier (1,2,3,...)
+  sheet.getRange(2, 5, lastRow-1).setValues(filledArray);
 }
 
 // set read calendar and write calendar for created user
 function setCalendars(sheet, cell) {
-  const userName = sheet.getRange(cell.getRow(), 5).getValue();
-  const readCalendarId = sheet.getRange(cell.getRow(), 6).getValue();
-  const writeCalendarId = sheet.getRange(cell.getRow(), 7).getValue();
+  const row = cell.getRow();
+  const values = sheet.getRange(row, 5, 1, 3).getValues();
+  const userName = values[0][0];
+  const readCalendarId = values[0][1];
+  const writeCalendarId = values[0][2];
   changeCalendarName(readCalendarId, userName, 'Read');
   changeCalendarName(writeCalendarId, userName, 'Write');
 }
@@ -595,34 +1372,77 @@ function setCalendars(sheet, cell) {
 // update calendar name and description
 function changeCalendarName(calendarId, userName, readOrWrite) {
   // calendar name (summary) and description changes for read and write calendar
-  if (readOrWrite === 'Read') { 
-    var summary = 'Read' + ' ' + userName;
-    var description = '装置の予約状況\n' +
-      'schedule for selected devices';  
-  } else if (readOrWrite === 'Write') { 
-    var summary = 'Write' + ' ' + userName;
-    var description = '装置を予約する\n' +
-      'Reserve devices\n' +
-      'Formatting: [Device] [State]\n' +
-      'Devices: rie, nrie(new RIE), cvd, ncvd(new CVD), pvd, fts\n' +
-      'States: evac(evacuation), use(or no entry), cool(cooldown), o2(RIE O2 ashing)\n';  
+  if (calendarId !== '') { // write calendarId is empty for "all event" calendar
+    if (readOrWrite === 'Read') { 
+      var summary = `Read ${userName}`;
+    } else if (readOrWrite === 'Write') { 
+      var summary = `Write ${userName}`;
+    } else {
+      Logger.log('readOrWrite has to be \'Read\' or \'Write\'');
+    };
+    const calendar = CalendarApp.getCalendarById(calendarId);
+    calendar.setName(summary);
+    Logger.log('Updated calendar name');
   } else {
-    Logger.log('readOrWrite has to be \'Read\' or \'Write\'');
-  };
-  const calendar = CalendarApp.getCalendarById(calendarId);
-  calendar.setName(summary);
-  calendar.setDescription(description);
-  Logger.log('Updated calendar name');
+    Logger.log('Skipped update of calendar name because calendarId is empty');
+  }
 }
 
-// update the sync token after adding and deleting guests
-function updateSyncToken(calendarId) {
-  const properties = PropertiesService.getUserProperties();
-  const options = {
-    maxResults: 1000 // suppress nextPageToken which supresses nextSyncToken by fitting all events in one page
-  };
-  var eventsList;
-  eventsList = Calendar.Events.list(calendarId, options);
-  properties.setProperty('syncToken'+calendarId, eventsList.nextSyncToken);
-  Logger.log('Updated sync token. New sync token: ' + eventsList.nextSyncToken);
+function importMomentJS() {
+  Logger.log('Start importing Moment, Moment-timezone, Moment-timezone-with-data');
+  eval(UrlFetchApp.fetch('https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js').getContentText());
+  eval(UrlFetchApp.fetch('https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.34/moment-timezone.min.js').getContentText());
+  eval(UrlFetchApp.fetch('https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.34/moment-timezone-with-data.js').getContentText());
+  Logger.log('Done importing');
 }
+
+// parse MM/DD/YY HH:mm (local time) to 0000-00-00T00:00:00.000Z (ISO-8601) UTC
+// string -> Date object
+function localTimeToUTC(inputDate) {
+  const properties = PropertiesService.getUserProperties();
+  const timeZone = properties.getProperty('timeZone');
+  const outputDate = moment.tz(inputDate, "MM/DD/YY HH:mm", timeZone).toDate(); // toDate outputs utc time
+  return outputDate
+}
+
+// parse 0000-00-00T00:00:00.000Z (ISO-8601) UTC to MM/DD/YY HH:mm (local time)
+// Date object -> string
+function UTCToLocalTime(inputDate) {
+  const properties = PropertiesService.getUserProperties();
+  const timeZone = properties.getProperty('timeZone');
+  const outputDate = moment(inputDate).tz(timeZone).format("MM/DD/YY HH:mm");
+  return outputDate
+}
+
+// timed trigger after 30 seconds
+function timedTrigger(functionName) {  
+  ScriptApp
+    .newTrigger(functionName)
+    .timeBased()
+    .at(new Date((new Date()).getTime()+30000))
+    .create();
+  Logger.log(`trigger set for ${functionName}`);
+}
+
+// convert R1C1 range notation to A1 range string notation
+function R1C1RangeToA1Range(row, column, rowCount, columnCount) {
+  return `${R1C1ToA1(row, column)}:${R1C1ToA1(row+rowCount-1, column+columnCount-1)}`
+}
+
+// convert R1C1 notation to A1 notation
+function R1C1ToA1(row, column) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let columnRef = '';
+  column -= 1;
+
+  if (column < 1) {
+    columnRef = chars[0];
+  }
+  else {
+    const base26 = column.toString(26);
+    const digits = base26.split('');
+    columnRef = digits.map((digit, i) => chars[parseInt(digit, 26) - (i === digits.length-1?0:1)]).join('');
+  }
+
+  return `${columnRef}${Math.max(row, 1)}`;
+};
