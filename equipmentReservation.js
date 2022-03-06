@@ -163,6 +163,7 @@ function createSpreadsheets2() {
       // protect range
       protectRange(experimentConditionSpreadsheetId, activeSheetId, 1, 1, 1, 12+experimentConditionCount);
       protectRange(experimentConditionSpreadsheetId, activeSheetId, 2, 6, experimentConditionRows-1, 7);
+      protectRange(experimentConditionSpreadsheetId, activeSheetId, 2, 4, experimentConditionRows-1, 1); // protect equipment name
       // set headers
       var filledArray = [[]];
       for (var j = 0; j < experimentConditionCount; j++) {
