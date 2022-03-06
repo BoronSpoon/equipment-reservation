@@ -623,7 +623,7 @@ function changeSubscribedEquipments(index){
     const events = allEvents.events;
     for (var j = 0; j < events.length; j++){
       const event = events[j];
-      const filteredReadCalendarIds = filterUsers(writeUser, event, [readCalendarId], enabledEquipmentsList).filteredReadCalendarIds;
+      const filteredReadCalendarIds = filterUsers(writeUser, event, readCalendarIds, enabledEquipmentsList).filteredReadCalendarIds;
       writeEvent(event, writeCalendarId, writeUser, filteredReadCalendarIds); // create event in write calendar and add read calendars as guests
     }
     updateSyncToken(writeCalendarId);
@@ -1288,10 +1288,24 @@ function writeEvent(event, writeCalendarId, writeUser, readCalendarIds) {
   // change title from '(User Name) + equipment + state' to 'User Name + equipment + state'
   const summary = `${writeUser} ${equipmentName} ${state}`;
   event.setTitle(summary);
-  // add read calendars as guests
+  var guestList = event.getGuestList(false); // dont include owner
+  var guestEmailList = [];
+  for (var i = 0; i < guestList.length; i++) {
+    guestEmailList[i] = guestList[i].getEmail();
+  }
+  // add readCalendars as guests if not included in guests
   for (var i = 0; i < readCalendarIds.length; i++) {
     const readCalendarId = readCalendarIds[i];
-    event.addGuest(readCalendarId);
+    if (!guestEmailList.includes(readCalendarId)) { // if readCalendar is not added as guest
+      event.addGuest(readCalendarId);
+    }
+  }
+  // remove guest not included in readCalendars
+  for (var i = 0; i < guestEmailList.length; i++) {
+    const guestEmail = guestEmailList[i];
+    if (!readCalendarIds.includes(guestEmail)) { // if guestEmail is not added as guest
+      event.removeGuest(guestEmail);
+    }
   }
 }
 
