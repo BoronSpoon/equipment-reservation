@@ -940,9 +940,9 @@ function insertCheckboxes(spreadsheetId, sheetId, startRow, startColumn, rowCoun
         "range": {
           "sheetId": sheetId,
           "startRowIndex": startRow-1,
-          "endRowIndex": endRow,
+          "endRowIndex": endRow-1,
           "startColumnIndex": startColumn-1,
-          "endColumnIndex": endColumn,
+          "endColumnIndex": endColumn-1,
         },
         'fields': '*'
       }
@@ -991,9 +991,9 @@ function protectRange(spreadsheetId, sheetId, startRow, startColumn, rowCount, c
           "range": {
             "sheetId": sheetId,
             "startRowIndex": startRow-1,
-            "endRowIndex": endRow,
+            "endRowIndex": endRow-1,
             "startColumnIndex": startColumn-1,
-            "endColumnIndex": endColumn,
+            "endColumnIndex": endColumn-1,
           },
           "description": "Protected Range",  
           "editors": {"users": [effectiveUser]}
