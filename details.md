@@ -309,17 +309,14 @@ https://google.github.io/styleguide/jsguide.html (以下jsguideと呼ぶ)の内�
 
 #### installable triggerのquotaの確認
 
-Google Apps Scriptには以下のquotaが設定されている。19人のユーザーがいたとしても十分な実行回数が確保できると考える。
+Google Apps Scriptには以下のquotaが設定されている。18人のユーザーがいたとしても十分な実行回数が確保できると考える。
 
 1. カレンダーの予約の作成：一日当たり5,000回実行可能
 2. triggerの実行時間：一日当たり90分間実行可能
-   1. 1回の実行時間を35秒とすると一日当たり150回実行可能
-
-##### 実行時間
-
-1. 予定作成 (max 35s @ 17 users) 2. 2人:9\~10s, 13人:12\~25s -> 18人14\~32s
-2. 閲覧する装置の変更
-   1. 17ユーザーで3\~5分ほど
+   1. 1回の実行時間を20秒とすると一日当たり270回実行可能(一人当たり15回)
+3. ユーザー数: 18 (+1管理者ユーザー 予定読み取り専用)
+4. 装置数: 30 (最大で50まで可能)
+5. 装置当たりの条件数: 30
 
 #### Google Sheetsのサイズ
 
@@ -375,23 +372,5 @@ Workbook内のすべてのSheetの合計Cell数は最大で10000000=1e7
 |-|-|-|-|-|-|-|-|-|-|
 |startTime|endTime|name|equipment|status|description|isAllDayEvent|isRecurringEvent|
 |**finalLoggingRows rows**||||||||
-
-## 5. 簡易版操作マニュアル
-
-### ユーザーの追加(初期設定)
-
-1. 新しいユーザーを追加する。
-   1. Sheets上にユーザーの名前を記入する(Sheetsの画像の➀に対応)。
-2. 使用する装置を設定する。
-   1. Sheets上で使用する装置にチェックを入れる(Sheetsの画像の➂に対応)。
-3. ユーザーのカレンダーを用意する。
-   1. `Read`(読み取り専用)と`Write`(書き込み専用)の二つのカレンダーのリンクが用意されている(Sheetsの画像の➁に対応)。
-   2. マウスカーソルをリンク上に移動してカレンダー上に追加する。 ![](%22./pics/sheets.PNG%22)
-
-### 予定の追加
-
-1. Calendar上で予定を追加する。
-   1. 予定のタイトルには`[装置名] [状態]`を記入する(Calendarの画像の➀に対応)。装置名、状態は前節の内容を参考にする。
-   2. 追加するカレンダーは`Write [User Name]`を選択する(Calendarの画像の➁に対応)。 ![](%22./pics/calendar.PNG%22)
 
 <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script> <script type="text/x-mathjax-config"> MathJax.Hub.Config({ tex2jax: {inlineMath: [['$', '$']]}, messageStyle: "none" }); </script>
